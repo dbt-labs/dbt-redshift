@@ -1,11 +1,9 @@
-import json
 import os
 import io
 import random
 import shutil
 import sys
 import tempfile
-import time
 import traceback
 import unittest
 from contextlib import contextmanager
@@ -17,7 +15,6 @@ import yaml
 from unittest.mock import patch
 
 import dbt.main as dbt
-import dbt.flags as flags
 from dbt.deprecations import reset_deprecations
 from dbt.adapters.factory import get_adapter, reset_adapters, register_adapter
 from dbt.clients.jinja import template_cache
@@ -83,7 +80,7 @@ class TestArgs:
 
 
 def _profile_from_test_name(test_name):
-    adapter_names = ('postgres', 'snowflake', 'redshift', 'bigquery', 'presto')
+    adapter_names = ('redshift')
     adapters_in_name = sum(x in test_name for x in adapter_names)
     if adapters_in_name != 1:
         raise ValueError(
@@ -141,42 +138,6 @@ class DBTIntegrationTest(unittest.TestCase):
     prefix = f'test{_runtime}{_randint:04}'
     setup_alternate_db = False
 
-    @property
-    def database_host(self):
-        return os.getenv('POSTGRES_TEST_HOST', 'localhost')
-
-    def postgres_profile(self):
-        return {
-            'config': {
-                'send_anonymous_usage_stats': False
-            },
-            'test': {
-                'outputs': {
-                    'default2': {
-                        'type': 'postgres',
-                        'threads': 4,
-                        'host': self.database_host,
-                        'port': int(os.getenv('POSTGRES_TEST_PORT', 5432)),
-                        'user': os.getenv('POSTGRES_TEST_USER', 'root'),
-                        'pass': os.getenv('POSTGRES_TEST_PASS', 'password'),
-                        'dbname': os.getenv('POSTGRES_TEST_DATABASE', 'dbt'),
-                        'schema': self.unique_schema()
-                    },
-                    'noaccess': {
-                        'type': 'postgres',
-                        'threads': 4,
-                        'host': self.database_host,
-                        'port': int(os.getenv('POSTGRES_TEST_PORT', 5432)),
-                        'user': 'noaccess',
-                        'pass': 'password',
-                        'dbname': os.getenv('POSTGRES_TEST_DATABASE', 'dbt'),
-                        'schema': self.unique_schema()
-                    }
-                },
-                'target': 'default2'
-            }
-        }
-
     def redshift_profile(self):
         return {
             'config': {
@@ -199,105 +160,6 @@ class DBTIntegrationTest(unittest.TestCase):
             }
         }
 
-    def snowflake_profile(self):
-        return {
-            'config': {
-                'send_anonymous_usage_stats': False
-            },
-            'test': {
-                'outputs': {
-                    'default2': {
-                        'type': 'snowflake',
-                        'threads': 4,
-                        'account': os.getenv('SNOWFLAKE_TEST_ACCOUNT'),
-                        'user': os.getenv('SNOWFLAKE_TEST_USER'),
-                        'password': os.getenv('SNOWFLAKE_TEST_PASSWORD'),
-                        'database': os.getenv('SNOWFLAKE_TEST_DATABASE'),
-                        'schema': self.unique_schema(),
-                        'warehouse': os.getenv('SNOWFLAKE_TEST_WAREHOUSE'),
-                    },
-                    'noaccess': {
-                        'type': 'snowflake',
-                        'threads': 4,
-                        'account': os.getenv('SNOWFLAKE_TEST_ACCOUNT'),
-                        'user': 'noaccess',
-                        'password': 'password',
-                        'database': os.getenv('SNOWFLAKE_TEST_DATABASE'),
-                        'schema': self.unique_schema(),
-                        'warehouse': os.getenv('SNOWFLAKE_TEST_WAREHOUSE'),
-                    },
-                    'oauth': {
-                        'type': 'snowflake',
-                        'threads': 4,
-                        'account': os.getenv('SNOWFLAKE_TEST_ACCOUNT'),
-                        'user': os.getenv('SNOWFLAKE_TEST_USER'),
-                        'oauth_client_id': os.getenv('SNOWFLAKE_TEST_OAUTH_CLIENT_ID'),
-                        'oauth_client_secret': os.getenv('SNOWFLAKE_TEST_OAUTH_CLIENT_SECRET'),
-                        'token': os.getenv('SNOWFLAKE_TEST_OAUTH_REFRESH_TOKEN'),
-                        'database': os.getenv('SNOWFLAKE_TEST_DATABASE'),
-                        'schema': self.unique_schema(),
-                        'warehouse': os.getenv('SNOWFLAKE_TEST_WAREHOUSE'),
-                        'authenticator': 'oauth',
-                    },
-                },
-                'target': 'default2'
-            }
-        }
-
-    def bigquery_profile(self):
-        credentials_json_str = os.getenv('BIGQUERY_TEST_SERVICE_ACCOUNT_JSON').replace("'", '')
-        credentials = json.loads(credentials_json_str)
-        project_id = credentials.get('project_id')
-
-        return {
-            'config': {
-                'send_anonymous_usage_stats': False
-            },
-            'test': {
-                'outputs': {
-                    'default2': {
-                        'type': 'bigquery',
-                        'method': 'service-account-json',
-                        'threads': 1,
-                        'project': project_id,
-                        'keyfile_json': credentials,
-                        'schema': self.unique_schema(),
-                    },
-                    'alternate': {
-                        'type': 'bigquery',
-                        'method': 'service-account-json',
-                        'threads': 1,
-                        'project': project_id,
-                        'keyfile_json': credentials,
-                        'schema': self.unique_schema(),
-                        'execution_project': self.alternative_database,
-                    },
-                },
-                'target': 'default2'
-            }
-        }
-
-    def presto_profile(self):
-        return {
-            'config': {
-                'send_anonymous_usage_stats': False
-            },
-            'test': {
-                'outputs': {
-                    'default2': {
-                        'type': 'presto',
-                        'method': 'none',
-                        'threads': 1,
-                        'schema': self.unique_schema(),
-                        'database': 'hive',
-                        'host': 'presto',
-                        'port': 8080,
-                    },
-                },
-                'target': 'default2'
-            }
-        }
-
     @property
     def packages_config(self):
         return None
@@ -311,37 +173,20 @@ class DBTIntegrationTest(unittest.TestCase):
 
         to_return = "{}_{}".format(self.prefix, schema)
 
-        if self.adapter_type == 'snowflake':
-            return to_return.upper()
-
         return to_return.lower()
 
     @property
     def default_database(self):
         database = self.config.credentials.database
-        if self.adapter_type == 'snowflake':
-            return database.upper()
         return database
 
     @property
     def alternative_database(self):
-        if self.adapter_type == 'bigquery':
-            return os.environ['BIGQUERY_TEST_ALT_DATABASE']
-        elif self.adapter_type == 'snowflake':
-            return os.environ['SNOWFLAKE_TEST_ALT_DATABASE']
         return None
 
     def get_profile(self, adapter_type):
-        if adapter_type == 'postgres':
-            return self.postgres_profile()
-        elif adapter_type == 'snowflake':
-            return self.snowflake_profile()
-        elif adapter_type == 'bigquery':
-            return self.bigquery_profile()
-        elif adapter_type == 'redshift':
+        if adapter_type == 'redshift':
             return self.redshift_profile()
-        elif adapter_type == 'presto':
-            return self.presto_profile()
         else:
             raise ValueError('invalid adapter type {}'.format(adapter_type))
 
@@ -503,41 +348,21 @@ class DBTIntegrationTest(unittest.TestCase):
 
     def _get_schema_fqn(self, database, schema):
         schema_fqn = self.quote_as_configured(schema, 'schema')
-        if self.adapter_type == 'snowflake':
-            database = self.quote_as_configured(database, 'database')
-            schema_fqn = '{}.{}'.format(database, schema_fqn)
         return schema_fqn
 
     def _create_schema_named(self, database, schema):
-        if self.adapter_type == 'bigquery':
-            relation = self.adapter.Relation.create(database=database, schema=schema)
-            self.adapter.create_schema(relation)
-        else:
-            schema_fqn = self._get_schema_fqn(database, schema)
-            self.run_sql(self.CREATE_SCHEMA_STATEMENT.format(schema_fqn))
-            self._created_schemas.add(schema_fqn)
+        schema_fqn = self._get_schema_fqn(database, schema)
+        self.run_sql(self.CREATE_SCHEMA_STATEMENT.format(schema_fqn))
+        self._created_schemas.add(schema_fqn)
 
     def _drop_schema_named(self, database, schema):
-        if self.adapter_type == 'bigquery' or self.adapter_type == 'presto':
-            relation = self.adapter.Relation.create(database=database, schema=schema)
-            self.adapter.drop_schema(relation)
-        else:
-            schema_fqn = self._get_schema_fqn(database, schema)
-            self.run_sql(self.DROP_SCHEMA_STATEMENT.format(schema_fqn))
+        schema_fqn = self._get_schema_fqn(database, schema)
+        self.run_sql(self.DROP_SCHEMA_STATEMENT.format(schema_fqn))
 
     def _create_schemas(self):
         schema = self.unique_schema()
         with self.adapter.connection_named('__test'):
             self._create_schema_named(self.default_database, schema)
-            if self.setup_alternate_db and self.adapter_type == 'snowflake':
-                self._create_schema_named(self.alternative_database, schema)
-
-    def _drop_schemas_adapter(self):
-        schema = self.unique_schema()
-        if self.adapter_type == 'bigquery' or self.adapter_type == 'presto':
-            self._drop_schema_named(self.default_database, schema)
-            if self.setup_alternate_db and self.alternative_database:
-                self._drop_schema_named(self.alternative_database, schema)
 
     def _drop_schemas_sql(self):
         schema = self.unique_schema()
@@ -545,10 +370,9 @@ class DBTIntegrationTest(unittest.TestCase):
         self._created_schemas.add(
             self._get_schema_fqn(self.default_database, schema)
         )
-        # on postgres/redshift, this will make you sad
         drop_alternative = (
             self.setup_alternate_db and
-            self.adapter_type not in {'postgres', 'redshift'} and
+            self.adapter_type not in {'redshift'} and
             self.alternative_database
         )
         if drop_alternative:
@@ -563,10 +387,7 @@ class DBTIntegrationTest(unittest.TestCase):
 
     def _drop_schemas(self):
         with self.adapter.connection_named('__test'):
-            if self.adapter_type == 'bigquery' or self.adapter_type == 'presto':
-                self._drop_schemas_adapter()
-            else:
-                self._drop_schemas_sql()
+            self._drop_schemas_sql()
 
     @property
     def project_config(self):
@@ -627,12 +448,8 @@ class DBTIntegrationTest(unittest.TestCase):
             for statement in statements:
                 self.run_sql(statement, kwargs=kwargs)
 
-    # horrible hack to support snowflake for right now
     def transform_sql(self, query, kwargs=None):
         to_return = query
-
-        if self.adapter_type == 'snowflake':
-            to_return = to_return.replace("BIGSERIAL", "BIGINT AUTOINCREMENT")
 
         base_kwargs = {
             'schema': self.unique_schema(),
@@ -642,44 +459,9 @@ class DBTIntegrationTest(unittest.TestCase):
             kwargs = {}
         base_kwargs.update(kwargs)
 
-
         to_return = to_return.format(**base_kwargs)
 
         return to_return
-
-    def run_sql_bigquery(self, sql, fetch):
-        """Run an SQL query on a bigquery adapter. No cursors, transactions,
-        etc. to worry about"""
-
-        do_fetch = fetch != 'None'
-        _, res = self.adapter.execute(sql, fetch=do_fetch)
-
-        # convert dataframe to matrix-ish repr
-        if fetch == 'one':
-            return res[0]
-        else:
-            return list(res)
-
-    def run_sql_presto(self, sql, fetch, conn):
-        cursor = conn.handle.cursor()
-        try:
-            cursor.execute(sql)
-            if fetch == 'one':
-                return cursor.fetchall()[0]
-            elif fetch == 'all':
-                return cursor.fetchall()
-            else:
-                # we have to fetch.
-                cursor.fetchall()
-        except Exception as e:
-            conn.handle.rollback()
-            conn.transaction_open = False
-            print(sql)
-            print(e)
-            raise
-        else:
-            conn.handle.commit()
-            conn.transaction_open = False
 
     def run_sql_common(self, sql, fetch, conn):
         with conn.handle.cursor() as cursor:
@@ -712,48 +494,13 @@ class DBTIntegrationTest(unittest.TestCase):
 
         with self.get_connection(connection_name) as conn:
             logger.debug('test connection "{}" executing: {}'.format(conn.name, sql))
-            if self.adapter_type == 'bigquery':
-                return self.run_sql_bigquery(sql, fetch)
-            elif self.adapter_type == 'presto':
-                return self.run_sql_presto(sql, fetch, conn)
-            else:
-                return self.run_sql_common(sql, fetch, conn)
+            return self.run_sql_common(sql, fetch, conn)
 
     def _ilike(self, target, value):
-        # presto has this regex substitution monstrosity instead of 'ilike'
-        if self.adapter_type == 'presto':
-            return r"regexp_like({}, '(?i)\A{}\Z')".format(target, value)
-        else:
-            return "{} ilike '{}'".format(target, value)
-
-    def get_many_table_columns_snowflake(self, tables, schema, database=None):
-        tables = set(tables)
-        if database is None:
-            database = self.default_database
-        sql = 'show columns in schema {database}.{schema}'.format(
-            database=self.quote_as_configured(database, 'database'),
-            schema=self.quote_as_configured(schema, 'schema')
-        )
-        # assumption: this will be much  faster than doing one query/table
-        # because in tests, we'll want most of our tables most of the time.
-        columns = self.run_sql(sql, fetch='all')
-        results = []
-        for column in columns:
-            table_name, _, column_name, json_data_type = column[:4]
-            character_maximum_length = None
-            if table_name in tables:
-                typeinfo = json.loads(json_data_type)
-                data_type = typeinfo['type']
-                if data_type == 'TEXT':
-                    character_maximum_length = max(typeinfo['length'], 16777216)
-                results.append((table_name, column_name, data_type, character_maximum_length))
-        return results
+        return "{} ilike '{}'".format(target, value)
 
     def get_many_table_columns_information_schema(self, tables, schema, database=None):
-        if self.adapter_type == 'presto':
-            columns = 'table_name, column_name, data_type'
-        else:
-            columns = 'table_name, column_name, data_type, character_maximum_length'
+        columns = 'table_name, column_name, data_type, character_maximum_length'
 
         sql = """
                 select {columns}
@@ -781,22 +528,8 @@ class DBTIntegrationTest(unittest.TestCase):
         columns = self.run_sql(sql, fetch='all')
         return list(map(self.filter_many_columns, columns))
 
-    def get_many_table_columns_bigquery(self, tables, schema, database=None):
-        result = []
-        for table in tables:
-            relation = self._make_relation(table, schema, database)
-            columns = self.adapter.get_columns_in_relation(relation)
-            for col in columns:
-                result.append((table, col.column, col.dtype, col.char_size))
-        return result
-
     def get_many_table_columns(self, tables, schema, database=None):
-        if self.adapter_type == 'snowflake':
-            result = self.get_many_table_columns_snowflake(tables, schema, database)
-        elif self.adapter_type == 'bigquery':
-            result = self.get_many_table_columns_bigquery(tables, schema, database)
-        else:
-            result = self.get_many_table_columns_information_schema(tables, schema, database)
+        result = self.get_many_table_columns_information_schema(tables, schema, database)
         result.sort(key=lambda x: '{}.{}'.format(x[0], x[1]))
         return result
 
@@ -806,10 +539,6 @@ class DBTIntegrationTest(unittest.TestCase):
             char_size = None
         else:
             table_name, column_name, data_type, char_size = column
-        # in snowflake, all varchar widths are created equal
-        if self.adapter_type == 'snowflake':
-            if char_size and char_size < 16777216:
-                char_size = 16777216
         return (table_name, column_name, data_type, char_size)
 
     @contextmanager
@@ -857,30 +586,8 @@ class DBTIntegrationTest(unittest.TestCase):
             res[table_name].append(col_def)
         return res
 
-    def get_models_in_schema_snowflake(self, schema):
-        sql = 'show objects in schema {}.{}'.format(
-            self.quote_as_configured(self.default_database, 'database'),
-            self.quote_as_configured(schema, 'schema')
-        )
-        results = {}
-        for row in self.run_sql(sql, fetch='all'):
-            # I sure hope these never change!
-            name = row[1]
-            kind = row[4]
-
-            if kind == 'TABLE':
-                kind = 'table'
-            elif kind == 'VIEW':
-                kind = 'view'
-
-            results[name] = kind
-        return results
-
     def get_models_in_schema(self, schema=None):
         schema = self.unique_schema() if schema is None else schema
-        if self.adapter_type == 'snowflake':
-            return self.get_models_in_schema_snowflake(schema)
-
         sql = """
                 select table_name,
                         case when table_type = 'BASE TABLE' then 'table'
@@ -1096,7 +803,6 @@ class DBTIntegrationTest(unittest.TestCase):
 
         """.format(str(relation_a), str(relation_b))
 
-
         res = self.run_sql(cmp_query, fetch='one')
 
         self.assertEqual(int(res[0]), 0, "Row count of table {} doesn't match row count of table {}. ({} rows different)".format(
@@ -1141,10 +847,6 @@ class DBTIntegrationTest(unittest.TestCase):
                 '{} vs {}: column "{}" has type "{}" != "{}"'.format(
                     relation_a, relation_b, a_name, a_type, b_type
                 ))
-
-            if self.adapter_type == 'presto' and None in (a_size, b_size):
-                # None is compatible with any size
-                continue
 
             self.assertEqual(a_size, b_size,
                 '{} vs {}: column "{}" has size "{}" != "{}"'.format(
@@ -1231,14 +933,6 @@ class AnyStringWith:
         return 'AnyStringWith<{!r}>'.format(self.contains)
 
 
-def bigquery_rate_limiter(err, *args):
-    msg = str(err)
-    if 'too many table update operations for this table' in msg:
-        time.sleep(1)
-        return True
-    return False
-
-
 def get_manifest():
     path = './target/partial_parse.msgpack'
     if os.path.exists(path):
@@ -1248,4 +942,3 @@ def get_manifest():
         return manifest
     else:
         return None
-
