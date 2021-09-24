@@ -7,15 +7,14 @@ from unittest import mock
 import pytest
 
 # make sure 'redshift' is available
-from dbt.adapters import postgres, redshift
+from dbt.adapters import redshift
 from dbt.adapters import factory
-from dbt.adapters.base import AdapterConfig
 from dbt.clients.jinja import MacroStack
 from dbt.contracts.graph.parsed import (
     ParsedModelNode, NodeConfig, DependsOn, ParsedMacro
 )
 from dbt.config.project import VarProvider
-from dbt.context import base, target, configured, providers, docs, manifest, macros
+from dbt.context import base, target, providers, docs, manifest, macros
 from dbt.contracts.files import FileHash
 from dbt.node_types import NodeType
 import dbt.exceptions
