@@ -15,6 +15,7 @@ import yaml
 from unittest.mock import patch
 
 import dbt.main as dbt
+from dbt import flags
 from dbt.deprecations import reset_deprecations
 from dbt.adapters.factory import get_adapter, reset_adapters, register_adapter
 from dbt.clients.jinja import template_cache
@@ -80,7 +81,7 @@ class TestArgs:
 
 
 def _profile_from_test_name(test_name):
-    adapter_names = ('redshift')
+    adapter_names = ('redshift',)
     adapters_in_name = sum(x in test_name for x in adapter_names)
     if adapters_in_name != 1:
         raise ValueError(
@@ -283,6 +284,7 @@ class DBTIntegrationTest(unittest.TestCase):
         if not os.path.exists(self.test_root_dir):
             os.makedirs(self.test_root_dir)
 
+        flags.PROFILES_DIR = self.test_root_dir
         profiles_path = os.path.join(self.test_root_dir, 'profiles.yml')
         with open(profiles_path, 'w') as f:
             yaml.safe_dump(profile_config, f, default_flow_style=True)
