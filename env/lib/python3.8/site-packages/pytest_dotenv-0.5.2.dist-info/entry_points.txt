@@ -1,0 +1,3 @@
+[pytest11]
+dotenv = pytest_dotenv.plugin
+

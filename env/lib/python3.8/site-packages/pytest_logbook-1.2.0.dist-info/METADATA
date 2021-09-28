@@ -1,0 +1,172 @@
+Metadata-Version: 2.0
+Name: pytest-logbook
+Version: 1.2.0
+Summary: py.test plugin to capture logbook log messages
+Home-page: http://bitbucket.org/flub/pytest-logbook
+Author: Floris Bruynooghe
+Author-email: flub@devork.be
+License: MIT
+Platform: UNKNOWN
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Environment :: Console
+Classifier: Environment :: Plugins
+Classifier: Intended Audience :: Developers
+Classifier: License :: DFSG approved
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python :: 3
+Classifier: Topic :: Software Development :: Testing
+Requires-Dist: Logbook (>=0.11.3)
+Requires-Dist: pytest (>=2.8)
+
+==============
+pytest-logbook
+==============
+
+Capture and show logbook logging output during test runs.
+
+This pytest_ plugin provides will capture log messages emitted by
+logbook and display them in their own section in the test report if
+the test fails.  Additionally it provides a fixture which provides
+easy access to the log records emitted during the test which allows
+making assertions on emitted log message.  The plugin also sets up
+logging redirection from the stdlib to go via logbook so any
+libraries which use stdlib logging will also be captured.
+
+.. _pytest: http://pytest.org
+
+
+Installation
+============
+
+Install using pip::
+
+   pip install pytest-logbook
+
+
+Log Capturing
+=============
+
+Log capturing happens automatically once installed, including stdlib
+logging redirection::
+
+   def test_foo():
+       logbook.info('hello')
+       logging.info('world')
+       assert 0
+
+::
+
+   $ py.test test_foo.py
+   =========================== test session starts ============================
+   platform linux -- Python 3.4.3, pytest-2.8.2, py-1.4.30, pluggy-0.3.1
+   rootdir: /home/flub/Abilisoft/repos/pytest-logbook, inifile:
+   plugins: logbook-0.1.0
+   collected 1 items
+
+   test_foo.py F
+
+   ================================= FAILURES =================================
+   _________________________________ test_foo _________________________________
+
+       def test_foo():
+           logbook.info('hello')
+           logging.info('world')
+   >       assert 0
+   E       assert 0
+
+   test_foo.py:7: AssertionError
+   --------------------------- Logbook call records ---------------------------
+   [INFO] Generic: hello
+   [INFO] root: world
+   ========================= 1 failed in 0.01 seconds =========================
+
+Logs messages emitted during test setup and teardown are also captured
+individually.  If setup fails you will see them in a "Logbook setup
+records" section and if teardown fails you will see the teardown log
+messages in a "Logbook teardown records" section.
+
+
+Fixtures
+========
+
+Several fixtures are provided to access the captured log records.
+
+loghandler
+   Access the ``logbook.TestHandler`` instance active during the test
+   run.  You can use it to inspect the emitted log records, see the
+   `full documentation`_ for details on how to use this object.  Only
+   log records emitted during the actual test are recorded here,
+   records emitted during test setup or teardown are recorded in the
+   other fixtures.
+
+.. _full documentation: http://pythonhosted.org//Logbook/api/handlers.html#logbook.TestHandler
+
+loghandler_setup
+   Access the ``logbook.TestHandler`` instance active during the test
+   setup.
+
+loghandler_teardown
+   Access the ``logbook.TestHandler`` instance active during the test
+   teardown.
+
+
+Configuration
+=============
+
+The plugin can be configured using options in the `py.test
+configuration file`_ in the standard ``[pytest]`` section.
+
+.. _py.test configuration file: http://pytest.org/latest/customize.html#initialization-determining-rootdir-and-inifile
+
+
+logbook_stdlib
+   This configures whether the stdlib logging is redirected to
+   logbook.  Set it to either ``true`` (default) or ``false``.
+
+
+Changelog
+=========
+
+1.2.0
+-----
+
+* Refactor internal workings to improve behaviour during keyboard
+  interrupt and internal py.test errors.  As a minor regression and to
+  keep things simple log records are now only captured during test
+  setup, call or teardown phases and are not captured during conftest
+  loading or test collection.  This is not an inherent limitation,
+  only avoiding unneeded features.
+* Fix using fixture in a test method rather then just a test function.
+
+1.1.0
+-----
+
+* Do not fail if the application corrupts the Logbook stack.
+
+1.0.3
+-----
+
+* Require Logbook 0.11.3 to get the ``logging.compat`` module
+  accessible.
+
+1.0.2
+-----
+
+* Include ``LICENSE``.
+* Add ``MANIFEST.in`` in ship LICENSE, tox.ini and test module.
+* Start keeping a changelog.
+* Fix dependency to require py.test >= 2.8 due to how hooks are
+  implemented.
+
+1.0.1
+-----
+
+* Do not build universal wheel.  Only tested/supported on python3.
+
+1.0.1
+-----
+
+* Initial release.
+
+

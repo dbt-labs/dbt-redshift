@@ -1,0 +1,63 @@
+Metadata-Version: 2.0
+Name: agate
+Version: 1.6.1
+Summary: A data analysis library that is optimized for humans instead of machines.
+Home-page: http://agate.readthedocs.org/
+Author: Christopher Groskopf
+Author-email: chrisgroskopf@gmail.com
+License: MIT
+Platform: UNKNOWN
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Framework :: IPython
+Classifier: Intended Audience :: Developers
+Classifier: Intended Audience :: Science/Research
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Natural Language :: English
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 2
+Classifier: Programming Language :: Python :: 2.7
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.3
+Classifier: Programming Language :: Python :: 3.4
+Classifier: Programming Language :: Python :: 3.5
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Programming Language :: Python :: Implementation :: CPython
+Classifier: Programming Language :: Python :: Implementation :: PyPy
+Classifier: Topic :: Scientific/Engineering :: Information Analysis
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Requires-Dist: six (>=1.9.0)
+Requires-Dist: pytimeparse (>=1.1.5)
+Requires-Dist: parsedatetime (>=2.1)
+Requires-Dist: Babel (>=2.0)
+Requires-Dist: isodate (>=0.5.4)
+Requires-Dist: python-slugify (>=1.2.1)
+Requires-Dist: leather (>=0.3.2)
+
+.. image:: https://travis-ci.org/wireservice/agate.png
+    :target: https://travis-ci.org/wireservice/agate
+    :alt: Build status
+
+.. image:: https://img.shields.io/pypi/v/agate.svg
+    :target: https://pypi.python.org/pypi/agate
+    :alt: Version
+
+.. image:: https://img.shields.io/pypi/l/agate.svg
+    :target: https://pypi.python.org/pypi/agate
+    :alt: License
+
+.. image:: https://img.shields.io/pypi/pyversions/agate.svg
+    :target: https://pypi.python.org/pypi/agate
+    :alt: Support Python versions
+
+agate is a Python data analysis library that is optimized for humans instead of machines. It is an alternative to numpy and pandas that solves real-world problems with readable code.
+
+agate was previously known as journalism.
+
+Important links:
+
+* Documentation:    http://agate.rtfd.org
+* Repository:       https://github.com/wireservice/agate
+* Issues:           https://github.com/wireservice/agate/issues
+
+

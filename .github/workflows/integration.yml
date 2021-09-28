@@ -1,0 +1,158 @@
+# **what?**
+# This workflow runs all integration tests for supported OS
+# and python versions and core adapters. If triggered by PR,
+# the workflow will only run tests for adapters related
+# to code changes. Use the `test all` and `test ${adapter}`
+# label to run all or additional tests. Use `ok to test`
+# label to mark PRs from forked repositories that are safe
+# to run integration tests for. Requires secrets to run
+# against different warehouses.
+
+# **why?**
+# This checks the functionality of dbt from a user's perspective
+# and attempts to catch functional regressions.
+
+# **when?**
+# This workflow will run on every push to a protected branch
+# and when manually triggered. It will also run for all PRs, including
+# PRs from forks. The workflow will be skipped until there is a label
+# to mark the PR as safe to run.
+
+name: Adapter Integration Tests
+
+on:
+  # pushes to release branches
+  push:
+    branches:
+      - "main"
+      - "develop"
+      - "*.latest"
+      - "releases/*"
+  # all PRs, important to note that `pull_request_target` workflows
+  # will run in the context of the target branch of a PR
+  pull_request_target:
+  # manual trigger
+  workflow_dispatch:
+
+# explicitly turn off permissions for `GITHUB_TOKEN`
+permissions: read-all
+
+# will cancel previous workflows triggered by the same event and for the same ref for PRs or same SHA otherwise
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ contains(github.event_name, 'pull_request') && github.event.pull_request.head.ref || github.sha }}
+  cancel-in-progress: true
+
+# sets default shell to bash, for all operating systems
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  test:
+    name: ${{ matrix.adapter }} / python ${{ matrix.python-version }} / ${{ matrix.os }}
+
+    # run if not a PR from a forked repository or has a label to mark as safe to test
+    # also checks that the matrix generated is not empty
+    if: >-
+      github.event_name != 'pull_request_target' ||
+      github.event.pull_request.head.repo.full_name == github.repository ||
+      contains(github.event.pull_request.labels.*.name, 'ok to test')
+
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        adapter: ["redshift"]
+        os: ["ubuntu-latest"]
+        python-version: ["3.6", "3.7", "3.8", "3.9"]
+        include:
+          - os: "windows-latest"
+            python-version: "3.8"
+            adapter: redshift
+          - os: "macos-latest"
+            python-version: "3.8"
+            adapter: redshift
+
+    env:
+      TOXENV: integration-${{ matrix.adapter }}
+      PYTEST_ADDOPTS: "-v --color=yes -n4 --csv integration_results.csv"
+      DBT_INVOCATION_ENV: github-actions
+
+    steps:
+      - name: Check out the repository
+        if: github.event_name != 'pull_request_target'
+        uses: actions/checkout@v2
+        with:
+          persist-credentials: false
+
+      # explicity checkout the branch for the PR,
+      # this is necessary for the `pull_request_target` event
+      - name: Check out the repository (PR)
+        if: github.event_name == 'pull_request_target'
+        uses: actions/checkout@v2
+        with:
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install python dependencies
+        run: |
+          pip install --upgrade pip
+          pip install tox
+          pip --version
+          tox --version
+
+      - name: Run tox (redshift)
+        if: matrix.adapter == 'redshift'
+        env:
+          REDSHIFT_TEST_DBNAME: ${{ secrets.REDSHIFT_TEST_DBNAME }}
+          REDSHIFT_TEST_PASS: ${{ secrets.REDSHIFT_TEST_PASS }}
+          REDSHIFT_TEST_USER: ${{ secrets.REDSHIFT_TEST_USER }}
+          REDSHIFT_TEST_PORT: ${{ secrets.REDSHIFT_TEST_PORT }}
+          REDSHIFT_TEST_HOST: ${{ secrets.REDSHIFT_TEST_HOST }}
+        run: tox
+
+      - uses: actions/upload-artifact@v2
+        if: always()
+        with:
+          name: logs
+          path: ./logs
+
+      - name: Get current date
+        if: always()
+        id: date
+        run: echo "::set-output name=date::$(date +'%Y-%m-%dT%H_%M_%S')" #no colons allowed for artifacts
+
+      - uses: actions/upload-artifact@v2
+        if: always()
+        with:
+          name: integration_results_${{ matrix.python-version }}_${{ matrix.os }}_${{ matrix.adapter }}-${{ steps.date.outputs.date }}.csv
+          path: integration_results.csv
+
+  require-label-comment:
+    runs-on: ubuntu-latest
+
+    needs: test
+
+    permissions:
+      pull-requests: write
+
+    steps:
+      - name: Needs permission PR comment
+        if: >-
+          needs.test.result == 'skipped' &&
+          github.event_name == 'pull_request_target' &&
+          github.event.pull_request.head.repo.full_name != github.repository
+        uses: unsplash/comment-on-pr@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          msg: |
+            "You do not have permissions to run integration tests, @dbt-labs/core "\
+            "needs to label this PR with `ok to test` in order to run integration tests!"
+          check_for_duplicate_msg: true

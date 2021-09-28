@@ -1,0 +1,42 @@
+Metadata-Version: 2.1
+Name: dbt-core
+Version: 0.21.0rc2
+Summary: dbt (data build tool) is a command line tool that helps analysts and engineers transform data in their warehouse more effectively
+Home-page: https://github.com/dbt-labs/dbt
+Author: dbt Labs
+Author-email: info@dbtlabs.com
+License: UNKNOWN
+Platform: UNKNOWN
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: License :: OSI Approved :: Apache Software License
+Classifier: Operating System :: Microsoft :: Windows
+Classifier: Operating System :: MacOS :: MacOS X
+Classifier: Operating System :: POSIX :: Linux
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Requires-Python: >=3.6.3
+Requires-Dist: Jinja2 (==2.11.3)
+Requires-Dist: PyYAML (>=3.11)
+Requires-Dist: agate (<1.6.2,>=1.6)
+Requires-Dist: colorama (<0.4.5,>=0.3.9)
+Requires-Dist: hologram (==0.0.14)
+Requires-Dist: isodate (<0.7,>=0.6)
+Requires-Dist: json-rpc (<2,>=1.12)
+Requires-Dist: logbook (<1.6,>=1.5)
+Requires-Dist: mashumaro (==2.5)
+Requires-Dist: minimal-snowplow-tracker (==0.0.2)
+Requires-Dist: networkx (<3,>=2.3)
+Requires-Dist: packaging (~=20.9)
+Requires-Dist: sqlparse (<0.5,>=0.2.3)
+Requires-Dist: dbt-extractor (==0.4.0)
+Requires-Dist: typing-extensions (<3.11,>=3.7.4)
+Requires-Dist: werkzeug (<3,>=1)
+Requires-Dist: requests (<3.0.0)
+Requires-Dist: idna (<4,>=2.5)
+Requires-Dist: cffi (<2.0.0,>=1.9)
+Requires-Dist: dataclasses (<0.9,>=0.6) ; python_version < "3.7"
+
+dbt (data build tool) is a command line tool that helps analysts and engineers transform data in their warehouse more effectively
+
