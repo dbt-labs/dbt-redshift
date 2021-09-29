@@ -7,4 +7,4 @@ N/A
 N/A
 
 ### Under the hood
-First version as a seperate repo.
+First version as a separate repo.

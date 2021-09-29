@@ -1,13 +1,16 @@
 #!/usr/bin/env python
 import os
 import sys
+import re
 
+# require python 3.6 or newer
 if sys.version_info < (3, 6):
     print('Error: dbt does not support this version of Python.')
     print('Please upgrade to Python 3.6 or higher.')
     sys.exit(1)
 
 
+# require version of setuptools that supports find_namespace_packages
 from setuptools import setup
 try:
     from setuptools import find_namespace_packages
@@ -19,13 +22,44 @@ except ImportError:
     sys.exit(1)
 
 
-package_name = "dbt-redshift"
-package_version = "0.21.0rc1"
-description = """The redshift adapter plugin for dbt (data build tool)"""
-
+# pull long description from README
 this_directory = os.path.abspath(os.path.dirname(__file__))
 with open(os.path.join(this_directory, 'README.md')) as f:
     long_description = f.read()
+
+
+# get this package's version from dbt/adapters/<name>/__version__.py
+def _get_plugin_version_dict():
+    _version_path = os.path.join(
+        this_directory, 'dbt', 'adapters', 'redshift', '__version__.py'
+    )
+    _semver = r'''(?P<major>\d+)\.(?P<minor>\d+)\.(?P<patch>\d+)'''
+    _pre = r'''((?P<prekind>a|b|rc)(?P<pre>\d+))?'''
+    _version_pattern = fr'''version\s*=\s*["']{_semver}{_pre}["']'''
+    with open(_version_path) as f:
+        match = re.search(_version_pattern, f.read().strip())
+        if match is None:
+            raise ValueError(f'invalid version at {_version_path}')
+        return match.groupdict()
+
+
+def _get_plugin_version():
+    parts = _get_plugin_version_dict()
+    return "{major}.{minor}.{patch}{prekind}{pre}".format(**parts)
+
+
+# require a compatible minor version (~=), prerelease if this is a prerelease
+def _get_dbt_core_version():
+    parts = _get_plugin_version_dict()
+    minor = "{major}.{minor}.0".format(**parts)
+    pre = (parts["prekind"]+"1" if parts["prekind"] else "")
+    return f"{minor}{pre}"
+
+
+package_name = "dbt-redshift"
+package_version = _get_plugin_version()
+dbt_core_version = _get_dbt_core_version()
+description = """The Redshift adapter plugin for dbt"""
 
 setup(
     name=package_name,
@@ -37,17 +71,10 @@ setup(
     author_email="info@dbtlabs.com",
     url="https://github.com/dbt-labs/dbt-redshift",
     packages=find_namespace_packages(include=['dbt', 'dbt.*']),
-    package_data={
-        'dbt': [
-            'include/redshift/dbt_project.yml',
-            'include/redshift/sample_profiles.yml',
-            'include/redshift/macros/*.sql',
-            'include/redshift/macros/**/*.sql',
-        ]
-    },
+    include_package_data=True,
     install_requires=[
-        'dbt-core=={}'.format(package_version),
-        'dbt-postgres=={}'.format(package_version),
+        'dbt-core~={}'.format(dbt_core_version),
+        'dbt-postgres~={}'.format(dbt_core_version),
         # the following are all to match snowflake-connector-python
         'boto3>=1.4.4,<2.0.0',
     ],
