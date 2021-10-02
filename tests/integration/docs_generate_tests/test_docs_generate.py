@@ -1218,7 +1218,7 @@ class TestDocsGenerate(DBTIntegrationTest):
                 'test.macro_info': ANY,
                 'test.macro_arg_info': ANY,
             },
-            'disabled': [],
+            'disabled': {},
         }
 
     def _checksum_file(self, path):
@@ -1487,7 +1487,7 @@ class TestDocsGenerate(DBTIntegrationTest):
                 'test.macro_info': ANY,
                 'test.macro_arg_info': ANY,
             },
-            'disabled': [],
+            'disabled': {},
         }
 
     def verify_metadata(self, metadata, dbt_schema_version):
