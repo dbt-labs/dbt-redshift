@@ -28,7 +28,7 @@ class TestSelectionExpansion(DBTIntegrationTest):
         print(listed)
         assert len(listed) == len(expected_tests)
 
-        test_names = [name.split('.')[2] for name in listed]
+        test_names = [name.split('.')[-1] for name in listed]
         assert sorted(test_names) == sorted(expected_tests)
 
     def run_tests_and_assert(

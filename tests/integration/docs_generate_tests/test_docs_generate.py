@@ -1025,7 +1025,7 @@ class TestDocsGenerate(DBTIntegrationTest):
                 },
                 'test.test.unique_model_id.67b76558ff': {
                     'alias': 'unique_model_id',
-                    'compiled_path': Normalized('target/compiled/test/models/schema.yml/schema_test/unique_model_id.sql'),
+                    'compiled_path': Normalized('target/compiled/test/models/schema.yml/unique_model_id.sql'),
                     'build_path': None,
                     'created_at': ANY,
                     'column_name': 'id',
