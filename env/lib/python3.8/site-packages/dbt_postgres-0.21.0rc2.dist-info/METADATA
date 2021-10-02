@@ -1,0 +1,25 @@
+Metadata-Version: 2.1
+Name: dbt-postgres
+Version: 0.21.0rc2
+Summary: The postgres adpter plugin for dbt (data build tool)
+Home-page: https://github.com/dbt-labs/dbt
+Author: dbt Labs
+Author-email: info@dbtlabs.com
+License: UNKNOWN
+Platform: UNKNOWN
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: License :: OSI Approved :: Apache Software License
+Classifier: Operating System :: Microsoft :: Windows
+Classifier: Operating System :: MacOS :: MacOS X
+Classifier: Operating System :: POSIX :: Linux
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Requires-Python: >=3.6.2
+Description-Content-Type: text/markdown
+Requires-Dist: dbt-core (==0.21.0rc2)
+Requires-Dist: psycopg2-binary (~=2.8)
+
+The postgres adpter plugin for dbt (data build tool)
+

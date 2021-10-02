@@ -1,0 +1,6 @@
+config-version: 2
+name: dbt
+version: 1.0
+
+docs-paths: ['docs']
+macro-paths: ["macros"]
