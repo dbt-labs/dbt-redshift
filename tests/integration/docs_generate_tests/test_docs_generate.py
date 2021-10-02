@@ -1043,7 +1043,7 @@ class TestDocsGenerate(DBTIntegrationTest):
                     'original_file_path': model_schema_yml_path,
                     'package_name': 'test',
                     'patch_path': None,
-                    'path': normalize('schema_test/unique_model_id.sql'),
+                    'path': normalize('unique_model_id.sql'),
                     'raw_sql': "{{ test_unique(**_dbt_generic_test_kwargs) }}",
                     'refs': [['model']],
                     'relation_name': None,
