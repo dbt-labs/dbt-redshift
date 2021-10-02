@@ -8,7 +8,7 @@ dbt is the T in ELT. Organize, cleanse, denormalize, filter, rename, and pre-agg
 
 ## dbt-redshift
 
-The `dbt-redshift` package contains all of the code required to make dbt operate on a Redshift database. For
+The `dbt-redshift` package contains all of the code enabling dbt to work with Amazon Redshift. For
 more information on using dbt with Redshift, consult [the docs](https://docs.getdbt.com/docs/profile-redshift).
 
 
