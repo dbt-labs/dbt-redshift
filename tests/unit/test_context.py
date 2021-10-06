@@ -446,16 +446,20 @@ def test_resolve_specific(config, manifest_extended, redshift_adapter, get_inclu
         manifest=manifest_extended,
     )
 
+    ctx['adapter'].config.dispatch
+
     # macro_a exists, but default__macro_a and redshift__macro_a do not
     with pytest.raises(dbt.exceptions.CompilationException):
         ctx['adapter'].dispatch('macro_a').macro
-
+    
     assert ctx['adapter'].dispatch('some_macro').macro is package_rs_macro
-    assert ctx['adapter'].dispatch('some_macro', packages=[
-                                   'dbt']).macro is rs_macro
-    assert ctx['adapter'].dispatch('some_macro', packages=[
-                                   'root']).macro is package_rs_macro
-    assert ctx['adapter'].dispatch('some_macro', packages=[
-                                   'root', 'dbt']).macro is package_rs_macro
-    assert ctx['adapter'].dispatch('some_macro', packages=[
-                                   'dbt', 'root']).macro is rs_macro
+    assert ctx['adapter'].dispatch('some_macro', 'dbt').macro is rs_macro
+    assert ctx['adapter'].dispatch('some_macro', 'root').macro is package_rs_macro
+    
+    # override 'dbt' namespace, dispatch to 'root' first
+    ctx['adapter'].config.dispatch = [{'macro_namespace': 'dbt', 'search_order': ['root', 'dbt']}]
+    assert ctx['adapter'].dispatch('some_macro', macro_namespace = 'dbt').macro is package_rs_macro
+    
+    # override 'root' namespace, dispatch to 'dbt' first
+    ctx['adapter'].config.dispatch = [{'macro_namespace': 'root', 'search_order': ['dbt', 'root']}]
+    assert ctx['adapter'].dispatch('some_macro', macro_namespace='root').macro is rs_macro
