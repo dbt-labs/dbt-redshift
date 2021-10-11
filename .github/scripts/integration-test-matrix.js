@@ -8,47 +8,39 @@ module.exports = ({ context }) => {
     // `changes` is a list of adapter names that have related
     // file changes in the PR
     // ex: ['postgres', 'snowflake']
-    const changes = JSON.parse(process.env.CHANGES);
     const labels = context.payload.pull_request.labels.map(({ name }) => name);
     console.log("labels", labels);
-    console.log("changes", changes);
     const testAllLabel = labels.includes("test all");
     const include = [];
 
     for (const adapter of supportedAdapters) {
-      if (
-        changes.includes(adapter) ||
-        testAllLabel ||
-        labels.includes(`test ${adapter}`)
-      ) {
-        for (const pythonVersion of supportedPythonVersions) {
-          if (
-            pythonVersion === defaultPythonVersion ||
-            labels.includes(`test python${pythonVersion}`) ||
-            testAllLabel
-          ) {
-            // always run tests on ubuntu by default
+      for (const pythonVersion of supportedPythonVersions) {
+        if (
+          pythonVersion === defaultPythonVersion ||
+          labels.includes(`test python${pythonVersion}`) ||
+          testAllLabel
+        ) {
+          // always run tests on ubuntu by default
+          include.push({
+            os: "ubuntu-latest",
+            adapter,
+            "python-version": pythonVersion,
+          });
+
+          if (labels.includes("test windows") || testAllLabel) {
             include.push({
-              os: "ubuntu-latest",
+              os: "windows-latest",
               adapter,
               "python-version": pythonVersion,
             });
+          }
 
-            if (labels.includes("test windows") || testAllLabel) {
-              include.push({
-                os: "windows-latest",
-                adapter,
-                "python-version": pythonVersion,
-              });
-            }
-
-            if (labels.includes("test macos") || testAllLabel) {
-              include.push({
-                os: "macos-latest",
-                adapter,
-                "python-version": pythonVersion,
-              });
-            }
+          if (labels.includes("test macos") || testAllLabel) {
+            include.push({
+              os: "macos-latest",
+              adapter,
+              "python-version": pythonVersion,
+            });
           }
         }
       }
