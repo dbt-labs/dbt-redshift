@@ -99,7 +99,7 @@ class TestDocsGenerate(DBTIntegrationTest):
         if alternate_db is None:
             alternate_db = self.alternative_database
         project = {
-            "data-paths": [self.dir("seed")],
+            "seed-paths": [self.dir("seed")],
             'macro-paths': [self.dir('macros')],
             'snapshot-paths': [self.dir('snapshot')],
             'vars': {
@@ -1648,7 +1648,7 @@ class TestDocsGenerate(DBTIntegrationTest):
     @use_profile('redshift')
     def test__redshift__incremental_view(self):
         self.run_and_generate(
-            {'source-paths': [self.dir('rs_models')]},
+            {'model-paths': [self.dir('rs_models')]},
             alternate_db=self.default_database,
             model_count=1,
         )
