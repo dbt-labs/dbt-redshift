@@ -7,4 +7,13 @@ N/A
 N/A
 
 ### Under the hood
-First version as a separate repo.
+- Replace `sample_profiles.yml` with `profile_template.yml`, for use with new `dbt init` ([#29](https://github.com/dbt-labs/dbt-redshift/pull/29))
+
+### Contributors
+- [@NiallRees](https://github.com/NiallRees) ([#29](https://github.com/dbt-labs/dbt-redshift/pull/29))
+
+## dbt-redshift v1.0.0b1 (October 11, 2021)
+
+### Under the hood
+
+- Initial adapter split out
