@@ -12,7 +12,7 @@ N/A
 ### Contributors
 N/A
 
-## dbt-redshift v1.0.0b1 (October 25, 2021)
+## dbt-redshift v1.0.0b2 (October 25, 2021)
 
 ### Under the hood
 - Replace `sample_profiles.yml` with `profile_template.yml`, for use with new `dbt init` ([#29](https://github.com/dbt-labs/dbt-redshift/pull/29))
