@@ -413,7 +413,7 @@ def test_macro_runtime_context(config, manifest_fx, get_adapter, get_include_pat
 
 
 def test_model_parse_context(config, manifest_fx, get_adapter, get_include_paths):
-    ctx = providers.generate_parser_model(
+    ctx = providers.generate_parser_model_context(
         model=mock_model(),
         config=config,
         manifest=manifest_fx,
