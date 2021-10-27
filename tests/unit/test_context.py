@@ -403,7 +403,7 @@ def test_query_header_context(config, manifest_fx):
 
 
 def test_macro_runtime_context(config, manifest_fx, get_adapter, get_include_paths):
-    ctx = providers.generate_runtime_macro(
+    ctx = providers.generate_runtime_macro_context(
         macro=manifest_fx.macros['macro.root.macro_a'],
         config=config,
         manifest=manifest_fx,
@@ -423,7 +423,7 @@ def test_model_parse_context(config, manifest_fx, get_adapter, get_include_paths
 
 
 def test_model_runtime_context(config, manifest_fx, get_adapter, get_include_paths):
-    ctx = providers.generate_runtime_model(
+    ctx = providers.generate_runtime_model_context(
         model=mock_model(),
         config=config,
         manifest=manifest_fx,
@@ -432,7 +432,7 @@ def test_model_runtime_context(config, manifest_fx, get_adapter, get_include_pat
 
 
 def test_docs_runtime_context(config):
-    ctx = docs.generate_runtime_docs(config, mock_model(), [], 'root')
+    ctx = docs.generate_runtime_docs_context(config, mock_model(), [], 'root')
     assert_has_keys(REQUIRED_DOCS_KEYS, MAYBE_KEYS, ctx)
 
 
@@ -440,7 +440,7 @@ def test_resolve_specific(config, manifest_extended, redshift_adapter, get_inclu
     rs_macro = manifest_extended.macros['macro.dbt_redshift.redshift__some_macro']
     package_rs_macro = manifest_extended.macros['macro.root.redshift__some_macro']
 
-    ctx = providers.generate_runtime_model(
+    ctx = providers.generate_runtime_model_context(
         model=mock_model(),
         config=config,
         manifest=manifest_extended,
