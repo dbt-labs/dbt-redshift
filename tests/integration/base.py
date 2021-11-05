@@ -21,9 +21,12 @@ from dbt.adapters.factory import get_adapter, reset_adapters, register_adapter
 from dbt.clients.jinja import template_cache
 from dbt.config import RuntimeConfig
 from dbt.context import providers
-from dbt.logger import GLOBAL_LOGGER as logger, log_manager
+from dbt.logger import GLOBAL_LOGGER as log_manager
+from dbt.events import AdapterLogger
 from dbt.contracts.graph.manifest import Manifest
 
+
+logger = AdapterLogger("Redshift")
 
 INITIAL_ROOT = os.getcwd()
 
