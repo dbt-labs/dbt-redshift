@@ -12,6 +12,7 @@ import dbt.exceptions
 
 logger = AdapterLogger("Redshift")
 
+
 @dataclass
 class RedshiftConfig(AdapterConfig):
     sort_type: Optional[str] = None
