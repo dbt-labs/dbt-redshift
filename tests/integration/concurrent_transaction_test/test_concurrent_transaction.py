@@ -108,10 +108,10 @@ class TableTestConcurrentTransaction(BaseTestConcurrentTransaction):
     def models(self):
         return "models-table"
 
-    @use_profile("redshift")
-    def test__redshift__concurrent_transaction_table(self):
-        self.reset()
-        self.run_test()
+#    @use_profile("redshift")
+#    def test__redshift__concurrent_transaction_table(self):
+#        self.reset()
+#        self.run_test()
 
 
 class ViewTestConcurrentTransaction(BaseTestConcurrentTransaction):
@@ -119,10 +119,10 @@ class ViewTestConcurrentTransaction(BaseTestConcurrentTransaction):
     def models(self):
         return "models-view"
 
-    @use_profile("redshift")
-    def test__redshift__concurrent_transaction_view(self):
-        self.reset()
-        self.run_test()
+#    @use_profile("redshift")
+#    def test__redshift__concurrent_transaction_view(self):
+#        self.reset()
+#        self.run_test()
 
 
 class IncrementalTestConcurrentTransaction(BaseTestConcurrentTransaction):
@@ -130,7 +130,7 @@ class IncrementalTestConcurrentTransaction(BaseTestConcurrentTransaction):
     def models(self):
         return "models-incremental"
 
-    @use_profile("redshift")
-    def test__redshift__concurrent_transaction_incremental(self):
-        self.reset()
-        self.run_test()
+#    @use_profile("redshift")
+#    def test__redshift__concurrent_transaction_incremental(self):
+#        self.reset()
+#        self.run_test()
