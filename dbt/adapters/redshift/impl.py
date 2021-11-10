@@ -7,8 +7,10 @@ from dbt.adapters.postgres import PostgresAdapter
 from dbt.adapters.redshift import RedshiftConnectionManager
 from dbt.adapters.redshift import RedshiftColumn
 from dbt.adapters.redshift import RedshiftRelation
-from dbt.logger import GLOBAL_LOGGER as logger  # noqa
+from dbt.events import AdapterLogger
 import dbt.exceptions
+
+logger = AdapterLogger("Redshift")
 
 
 @dataclass

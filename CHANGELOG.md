@@ -8,6 +8,7 @@ N/A
 
 ### Under the hood
 - Remove official support for python 3.6, which is reaching end of life on December 23, 2021 ([dbt-core#4134](https://github.com/dbt-labs/dbt-core/issues/4134), [#38](https://github.com/dbt-labs/dbt-redshift/pull/38))
+- Add support for structured logging [#34](https://github.com/dbt-labs/dbt-redshift/pull/34)
 
 ### Contributors
 N/A

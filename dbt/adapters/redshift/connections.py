@@ -4,7 +4,7 @@ from typing import NewType
 
 from dbt.adapters.postgres import PostgresConnectionManager
 from dbt.adapters.postgres import PostgresCredentials
-from dbt.logger import GLOBAL_LOGGER as logger  # noqa
+from dbt.events import AdapterLogger
 import dbt.exceptions
 import dbt.flags
 
@@ -14,6 +14,8 @@ from dbt.dataclass_schema import FieldEncoder, dbtClassMixin, StrEnum
 
 from dataclasses import dataclass, field
 from typing import Optional, List
+
+logger = AdapterLogger("Redshift")
 
 drop_lock: Lock = dbt.flags.MP_CONTEXT.Lock()
 
