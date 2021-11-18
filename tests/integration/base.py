@@ -441,6 +441,7 @@ class DBTIntegrationTest(unittest.TestCase):
             final_args.extend(['--profiles-dir', self.test_root_dir])
         final_args.append('--log-cache-events')
 
+        logger.info(f"final_args: {final_args}")  # TODO dev debug line
         logger.info("Invoking dbt with {}".format(final_args))
         return dbt.handle_and_check(final_args)
 
