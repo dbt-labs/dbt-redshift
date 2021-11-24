@@ -1,5 +1,7 @@
 ## dbt-redshift 1.0.0 (Release TBD)
 
+## dbt-redshift 1.0.0rc2 (November 24, 2021)
+
 ### Under the hood
 - Add optional Redshift parameter to create tables with BACKUP NO set, to exclude them from snapshots. ([#18](https://github.com/dbt-labs/dbt-redshift/issues/18), [#42](https://github.com/dbt-labs/dbt-redshift/pull/42))
 
