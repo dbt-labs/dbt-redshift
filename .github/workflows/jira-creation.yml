@@ -22,7 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     if: |
       ((github.event.action == 'opened') || 
-      (github.event.action == 'labeled' && github.event.issue.label == 'jira'))
+      (github.event.action == 'labeled' && github.event.label.name == 'jira'))
     steps:
       - name: Login
         uses: atlassian/gajira-login@v2.0.0
@@ -41,7 +41,7 @@ jobs:
           description: |
             ${{ github.event.issue.body }} \\ \\ _GitHub URL_ for ${{ github.event.issue.html_url }} \\ \\ _Author:_ ${{ github.event.issue.user.login }}
           fields: |
-            '{ "labels": {"id": "triage"}, "customfield_10045": {"id": "github.event.issue.html_url"}, "customfield_10046": {"id": "github.event.issue.number"} }'
+            '{ "labels": ["triage"], "customfield_10045": {"id": "github.event.issue.html_url"}, "customfield_10046": {"id": "github.event.issue.number"} }'
 
       - name: Update GitHub Issue
         uses: ./jira/gajira-issue-update
