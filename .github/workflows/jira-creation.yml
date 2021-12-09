@@ -16,6 +16,7 @@ on:
     
 permissions:
   issues: write
+  contents: read
 
 jobs:
   create-issue:
@@ -24,6 +25,9 @@ jobs:
       ((github.event.action == 'opened') || 
       (github.event.action == 'labeled' && github.event.label.name == 'jira'))
     steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        
       - name: Login
         uses: atlassian/gajira-login@v2.0.0
         env:
@@ -38,8 +42,7 @@ jobs:
           project: CORE
           issuetype: Task
           summary: '${{ github.event.issue.title }}'
-          description: |
-            ${{ github.event.issue.body }} \n\n_GitHub URL:_ ${{ github.event.issue.html_url }} \n_Author:_ ${{ github.event.issue.user.login }}
+          description: '${{ github.event.issue.body }}'
           fields: '{ "labels": ["triage"], "customfield_10045": "${{ github.event.issue.html_url }}", "customfield_10046": ${{ github.event.issue.number }} }'
 
       - name: Update GitHub Issue
