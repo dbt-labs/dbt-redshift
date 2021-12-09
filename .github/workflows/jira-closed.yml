@@ -32,8 +32,9 @@ jobs:
           jira=$(echo -n $TITLE | awk '{print $1}' | awk -F'[][]' '{print $2}')
           echo ::set-output name=jira::$jira
 
-      - name: Close issue
-        uses: ./jira/gajira-close
+      - name: Transition issue in Jira
         if: startsWith(steps.extract.outputs.jira, 'CORE-')
+        uses: atlassian/gajira-transition@master
         with:
           issue: "${{ steps.extract.outputs.jira }}"
+          transition: "Done"
