@@ -48,4 +48,4 @@ jobs:
           --header 'authorization: Bearer ${{ secrets.GITHUB_TOKEN }}' \
           --header 'content-type: application/json' \
           --header 'Accept: application/vnd.github.v3+json' \
-          --data '{ "title": "${{ steps.create.outputs.issue }}" }'
+          --data '{ "title": "[${{ steps.create.outputs.issue }}] ${{ github.event.issue.title }}" }'
