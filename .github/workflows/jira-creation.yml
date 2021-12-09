@@ -16,7 +16,6 @@ on:
     
 permissions:
   issues: write
-  contents: read
 
 jobs:
   create-issue:
@@ -24,17 +23,14 @@ jobs:
     if: |
       ((github.event.action == 'opened') || 
       (github.event.action == 'labeled' && github.event.label.name == 'jira'))
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-        
+    steps: 
       - name: Login
         uses: atlassian/gajira-login@v2.0.0
         env:
           JIRA_BASE_URL: ${{ secrets.JIRA_BASE_URL }}
           JIRA_USER_EMAIL: ${{ secrets.JIRA_USER_EMAIL }}
           JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
-
+          
       - name: Create JIRA Ticket
         id: create
         uses: atlassian/gajira-create@v2.0.1
@@ -43,12 +39,13 @@ jobs:
           issuetype: Task
           summary: '${{ github.event.issue.title }}'
           description: '${{ github.event.issue.body }}'
-          fields: '{ "labels": ["triage"], "customfield_10045": "${{ github.event.issue.html_url }}", "customfield_10046": ${{ github.event.issue.number }} }'
-
-      - name: Update GitHub Issue
-        uses: ./jira/gajira-issue-update
-        with:
-          issue_number: "{{ event.issue.id }}"
-          owner: "{{ event.repository.owner.login }}"
-          name: "{{ event.repository.name }}"
-          jira: "${{ steps.create.outputs.issue }}"
+          fields: '{ "labels": ["triage", "redshift"], "customfield_10045": "${{ github.event.issue.html_url }}", "customfield_10046": ${{ github.event.issue.number }} }'
+ 
+      - name: Update Issue Title
+        run: |
+          curl --request PATCH \
+          --url https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.issue.id }} \
+          --header 'authorization: Bearer ${{ secrets.GITHUB_TOKEN }}' \
+          --header 'content-type: application/json' \
+          --header 'Accept: application/vnd.github.v3+json' \
+          --data '{ "title": "${{ steps.create.outputs.issue }}" }'
