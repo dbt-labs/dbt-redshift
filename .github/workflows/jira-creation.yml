@@ -40,8 +40,7 @@ jobs:
           summary: '${{ github.event.issue.title }}'
           description: |
             ${{ github.event.issue.body }} \n\n_GitHub URL:_ ${{ github.event.issue.html_url }} \n_Author:_ ${{ github.event.issue.user.login }}
-          fields: |
-            '{ "labels": ["triage"], "customfield_10045": "${{ github.event.issue.html_url }}", "customfield_10046": ${{ github.event.issue.number }} }'
+          fields: '{ "labels": ["triage"], "customfield_10045": "${{ github.event.issue.html_url }}", "customfield_10046": ${{ github.event.issue.number }} }'
 
       - name: Update GitHub Issue
         uses: ./jira/gajira-issue-update
