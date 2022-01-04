@@ -49,3 +49,30 @@ jobs:
           --header 'content-type: application/json' \
           --header 'Accept: application/vnd.github.v3+json' \
           --data '{ "title": "[${{ steps.create.outputs.issue }}] ${{ github.event.issue.title }}" }'
+
+  find-labels:
+    runs-on: ubuntu-latest
+    needs:
+      - create-issue
+    outputs:
+      labels: ${{ steps.generate-labels.outputs.labels }}
+    steps:
+      - name: Generate Labels
+        id: generate-labels
+        run: |
+          LABELS='${{ toJSON(github.event.issue.labels.*.name) }}'
+          echo ::set-output name=services::${LABELS}
+          
+  add-labels:
+    runs-on: ubuntu-latest
+    needs:
+      - find-labels
+    strategy:
+      matrix:
+        label: ${{ fromJSON(needs.find-labels.outputs.labels) }}
+    steps:
+      - name: Setup Jira
+        uses: atlassian/gajira-cli@v2.0.2
+
+      - name: Make comment on Jira issue
+        run: jira labels add ${{ steps.create.outputs.issue }} ${{ matrix.label }}
