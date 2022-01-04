@@ -61,7 +61,7 @@ jobs:
         id: generate-labels
         run: |
           LABELS='${{ toJSON(github.event.issue.labels.*.name) }}'
-          echo ::set-output name=services::${LABELS}
+          echo ::set-output name=labels::${LABELS}
           
   add-labels:
     runs-on: ubuntu-latest
