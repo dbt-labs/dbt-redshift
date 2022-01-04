@@ -36,7 +36,7 @@ jobs:
         uses: atlassian/gajira-create@v2.0.1
         with:
           project: CORE
-          issuetype: Task
+          issuetype: "GitHub Issue"
           summary: '${{ github.event.issue.title }}'
           description: '${{ github.event.issue.body }}'
           fields: '{ "labels": ["triage", "redshift"], "customfield_10045": "${{ github.event.issue.html_url }}", "customfield_10046": ${{ github.event.issue.number }} }'
