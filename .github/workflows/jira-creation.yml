@@ -74,6 +74,7 @@ jobs:
   add-labels:
     runs-on: ubuntu-latest
     needs:
+      - create-issue
       - find-labels
     strategy:
       matrix:
