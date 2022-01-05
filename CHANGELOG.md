@@ -4,6 +4,7 @@
 
 ### Under the hood
 - install compatible branch of dbt-core in unit/integration tests based on merge target ([#80](https://github.com/dbt-labs/dbt-redshift/pull/80))
+- Fix test related to preventing coercion of boolean values (True,False) to numeric values (0,1) in query results ([#58](https://github.com/dbt-labs/dbt-redshift/blob/1.0.latest/CHANGELOG.md))
 
 ## dbt-redshift 1.0.0 (December 3, 2021)
 
