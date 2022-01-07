@@ -30,7 +30,7 @@
 
 
 {% macro redshift__create_table_as(temporary, relation, sql) -%}
-
+  {%- set backup = config.get('backup') -%}
   {%- set _dist = config.get('dist') -%}
   {%- set _sort_type = config.get(
           'sort_type',
@@ -39,7 +39,6 @@
           'sort',
           validator=validation.any[list, basestring]) -%}
   {%- set sql_header = config.get('sql_header', none) -%}
-  {%- set backup = config.get('backup') -%}
 
   {{ sql_header if sql_header is not none }}
 
