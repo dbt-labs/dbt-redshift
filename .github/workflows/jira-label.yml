@@ -20,7 +20,7 @@ permissions:
 jobs:
   call-label-action:
     uses: dbt-labs/jira-actions/.github/workflows/jira-label.yml@main
-    with:
+    secrets:
       JIRA_BASE_URL: ${{ secrets.JIRA_BASE_URL }}
       JIRA_USER_EMAIL: ${{ secrets.JIRA_USER_EMAIL }}
       JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
