@@ -43,19 +43,19 @@ If you are a member of the `dbt Labs` GitHub organization, you will have push ac
 First make sure that you set up your `virtualenv` as described in [Setting up an environment](https://github.com/dbt-labs/dbt-core/blob/HEAD/CONTRIBUTING.md#setting-up-an-environment).  Ensure you have the latest version of pip installed with `pip install --upgrade pip`. Next, install `dbt-redshift` latest dependencies:
 
 ```sh
-pip install -e . -r dev-requirements.txt
+pip install -e . -r ./dev-requirements.txt
 ```
 
-When `dbt-redshift` is installed this way, any changes you make to the `dbt-redshift` source code will be reflected immediately in your next `dbt-redshift` run.
+When `dbt-redshift` is installed this way, any changes you make to the `dbt-redshift` source code will be reflected immediately in your next `dbt run` command that uses `dbt-redshift`.
 
-To confirm you have correct version of `dbt-core` installed please run `dbt --version` and `which dbt`.
+To confirm you have correct `dbt-core` and adapter versions installed please run `dbt --version` and `which dbt` to check the correct executable path you wish to use for  `dbt-core` is in your current virtualenv.
 
 
 ## Testing
 
 ### Initial Setup
 
-`dbt-redshift` contains [unit](https://github.com/dbt-labs/dbt-redshift/tree/main/tests/unit) and [integration](https://github.com/dbt-labs/dbt-redshift/tree/main/tests/integration) tests. Integration tests require testing against an actual Redshift warehouse. We have CI set up to test against a Redshift warehouse. In order to run integration tests locally, you will need a `test.env` file in the root of the repository that contains credentials for Redshift.
+`dbt-redshift` contains [unit](https://github.com/dbt-labs/dbt-redshift/tree/main/tests/unit) and [integration](https://github.com/dbt-labs/dbt-redshift/tree/main/tests/integration) tests. Integration tests require testing against an actual Redshift warehouse. We have CI set up to test against a Redshift warehouse. In order to run integration tests locally, you will need a `test.env` file in the root of the repository that contains credentials for your Redshift warehouse.
 
 Note: This `test.env` file is git-ignored, but please be extra careful to never check in credentials or other sensitive information when developing. To create your `test.env` file, copy the provided example file, then supply your relevant credentials.
 ```
