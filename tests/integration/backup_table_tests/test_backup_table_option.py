@@ -27,10 +27,16 @@ class TestBackupTableOption(DBTIntegrationTest):
         with open('target/run/test/models/{}.sql'.format(test_table_name), 'r') as ddl_file:
             ddl_statement = ddl_file.readlines()
             self.assertEqual('backup no' not in ' '.join(ddl_statement).lower(), backup_is_expected)
+            if backup_is_expected:
+                distkey_index = ' '.join(ddl_statement).lower().find('distkey')
+                sortkey_index = ' '.join(ddl_statement).lower().find('sortkey')
+                backup_index = ' '.join(ddl_statement).lower().find('backup no')
+                self.assertEqual((backup_index < distkey_index) or distkey_index == -1, backup_is_expected)
+                self.assertEqual((backup_index < sortkey_index) or sortkey_index == -1, backup_is_expected)
 
     @use_profile('redshift')
     def test__redshift_backup_table_option(self):
-        self.assertEqual(len(self.run_dbt()), 4)
+        self.assertEqual(len(self.run_dbt()), 6)
 
         # model_backup_undefined should not contain a BACKUP NO parameter in the table DDL
         self.check_backup_param_template('model_backup_undefined', True)
@@ -44,6 +50,11 @@ class TestBackupTableOption(DBTIntegrationTest):
         # Any view should not contain a BACKUP NO parameter, regardless of the specified config (create will fail)
         self.check_backup_param_template('model_backup_true_view', True)
 
+        # model_backup_param_before_distkey should contain a BACKUP NO parameter which precedes a DISTKEY in the table ddl
+        self.check_backup_param_template('model_backup_param_before_distkey', True)
+        
+        # model_backup_param_before_sortkey should contain a BACKUP NO parameter which precedes a SORTKEY in the table ddl
+        self.check_backup_param_template('model_backup_param_before_sortkey', True)
 
 class TestBackupTableOptionProjectFalse(DBTIntegrationTest):
     @property
@@ -72,10 +83,16 @@ class TestBackupTableOptionProjectFalse(DBTIntegrationTest):
         with open('target/run/test/models/{}.sql'.format(test_table_name), 'r') as ddl_file:
             ddl_statement = ddl_file.readlines()
             self.assertEqual('backup no' not in ' '.join(ddl_statement).lower(), backup_is_expected)
+            if backup_is_expected:
+                distkey_index = ' '.join(ddl_statement).lower().find('distkey')
+                sortkey_index = ' '.join(ddl_statement).lower().find('sortkey')
+                backup_index = ' '.join(ddl_statement).lower().find('backup no')
+                self.assertEqual((backup_index < distkey_index) or distkey_index == -1, backup_is_expected)
+                self.assertEqual((backup_index < sortkey_index) or sortkey_index == -1, backup_is_expected)
 
     @use_profile('redshift')
     def test__redshift_backup_table_option_project_config_false(self):
-        self.assertEqual(len(self.run_dbt()), 4)
+        self.assertEqual(len(self.run_dbt()), 6)
 
         # model_backup_undefined should contain a BACKUP NO parameter in the table DDL
         self.check_backup_param_template('model_backup_undefined', False)
@@ -88,3 +105,9 @@ class TestBackupTableOptionProjectFalse(DBTIntegrationTest):
 
         # Any view should not contain a BACKUP NO parameter, regardless of the specified config (create will fail)
         self.check_backup_param_template('model_backup_true_view', True)
+
+        # model_backup_param_before_distkey should contain a BACKUP NO parameter which precedes a DISTKEY in the table ddl
+        self.check_backup_param_template('model_backup_param_before_distkey', True)
+        
+        # model_backup_param_before_sortkey should contain a BACKUP NO parameter which precedes a SORTKEY in the table ddl
+        self.check_backup_param_template('model_backup_param_before_sortkey', True)
