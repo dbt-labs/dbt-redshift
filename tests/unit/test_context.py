@@ -183,6 +183,7 @@ REQUIRED_BASE_KEYS = frozenset({
     'invocation_id',
     'modules',
     'flags',
+    'print'
 })
 
 REQUIRED_TARGET_KEYS = REQUIRED_BASE_KEYS | {'target'}
@@ -451,20 +452,20 @@ def test_resolve_specific(config, manifest_extended, redshift_adapter, get_inclu
     # macro_a exists, but default__macro_a and redshift__macro_a do not
     with pytest.raises(dbt.exceptions.CompilationException):
         ctx['adapter'].dispatch('macro_a').macro
-    
+
     # root namespace is always preferred, unless search order is explicitly defined in 'dispatch' config
     assert ctx['adapter'].dispatch('some_macro').macro is package_rs_macro
     assert ctx['adapter'].dispatch('some_macro', 'dbt').macro is package_rs_macro
     assert ctx['adapter'].dispatch('some_macro', 'root').macro is package_rs_macro
-    
+
     # override 'dbt' namespace search order, dispatch to 'root' first
     ctx['adapter'].config.dispatch = [{'macro_namespace': 'dbt', 'search_order': ['root', 'dbt']}]
     assert ctx['adapter'].dispatch('some_macro', macro_namespace = 'dbt').macro is package_rs_macro
-    
+
     # override 'dbt' namespace search order, dispatch to 'dbt' only
     ctx['adapter'].config.dispatch = [{'macro_namespace': 'dbt', 'search_order': ['dbt']}]
     assert ctx['adapter'].dispatch('some_macro', macro_namespace = 'dbt').macro is rs_macro
-    
+
     # override 'root' namespace search order, dispatch to 'dbt' first
     ctx['adapter'].config.dispatch = [{'macro_namespace': 'root', 'search_order': ['dbt', 'root']}]
     assert ctx['adapter'].dispatch('some_macro', macro_namespace = 'root').macro is rs_macro
