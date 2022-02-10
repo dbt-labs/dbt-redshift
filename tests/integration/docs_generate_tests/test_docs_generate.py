@@ -517,8 +517,7 @@ class TestDocsGenerate(DBTIntegrationTest):
             'check_cols': 'all',
             'unique_key': 'id',
             'target_schema': None,
-            'meta': {},
-            'unique_key': 'id'
+            'meta': {}
         }
         result.update(updates)
         return result
