@@ -55,9 +55,12 @@ To confirm you have correct `dbt-core` and adapter versions installed please run
 
 ### Initial Setup
 
-`dbt-redshift` contains [unit](https://github.com/dbt-labs/dbt-redshift/tree/main/tests/unit) and [integration](https://github.com/dbt-labs/dbt-redshift/tree/main/tests/integration) tests. Integration tests require testing against an actual Redshift warehouse. We have CI set up to test against a Redshift warehouse. In order to run integration tests locally, you will need a `test.env` file in the root of the repository that contains credentials for your Redshift warehouse.
+`dbt-redshift` contains [unit](https://github.com/dbt-labs/dbt-redshift/tree/main/tests/unit) and [integration](https://github.com/dbt-labs/dbt-redshift/tree/main/tests/integration) tests. Integration tests require testing against an actual Redshift warehouse. We have CI set up to test against a Redshift warehouse during PR checks. 
+
+In order to run integration tests locally, you will need a `test.env` file in the root of the repository that contains credentials for your Redshift warehouse.
 
 Note: This `test.env` file is git-ignored, but please be extra careful to never check in credentials or other sensitive information when developing. To create your `test.env` file, copy the provided example file, then supply your relevant credentials.
+
 ```
 cp test.env.example test.env
 $EDITOR test.env
