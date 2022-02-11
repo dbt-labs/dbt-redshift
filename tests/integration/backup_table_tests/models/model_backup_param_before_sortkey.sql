@@ -1,6 +1,6 @@
 {{
     config(
-        materialized='table', backup=True, sort='sortkey'
+        materialized='table', backup=False, sort='sortkey'
     )
 }}
 
