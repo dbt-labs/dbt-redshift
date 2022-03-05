@@ -19,3 +19,5 @@ pytz
 tox>=3.13
 twine
 wheel
+
+-e ./dbt-tests-adapter
