@@ -93,7 +93,14 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
-
+      - name: Get dbt-core version
+        id: dbt-core-version
+        run: | 
+          echo "::set-output name=dbt-version::${{ 
+            ( contains( github.event.pull_request.base.ref, 'latest' ) || github.event.pull_request.base.ref == main) 
+            && github.event.pull_request.base.ref 
+            || main
+          }}"
       - name: Install python dependencies
         run: |
           pip install  --user --upgrade pip
@@ -101,13 +108,13 @@ jobs:
           pip --version
           tox --version
 
-      - name: Install dbt-core from branch ${{ github.event.pull_request.base.ref }}
+      - name: Install dbt-core from branch ${{ steps.dbt-core-version.outputs.dbt-version }}
         run: |
-          pip install "git+https://github.com/dbt-labs/dbt-core.git@${{ github.event.pull_request.base.ref }}#egg=dbt-core&subdirectory=core"
+          pip install "git+https://github.com/dbt-labs/dbt-core.git@${{ steps.dbt-core-version.outputs.dbt-version }}#egg=dbt-core&subdirectory=core"
 
-      - name: Install dbt-postgres from ${{ github.event.pull_request.base.ref }}
+      - name: Install dbt-postgres from ${{ steps.dbt-core-version.outputs.dbt-version }}
         run: |
-          pip install "git+https://github.com/dbt-labs/dbt-core.git@${{ github.event.pull_request.base.ref }}#egg=dbt-postgres&subdirectory=plugins/postgres"
+          pip install "git+https://github.com/dbt-labs/dbt-core.git@${{ steps.dbt-core-version.outputs.dbt-version }}#egg=dbt-postgres&subdirectory=plugins/postgres"
 
       - name: Run tox
         run: tox
