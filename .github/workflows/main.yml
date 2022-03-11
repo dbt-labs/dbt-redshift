@@ -99,7 +99,7 @@ jobs:
           echo "::set-output name=dbt-version::${{ 
             ( contains( github.event.pull_request.base.ref, 'latest' ) || github.event.pull_request.base.ref == main) 
             && github.event.pull_request.base.ref 
-            || main
+            || 'main'
           }}"
       - name: Install python dependencies
         run: |
