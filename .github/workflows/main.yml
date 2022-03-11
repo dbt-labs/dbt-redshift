@@ -101,13 +101,13 @@ jobs:
           pip --version
           tox --version
 
-      - name: Install dbt-core latest
+      - name: Install dbt-core from branch ${{ github.event.pull_request.base.ref }}
         run: |
-          pip install "git+https://github.com/dbt-labs/dbt-core.git#egg=dbt-core&subdirectory=core"
+          pip install "git+https://github.com/dbt-labs/dbt-core.git@${{ github.event.pull_request.base.ref }}#egg=dbt-core&subdirectory=core"
 
-      - name: Install dbt-postgres latest
+      - name: Install dbt-postgres from ${{ github.event.pull_request.base.ref }}
         run: |
-          pip install "git+https://github.com/dbt-labs/dbt-core.git#egg=dbt-postgres&subdirectory=plugins/postgres"
+          pip install "git+https://github.com/dbt-labs/dbt-core.git@${{ github.event.pull_request.base.ref }}#egg=dbt-postgres&subdirectory=plugins/postgres"
 
       - name: Run tox
         run: tox
