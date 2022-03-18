@@ -153,12 +153,10 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Get dbt-core version
         id: dbt-core-version
-        run: | 
-          echo "::set-output name=dbt-version::${{ 
-            contains( github.event.pull_request.base.ref, 'latest' )  
-            && github.event.pull_request.base.ref 
-            || 'main'
-          }}"
+        if: github.event_name == 'pull_request_target' 
+        run: echo "::set-output name=dbt-version::${{ github.base_ref }}"
+        if: github.event_name != 'pull_request_target'
+        run: echo "::set-output name=dbt-version::${{ github.ref }}"
       - name: Install python dependencies
         run: |
           pip install  --user --upgrade pip
