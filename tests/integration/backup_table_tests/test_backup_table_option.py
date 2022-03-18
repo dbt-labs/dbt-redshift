@@ -71,7 +71,6 @@ class TestBackupTableOptionProjectFalse(DBTIntegrationTest):
         # Use raw DDL statement to confirm backup is set correctly on new table
         with open('target/run/test/models/{}.sql'.format(test_table_name), 'r') as ddl_file:
             ddl_statement = ddl_file.readlines()
-
             lowercase_statement = ' '.join(ddl_statement).lower()
             self.assertEqual('backup no' not in lowercase_statement, backup_is_expected)
 
