@@ -94,6 +94,7 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - name: Get dbt-core version
+        # if this is a pull request uses ref of base branch otherwise uses ref of current commit
         id: dbt-core-version
         run: echo "::set-output name=dbt-version::${{ github.event_name == 'pull_request' && github.base_ref || github.ref }}"
       - name: Install python dependencies

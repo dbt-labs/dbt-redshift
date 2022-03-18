@@ -5,12 +5,16 @@
 - Fix table creation statement ordering when including both the BACKUP parameter as well as the dist/sort keys ([#23](https://github.com/dbt-labs/dbt-redshift/issues/60))
 - Add unique\_id field to docs generation test catalogs; a follow-on PR to core PR ([#4168](https://github.com/dbt-labs/dbt-core/pull/4618)) and core PR ([#4701](https://github.com/dbt-labs/dbt-core/pull/4701))
 
+### Under the hood
+- install compatiable branch of dbt-core in unit/integration tests based on merge target ([#80](https://github.com/dbt-labs/dbt-redshift/pull/80))
+
 ## dbt-redshift 1.0.0 (December 3, 2021)
 
 ## dbt-redshift 1.0.0rc2 (November 24, 2021)
 
 ### Under the hood
 - Add optional Redshift parameter to create tables with BACKUP NO set, to exclude them from snapshots. ([#18](https://github.com/dbt-labs/dbt-redshift/issues/18), [#42](https://github.com/dbt-labs/dbt-redshift/pull/42))
+
 
 ### Contributors
 - [@dlb8685](https://github.com/dlb8685) ([#42](https://github.com/dbt-labs/dbt-redshift/pull/42))
