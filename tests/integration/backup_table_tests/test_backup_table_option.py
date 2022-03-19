@@ -132,4 +132,3 @@ class TestBackupTableOptionOrder(DBTIntegrationTest):
         
         # model_backup_param_before_sortkey should contain a BACKUP NO parameter which precedes a SORTKEY in the table ddl
         self.check_backup_param_template('model_backup_param_before_sortkey', False)
-

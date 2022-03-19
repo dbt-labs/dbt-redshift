@@ -6,7 +6,7 @@
 - Add unique\_id field to docs generation test catalogs; a follow-on PR to core PR ([#4168](https://github.com/dbt-labs/dbt-core/pull/4618)) and core PR ([#4701](https://github.com/dbt-labs/dbt-core/pull/4701))
 
 ### Under the hood
-- install compatiable branch of dbt-core in unit/integration tests based on merge target ([#80](https://github.com/dbt-labs/dbt-redshift/pull/80))
+- install compatible branch of dbt-core in unit/integration tests based on merge target ([#80](https://github.com/dbt-labs/dbt-redshift/pull/80))
 
 ## dbt-redshift 1.0.0 (December 3, 2021)
 

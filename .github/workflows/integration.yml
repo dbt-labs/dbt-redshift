@@ -162,9 +162,9 @@ jobs:
           pip --version
           tox --version
 
-      - name: Install dbt-core from branch ${{ steps.dbt-core-version.outputs.dbt-version }}
+      - name: Install dbt-core from branch ${{ steps.dbt-core-version.outputs.dbt-version.dbt-core-ref }}
         run: |
-          pip install "git+https://github.com/dbt-labs/dbt-core.git@${{ steps.dbt-core-version.outputs.dbt-version }}#egg=dbt-core&subdirectory=core"
+          pip install "git+https://github.com/dbt-labs/dbt-core.git@${{ steps.dbt-core-version.outputs.dbt-version.dbt-core-ref }}#egg=dbt-core&subdirectory=core"
 
       - name: Install dbt-postgres from ${{ steps.dbt-core-version.outputs.dbt-version }}
         run: |
