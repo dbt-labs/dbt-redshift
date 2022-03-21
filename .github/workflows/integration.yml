@@ -154,7 +154,7 @@ jobs:
       - name: Get dbt-core version
         # if this is a pull request uses ref of base branch otherwise uses ref of current commit
         id: dbt-core-version
-        run: echo "::set-output name=dbt-version::${{ github.event_name == 'pull_request_target' && github.base_ref || github.ref }}"
+        run: echo "::set-output name=dbt-core-ref::${{ github.event_name == 'pull_request_target' && github.base_ref || github.ref }}"
       - name: Install python dependencies
         run: |
           pip install  --user --upgrade pip
@@ -166,9 +166,9 @@ jobs:
         run: |
           pip install "git+https://github.com/dbt-labs/dbt-core.git@${{ steps.dbt-core-version.outputs.dbt-core-ref }}#egg=dbt-core&subdirectory=core"
 
-      - name: Install dbt-postgres from ${{ steps.dbt-core-version.outputs.dbt-version }}
+      - name: Install dbt-postgres from ${{ steps.dbt-core-version.outputs.dbt-core-ref }}
         run: |
-          pip install "git+https://github.com/dbt-labs/dbt-core.git@${{ steps.dbt-core-version.outputs.dbt-version }}#egg=dbt-postgres&subdirectory=plugins/postgres"
+          pip install "git+https://github.com/dbt-labs/dbt-core.git@${{ steps.dbt-core-version.outputs.dbt-core-ref }}#egg=dbt-postgres&subdirectory=plugins/postgres"
 
       - name: Run tox (redshift)
         if: matrix.adapter == 'redshift'
