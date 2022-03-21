@@ -90,7 +90,6 @@ class TestBackupTableOptionProjectFalse(DBTIntegrationTest):
         # Any view should not contain a BACKUP NO parameter, regardless of the specified config (create will fail)
         self.check_backup_param_template('model_backup_true_view', True)
 
-
 class TestBackupTableOptionOrder(DBTIntegrationTest):
     @property
     def schema(self):
