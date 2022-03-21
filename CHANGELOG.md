@@ -1,3 +1,10 @@
+## dbt-redshift 1.0.1 (TBD)
+
+### Fixes
+
+### Under the hood
+- install compatible branch of dbt-core in unit/integration tests based on merge target ([#80](https://github.com/dbt-labs/dbt-redshift/pull/80))
+
 ## dbt-redshift 1.0.0 (December 3, 2021)
 
 ## dbt-redshift 1.0.0rc2 (November 24, 2021)
