@@ -7,6 +7,7 @@
 
 ### Under the hood
 - install compatible branch of dbt-core in unit/integration tests based on merge target ([#80](https://github.com/dbt-labs/dbt-redshift/pull/80))
+- Add tests to test against ([#4858](https://github.com/dbt-labs/dbt-core/pull/4858)) in redshift ([#84](https://github.com/dbt-labs/dbt-redshift/pull/84))
 
 ## dbt-redshift 1.0.0 (December 3, 2021)
 
