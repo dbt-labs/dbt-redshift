@@ -1,3 +1,5 @@
+## dbt-redshift 1.1.0b1 (March 23, 2022)
+
 ## dbt-redshift 1.0.1 (TBD)
 
 ### Fixes
