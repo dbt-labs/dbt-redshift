@@ -12,6 +12,7 @@
 
 ### Under the hood
 - Add optional Redshift parameter to create tables with BACKUP NO set, to exclude them from snapshots. ([#18](https://github.com/dbt-labs/dbt-redshift/issues/18), [#42](https://github.com/dbt-labs/dbt-redshift/pull/42))
+- Fixes package naming bug ([#52](https://github.com/dbt-labs/dbt-redshift/pull/52))
 
 ### Contributors
 - [@dlb8685](https://github.com/dlb8685) ([#42](https://github.com/dbt-labs/dbt-redshift/pull/42))
