@@ -8,7 +8,7 @@ pytest_plugins = ["dbt.tests.fixtures.project"]
 
 # The profile dictionary, used to write out profiles.yml
 @pytest.fixture(scope="class")
-def dbt_profile_target(unique_schema):
+def dbt_profile_target():
     return {
         'type': 'redshift',
         'threads': 1,
@@ -17,7 +17,6 @@ def dbt_profile_target(unique_schema):
         'user': os.getenv('REDSHIFT_TEST_USER'),
         'pass': os.getenv('REDSHIFT_TEST_PASS'),
         'dbname': os.getenv('REDSHIFT_TEST_DBNAME'),
-        'schema': unique_schema
     }
 
 
