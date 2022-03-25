@@ -93,24 +93,13 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Get dbt-core version
-        # if this is a pull request uses ref of base branch otherwise uses ref of current commit
-        id: dbt-core-version
-        run: echo "::set-output name=dbt-core-ref::${{ github.event_name == 'pull_request' && github.base_ref || github.ref }}"
+      
       - name: Install python dependencies
         run: |
           pip install  --user --upgrade pip
           pip install tox
           pip --version
           tox --version
-
-      - name: Install dbt-core from branch ${{ steps.dbt-core-version.outputs.dbt-core-ref }}
-        run: |
-          pip install "git+https://github.com/dbt-labs/dbt-core.git@${{ steps.dbt-core-version.outputs.dbt-core-ref }}#egg=dbt-core&subdirectory=core"
-
-      - name: Install dbt-postgres from ${{ steps.dbt-core-version.outputs.dbt-core-ref }}
-        run: |
-          pip install "git+https://github.com/dbt-labs/dbt-core.git@${{ steps.dbt-core-version.outputs.dbt-core-ref }}#egg=dbt-postgres&subdirectory=plugins/postgres"
 
       - name: Run tox
         run: tox
