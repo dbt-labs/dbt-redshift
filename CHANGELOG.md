@@ -6,7 +6,7 @@
 - Add unique\_id field to docs generation test catalogs; a follow-on PR to core PR ([#4168](https://github.com/dbt-labs/dbt-core/pull/4618)) and core PR ([#4701](https://github.com/dbt-labs/dbt-core/pull/4701))
 
 ### Under the hood
-- Install compatible branch of dbt-core in unit/integration tests based on merge target ([#80](https://github.com/dbt-labs/dbt-redshift/pull/80))
+- Removes unused installs of dbt-core outside of tox env as it clutters up gha and can lead to misunderstanding of which version of dbt-core is being installed.([#90](https://github.com/dbt-labs/dbt-redshift/pull/90))
 - Add stale pr/issue github action ([#65](https://github.com/dbt-labs/dbt-redshift/pull/65))
 - Add env example file ([#69](https://github.com/dbt-labs/dbt-redshift/pull/69))
 
