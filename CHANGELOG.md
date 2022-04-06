@@ -1,4 +1,4 @@
-## dbt-redshift 1.0.1rc1 (April 5, 2022)
+## dbt-redshift 1.0.1rc1 (April 6, 2022)
 
 ### Fixes
 - Fix table creation statement ordering when including both the BACKUP parameter as well as the dist/sort keys ([#60](https://github.com/dbt-labs/dbt-redshift/issues/60), [#63](https://github.com/dbt-labs/dbt-redshift/pull/63))
