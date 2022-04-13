@@ -121,7 +121,7 @@ jobs:
     runs-on: ubuntu-latest
     
     outputs:
-      is_alpha: ${{ steps.show-distributions.outputs.is_alpha }}
+      is_alpha: ${{ steps.check-is-alpha.outputs.is_alpha }}
 
     steps:
       - name: Check out the repository
@@ -145,16 +145,6 @@ jobs:
 
       - name: Show distributions
         id: show-distributions
-        run: |
-          DISTS=$(ls -lh dist/)
-          echo "$dists"
-          export is_alpha=0
-          if [[ "$dists" == *"a1"* ]]; then export is_alpha=1; fi
-          echo "is_alpha: $is_alpha"
-          echo "::set-output name=is_alpha::$(is_alpha)"
-
-      - name: Show distributions
-        id: show-distributions
         run: ls -lh dist/
 
       - name: Check distribution descriptions
@@ -167,9 +157,10 @@ jobs:
           
       - name: Check if this is an alpha version
         id: check-is-alpha
-        export is_alpha=0
-        if [[ "$(ls -lh dist/)" == *"a1"* ]]; then export is_alpha=1; fi
-        echo "::set-output name=is_alpha::$is_alpha"
+        run: |
+          export is_alpha=0
+          if [[ "$(ls -lh dist/)" == *"a1"* ]]; then export is_alpha=1; fi
+          echo "::set-output name=is_alpha::$is_alpha"
 
       - uses: actions/upload-artifact@v2
         with:
