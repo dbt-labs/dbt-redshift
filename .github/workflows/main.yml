@@ -153,6 +153,10 @@ jobs:
           echo "is_alpha: $is_alpha"
           echo "::set-output name=is_alpha::$(is_alpha)"
 
+      - name: Show distributions
+        id: show-distributions
+        run: ls -lh dist/
+
       - name: Check distribution descriptions
         run: |
           twine check dist/*
@@ -160,6 +164,12 @@ jobs:
       - name: Check wheel contents
         run: |
           check-wheel-contents dist/*.whl --ignore W007,W008
+          
+      - name: Check if this is an alpha version
+        id: check-is-alpha
+        export is_alpha=0
+        if [[ "$(ls -lh dist/)" == *"a1"* ]]; then export is_alpha=1; fi
+        echo "::set-output name=is_alpha::$is_alpha"
 
       - uses: actions/upload-artifact@v2
         with:
