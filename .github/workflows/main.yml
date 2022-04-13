@@ -144,7 +144,6 @@ jobs:
         run: ./scripts/build-dist.sh
 
       - name: Show distributions
-        id: show-distributions
         run: ls -lh dist/
 
       - name: Check distribution descriptions
