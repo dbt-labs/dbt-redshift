@@ -18,6 +18,10 @@ class TestBasicSeedTests(BasicSeedTests):
     pass
 
 
+class TestSeedConfigFullRefreshOn(SeedConfigFullRefreshOn):
+    pass
+
+
 class TestSeedConfigFullRefreshOff(SeedConfigFullRefreshOff):
     pass
 
