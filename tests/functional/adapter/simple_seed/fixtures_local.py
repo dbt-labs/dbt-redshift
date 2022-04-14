@@ -1,4 +1,4 @@
-version: 2
+properties__schema_yml = """version: 2
 seeds:
 - name: seed_enabled
   columns:
@@ -6,18 +6,18 @@ seeds:
     tests:
     - column_type:
         type: date
-  - name: id
+  - name: seed_id
     tests:
     - column_type:
         type: character varying(256)
 
 - name: seed_tricky
   columns:
-  - name: id
+  - name: seed_id
     tests:
     - column_type:
         type: integer
-  - name: id_str
+  - name: seed_id_str
     tests:
     - column_type:
         type: character varying(256)
@@ -45,3 +45,5 @@ seeds:
     tests:
     - column_type:
         type: character varying(8)
+
+"""
