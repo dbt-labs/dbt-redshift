@@ -50,8 +50,7 @@ coverage.xml
 .hypothesis/
 test.env
 
-# Mypy
-.mypy_cache/
+*.pytest_cache/
 
 # Translations
 *.mo
@@ -78,6 +77,7 @@ target/
 # Vim
 *.sw*
 
+# Pyenv
 .python-version
 
 # Vim
@@ -90,6 +90,7 @@ venv/
 # AWS credentials
 .aws/
 
+# MacOS
 .DS_Store
 
 # vscode
