@@ -1,7 +1,36 @@
 ## dbt-redshift 1.1.0 (TBD)
 
 ### Under the hood
+- Add precommits for this repo ([#XX](https://github.com/dbt-labs/dbt-snowflake/pull/XX))
+
+## dbt-redshift 1.0.1 (April 19, 2022)
+
+### Fixes
+- Fix table creation statement ordering when including both the BACKUP parameter as well as the dist/sort keys ([#60](https://github.com/dbt-labs/dbt-redshift/issues/60), [#63](https://github.com/dbt-labs/dbt-redshift/pull/63))
+
+### Under the hood
+- Install compatible branch of dbt-core in unit/integration tests based on merge target ([#80](https://github.com/dbt-labs/dbt-redshift/pull/80))
+- Fix test related to preventing coercion of boolean values (True,False) to numeric values (0,1) in query results ([#58](https://github.com/dbt-labs/dbt-redshift/pull/58))
+
+### Contributors
+- [@SMeltser](https://github.com/SMeltser) ([#63](https://github.com/dbt-labs/dbt-redshift/pull/63))
+
+## dbt-redshift 1.1.0rc1 (April 13, 2022)
+
+### Under the hood
 - Use dbt.tests.adapter.basic in test suite ([#78](https://github.com/dbt-labs/dbt-redshift/issues/78), [#81](https://github.com/dbt-labs/dbt-redshift/pull/81))
+
+## dbt-redshift 1.0.1rc1 (April 6, 2022)
+
+### Fixes
+- Fix table creation statement ordering when including both the BACKUP parameter as well as the dist/sort keys ([#60](https://github.com/dbt-labs/dbt-redshift/issues/60), [#63](https://github.com/dbt-labs/dbt-redshift/pull/63))
+
+### Under the hood
+- Install compatible branch of dbt-core in unit/integration tests based on merge target ([#80](https://github.com/dbt-labs/dbt-redshift/pull/80))
+- Fix test related to preventing coercion of boolean values (True,False) to numeric values (0,1) in query results ([#58](https://github.com/dbt-labs/dbt-redshift/pull/58))
+
+### Contributors
+- [@SMeltser](https://github.com/SMeltser) ([#63](https://github.com/dbt-labs/dbt-redshift/pull/63))
 
 ## dbt-redshift 1.1.0b1 (March 23, 2022)
 
@@ -17,8 +46,6 @@
 
 ### Contributors
 - [@SMeltser](https://github.com/SMeltser)([#63](https://github.com/dbt-labs/dbt-redshift/pull/63))
-
-## dbt-redshift 1.0.1 (TBD)
 
 ## dbt-redshift 1.0.0 (December 3, 2021)
 
