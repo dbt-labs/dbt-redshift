@@ -5,11 +5,12 @@ from dbt.adapters.redshift.relation import RedshiftRelation  # noqa: F401
 from dbt.adapters.redshift.impl import RedshiftAdapter
 
 
-from dbt.adapters.base import AdapterPlugin
-from dbt.include import redshift
+from dbt.adapters.base import AdapterPlugin  # type: ignore
+from dbt.include import redshift  # type: ignore
 
 Plugin = AdapterPlugin(
     adapter=RedshiftAdapter,
     credentials=RedshiftCredentials,
     include_path=redshift.PACKAGE_PATH,
-    dependencies=['postgres'])
+    dependencies=["postgres"],
+)
