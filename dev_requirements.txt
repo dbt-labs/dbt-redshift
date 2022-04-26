@@ -5,7 +5,7 @@ git+https://github.com/dbt-labs/dbt-core.git#egg=dbt-tests-adapter&subdirectory=
 git+https://github.com/dbt-labs/dbt-core.git#egg=dbt-postgres&subdirectory=plugins/postgres
 
 black==21.12b0
-click~=8.0.4
+click~=8.1.2
 bumpversion
 flake8
 flaky
