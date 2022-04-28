@@ -1,4 +1,4 @@
-## dbt-redshift 1.1.0 (TBD)
+## dbt-redshift 1.1.0 (April 28, 2022)
 
 ### Under the hood
 - Use dbt.tests.adapter.basic in test suite ([#78](https://github.com/dbt-labs/dbt-redshift/issues/78), [#81](https://github.com/dbt-labs/dbt-redshift/pull/81))
