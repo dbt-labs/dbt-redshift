@@ -17,7 +17,7 @@ For those wishing to contribute we highly suggest reading the [dbt-core](https:/
 Please note that all contributors to `dbt-redshift` must sign the [Contributor License Agreement](https://docs.getdbt.com/docs/contributor-license-agreements) to have their Pull Request merged into an `dbt-redshift` codebase. If you are unable to sign the CLA, then the `dbt-redshift` maintainers will unfortunately be unable to merge your Pull Request. You are, however, welcome to open issues and comment on existing ones.
 
 
-## Getting the code 
+## Getting the code
 
 You will need `git` in order to download and modify the `dbt-redshift` source code. You can find direction [here](https://github.com/git-guides/install-git) on how to install `git`.
 
@@ -43,7 +43,7 @@ If you are a member of the `dbt Labs` GitHub organization, you will have push ac
 First make sure that you set up your `virtualenv` as described in [Setting up an environment](https://github.com/dbt-labs/dbt-core/blob/HEAD/CONTRIBUTING.md#setting-up-an-environment).  Ensure you have the latest version of pip installed with `pip install --upgrade pip`. Next, install `dbt-redshift` latest dependencies:
 
 ```sh
-pip install -e . -r ./dev_requirements.txt
+pip install -e . -r ./dev-requirements.txt
 ```
 
 When `dbt-redshift` is installed this way, any changes you make to the `dbt-redshift` source code will be reflected immediately in your next `dbt run` command that uses `dbt-redshift`.
@@ -55,7 +55,7 @@ To confirm you have correct `dbt-core` and adapter versions installed please run
 
 ### Initial Setup
 
-`dbt-redshift` contains [unit](https://github.com/dbt-labs/dbt-redshift/tree/main/tests/unit) and [integration](https://github.com/dbt-labs/dbt-redshift/tree/main/tests/integration) tests. Integration tests require testing against an actual Redshift warehouse. We have CI set up to test against a Redshift warehouse during PR checks. 
+`dbt-redshift` contains [unit](https://github.com/dbt-labs/dbt-redshift/tree/main/tests/unit) and [integration](https://github.com/dbt-labs/dbt-redshift/tree/main/tests/integration) tests. Integration tests require testing against an actual Redshift warehouse. We have CI set up to test against a Redshift warehouse during PR checks.
 
 In order to run integration tests locally, you will need a `test.env` file in the root of the repository that contains credentials for your Redshift warehouse.
 
@@ -96,7 +96,7 @@ Many changes will require an update to the `dbt-redshift` docs here are some use
 
 ## Submitting a Pull Request
 
-dbt Labs provides a CI environment to test changes to the `dbt-redshift` adapter and periodic checks against the development version of `dbt-core` through Github Actions.  
+dbt Labs provides a CI environment to test changes to the `dbt-redshift` adapter and periodic checks against the development version of `dbt-core` through Github Actions.
 
 A `dbt-redshift` maintainer will review your PR. They may suggest code revision for style or clarity, or request that you add unit or integration test(s). These are good things! We believe that, with a little bit of help, anyone can contribute high-quality code.
 
