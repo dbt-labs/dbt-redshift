@@ -67,3 +67,34 @@ def redshift_stats():
             "include": True,
         },
     }
+
+
+def redshift_ephemeral_summary_stats():
+    additional = {
+        "skew_sortkey1": {
+            "description": "Ratio of the size of the largest non-sort "
+            "key column to the size of the first column "
+            "of the sort key.",
+            "id": "skew_sortkey1",
+            "include": True,
+            "label": "Sort Key Skew",
+            "value": 1.0,
+        },
+        "sortkey_num": {
+            "description": "Number of columns defined as sort keys.",
+            "id": "sortkey_num",
+            "include": True,
+            "label": "# Sort Keys",
+            "value": 1.0,
+        },
+        "unsorted": {
+            "description": "Percent of unsorted rows in the table.",
+            "id": "unsorted",
+            "include": True,
+            "label": "Unsorted %",
+            "value": 0.0,
+        },
+    }
+    stats = redshift_stats()
+    stats.update(additional)
+    return stats

@@ -16,7 +16,7 @@ from dbt.tests.adapter.basic.test_snapshot_timestamp import BaseSnapshotTimestam
 from dbt.tests.adapter.basic.test_adapter_methods import BaseAdapterMethod
 from dbt.tests.adapter.basic.test_docs_generate import BaseDocsGenerate, BaseDocsGenReferences
 from dbt.tests.adapter.basic.expected_catalog import base_expected_catalog, no_stats, expected_references_catalog
-from tests.functional.adapter.expected_stats import redshift_stats
+from tests.functional.adapter.expected_stats import redshift_stats, redshift_ephemeral_summary_stats
 
 from dbt.tests.adapter.basic.files import seeds_base_csv, seeds_added_csv, seeds_newcolumns_csv
 
@@ -105,6 +105,7 @@ class TestDocsGenerateRedshift(BaseDocsGenerate):
         )             
 
 
+@pytest.mark.skip(reason="Needs updated dbt-core code")
 class TestDocsGenReferencesRedshift(BaseDocsGenReferences):
     @pytest.fixture(scope="class")
     def expected_catalog(self, project, profile_user):
@@ -120,5 +121,6 @@ class TestDocsGenReferencesRedshift(BaseDocsGenReferences):
             model_stats=redshift_stats(),
             seed_stats=redshift_stats(),
             view_summary_stats=no_stats(),
+            ephemeral_summary_stats=redshift_ephemeral_summary_stats(),
         )
 
