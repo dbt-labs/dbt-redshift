@@ -48,7 +48,7 @@ pip install -e . -r ./dev-requirements.txt
 
 When `dbt-redshift` is installed this way, any changes you make to the `dbt-redshift` source code will be reflected immediately in your next `dbt run` command that uses `dbt-redshift`.
 
-To confirm you have correct `dbt-core` and adapter versions installed please run `dbt --version` and `which dbt` to check the correct executable path you wish to use for  `dbt-core` is in your current virtualenv.
+To confirm you have correct `dbt-core` and adapter versions installed please run `dbt --version` and `which dbt` to check the correct executable path you wish to use for `dbt-core` is in your current virtualenv.
 
 
 ## Testing
@@ -70,7 +70,7 @@ $EDITOR test.env
 There are a few methods for running tests locally.
 
 #### `tox`
-`tox` takes care of managing Python virtualenvs and installing dependencies in order to run tests. You can also run tests in parallel, for example you can run unit tests for Python 3.7, Python 3.8, Python 3.9, and `flake8` checks in parallel with `tox -p`. Also, you can run unit tests for specific python versions with `tox -e py37`. The configuration of these tests are located in `tox.ini`.
+`tox` takes care of managing Python virtualenvs and installing dependencies in order to run tests. You can also run tests in parallel. For example, you can run unit tests for Python 3.7, Python 3.8, Python 3.9, Python 3.10, and `flake8` checks in parallel with `tox -p`. Also, you can run unit tests for specific python versions with `tox -e py37`. The configuration of these tests are located in `tox.ini`.
 
 #### `pytest`
 Finally, you can also run a specific test or group of tests using `pytest` directly. With a Python virtualenv active and dev dependencies installed you can do things like:
@@ -85,7 +85,7 @@ python -m pytest tests/unit/test_redshift_adapter.py::TestRedshiftAdapter::test_
 ```
 ## Updating Docs
 
-Many changes will require an update to the `dbt-redshift` docs here are some useful resources.
+Many changes will require an update to the `dbt-redshift` docs. If so, here are some useful resources to find where the current behavior is documented.
 
 - Docs are [here](https://docs.getdbt.com/).
 - The docs repo for making changes is located [here]( https://github.com/dbt-labs/docs.getdbt.com).
