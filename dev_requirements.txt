@@ -1,8 +1,8 @@
 # install latest changes in dbt-core + dbt-postgres
 # TODO: how to switch from HEAD to x.y.latest branches after minor releases?
-git+https://github.com/dbt-labs/dbt-core.git#egg=dbt-core&subdirectory=core
-git+https://github.com/dbt-labs/dbt-core.git#egg=dbt-tests-adapter&subdirectory=tests/adapter
-git+https://github.com/dbt-labs/dbt-core.git#egg=dbt-postgres&subdirectory=plugins/postgres
+git+https://github.com/dbt-labs/dbt-core.git@jerco/utils-lift-shift#egg=dbt-core&subdirectory=core
+git+https://github.com/dbt-labs/dbt-core.git@jerco/utils-lift-shift#egg=dbt-tests-adapter&subdirectory=tests/adapter
+git+https://github.com/dbt-labs/dbt-core.git@jerco/utils-lift-shift#egg=dbt-postgres&subdirectory=plugins/postgres
 
 black==22.3.0
 click~=8.0.4
