@@ -4,7 +4,7 @@
     {% if limit_num -%}
     {% set ns = namespace() %}
     {% set ns.delimiter_text_regex = delimiter_text|trim("'") %}
-    {% set special_chars %}\,^,$,.,|,?,*,+,(,),[,],{,}{% endset %}  
+    {% set special_chars %}\,^,$,.,|,?,*,+,(,),[,],{,}{% endset %}
     {%- for char in special_chars.split(',') -%}
         {% set escape_char %}\\{{ char }}{% endset %}
         {% set ns.delimiter_text_regex = ns.delimiter_text_regex|replace(char,escape_char) %}
