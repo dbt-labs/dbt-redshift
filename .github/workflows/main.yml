@@ -52,15 +52,9 @@ jobs:
 
       - name: Install python dependencies
         run: |
-<<<<<<< HEAD
-          pip install  --user --upgrade pip
-          pip install -r dev-requirements.txt
-          pip --version
-=======
           python -m pip install  --user --upgrade pip
           python -m pip install -r dev_requirements.txt
           python -m pip --version
->>>>>>> d8f44f1376b90badfc3f3fa8edb8871f805ba630
           pre-commit --version
           mypy --version
           dbt --version
