@@ -78,6 +78,8 @@ Finally, you can also run a specific test or group of tests using `pytest` direc
 ```sh
 # run specific redshift integration tests
 python -m pytest -m profile_redshift tests/integration/adapter_methods_test
+# run specific redshift functional tests in a file
+python -m pytest tests/functional/adapter/test_basic.py
 # run all unit tests in a file
 python -m pytest tests/unit/test_redshift_adapter.py
 # run a specific unit test
