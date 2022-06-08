@@ -64,7 +64,6 @@ jobs:
           python -m pip install  --user --upgrade pip
           python -m pip install -r dev_requirements.txt
           python -m pip --version
-          pre-commit --version
           mypy --version
           dbt --version
 
