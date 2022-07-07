@@ -1,4 +1,13 @@
-## dbt-redshift 1.1.0 (TBD)
+## dbt-redshift 1.2.0b1 (June 24, 2022)
+
+### Under the hood
+- Lift + shift for cross-db macros ([#120](https://github.com/dbt-labs/dbt-snowflake/pull/120))
+- Rm duplicated parts of unit test ([#100](https://github.com/dbt-labs/dbt-snowflake/pull/100))
+
+### Contributors
+- [@dbeatty10](https://github.com/dbeatty10) ([#120](https://github.com/dbt-labs/dbt-snowflake/pull/120))
+
+## dbt-redshift 1.1.0 (April 28, 2022)
 
 ### Under the hood
 - Add precommits for this repo ([#XX](https://github.com/dbt-labs/dbt-snowflake/pull/XX))
