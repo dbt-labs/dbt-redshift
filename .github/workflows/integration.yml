@@ -130,6 +130,9 @@ jobs:
       TOXENV: integration-${{ matrix.adapter }}
       PYTEST_ADDOPTS: "-v --color=yes -n4 --csv integration_results.csv"
       DBT_INVOCATION_ENV: github-actions
+      DBT_TEST_USER_1: ${{ secrets.DBT_TEST_USER_1 }}
+      DBT_TEST_USER_2: ${{ secrets.DBT_TEST_USER_2 }}
+      DBT_TEST_USER_3: ${{ secrets.DBT_TEST_USER_3 }}
 
     steps:
       - name: Check out the repository
@@ -167,9 +170,6 @@ jobs:
           REDSHIFT_TEST_USER: ${{ secrets.REDSHIFT_TEST_USER }}
           REDSHIFT_TEST_PORT: ${{ secrets.REDSHIFT_TEST_PORT }}
           REDSHIFT_TEST_HOST: ${{ secrets.REDSHIFT_TEST_HOST }}
-          DBT_TEST_USER_1: ${{ secrets.DBT_TEST_USER_1 }}
-          DBT_TEST_USER_2: ${{ secrets.DBT_TEST_USER_2 }}
-          DBT_TEST_USER_3: ${{ secrets.DBT_TEST_USER_3 }}
         run: tox
 
       - uses: actions/upload-artifact@v2
