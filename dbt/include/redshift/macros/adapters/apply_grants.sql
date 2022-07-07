@@ -3,23 +3,35 @@
 with privileges as (
 
     -- valid options per https://docs.aws.amazon.com/redshift/latest/dg/r_HAS_TABLE_PRIVILEGE.html
-    select 'select' as privilege
+    select 'select' as privilege_type
     union all
-    select 'insert' as privilege
+    select 'insert' as privilege_type
     union all
-    select 'update' as privilege
+    select 'update' as privilege_type
     union all
-    select 'delete' as privilege
+    select 'delete' as privilege_type
     union all
-    select 'references' as privilege
+    select 'references' as privilege_type
 
 )
 
 select
     u.usename as grantee,
-    p.privilege
+    p.privilege_type
 from pg_user u
 cross join privileges p
-where has_table_privilege(u.usename, '{{ relation }}', privilege)
+where has_table_privilege(u.usename, '{{ relation }}', privilege_type)
 
 {% endmacro %}
+
+
+{% macro redshift__get_revoke_sql(relation, grant_config) %}
+    {%- for privilege in grant_config.keys() -%}
+        {%- set grantees = grant_config[privilege] -%}
+        {%- if grantees -%}
+                {%- for grantee in grantees -%}
+                    revoke {{ privilege }} on {{ relation }} from {{ grantee }};
+                {% endfor -%}
+        {%- endif -%}
+    {%- endfor -%}
+{%- endmacro -%}
