@@ -30,8 +30,6 @@ class TestSeedGrantsRedshift(BaseSeedGrants):
 
 
 class TestSnapshotGrantsRedshift(BaseSnapshotGrants):
-    pass
-
     @pytest.fixture(scope="class")
     def snapshots(self):
         return {"my_snapshot.sql": my_snapshot_sql, "schema.yml": snapshot_schema_yml}
