@@ -117,8 +117,8 @@ class RedshiftConnectionManager(PostgresConnectionManager):
 
         try:
             if serverless:
-                # redshiftserverless API is supported in boto3 1.24.11 and higher
-                boto_client = session.client("redshiftserverless")
+                # redshift-serverless API is supported in boto3 1.24.20 and higher
+                boto_client = session.client("redshift-serverless")
                 return boto_client.get_credentials(
                     dbName=db_name, workgroupName=cluster_id, durationSeconds=duration_s
                 )
