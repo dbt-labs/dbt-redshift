@@ -14,12 +14,12 @@ class TestIncrementalGrantsRedshift(BaseIncrementalGrants):
     pass
 
 
-class TestSeedGrantsRedshift(BaseSeedGrants):
-    pass
+# class TestSeedGrantsRedshift(BaseSeedGrants):
+#     pass
 
 
-class TestSnapshotGrantsRedshift(BaseSnapshotGrants):
-    pass
+# class TestSnapshotGrantsRedshift(BaseSnapshotGrants):
+#     pass
 
 
 class TestInvalidGrantsRedshift(BaseModelGrants):
