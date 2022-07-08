@@ -23,15 +23,3 @@ cross join privileges p
 where has_table_privilege(u.usename, '{{ relation }}', privilege_type)
 
 {% endmacro %}
-
-
-{% macro redshift__get_revoke_sql(relation, grant_config) %}
-    {%- for privilege in grant_config.keys() -%}
-        {%- set grantees = grant_config[privilege] -%}
-        {%- if grantees -%}
-                {%- for grantee in grantees -%}
-                    revoke {{ privilege }} on {{ relation }} from {{ grantee }};
-                {% endfor -%}
-        {%- endif -%}
-    {%- endfor -%}
-{%- endmacro -%}
