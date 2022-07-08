@@ -21,5 +21,6 @@ select
 from pg_user u
 cross join privileges p
 where has_table_privilege(u.usename, '{{ relation }}', privilege_type)
+and u.usename != current_user
 
 {% endmacro %}
