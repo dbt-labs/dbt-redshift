@@ -77,14 +77,15 @@ Finally, you can also run a specific test or group of tests using `pytest` direc
 
 ```sh
 # run specific redshift integration tests
-python -m pytest -m profile_redshift tests/integration/adapter_methods_test
+python -m pytest -m profile_redshift tests/integration/simple_seed_test
 # run specific redshift functional tests in a file
 python -m pytest tests/functional/adapter/test_basic.py
 # run all unit tests in a file
 python -m pytest tests/unit/test_redshift_adapter.py
 # run a specific unit test
-python -m pytest tests/unit/test_redshift_adapter.py::TestRedshiftAdapter::test_convert_date_type
+python -m pytest tests/unit/test_redshift_adapter.py::TestRedshiftAdapterConversions::test_convert_date_type
 ```
+
 ## Updating Docs
 
 Many changes will require an update to the `dbt-redshift` docs. If so, here are some useful resources to find where the current behavior is documented.
