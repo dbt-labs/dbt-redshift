@@ -1,3 +1,8 @@
+## dbt-redshift next
+
+### Features
+- Add grants to materializations ([#128](https://github.com/dbt-labs/dbt-redshift/issues/128), [#131](https://github.com/dbt-labs/dbt-redshift/pull/131))
+
 ## dbt-redshift 1.2.0b1 (June 24, 2022)
 
 ### Under the hood
