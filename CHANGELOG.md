@@ -1,4 +1,7 @@
-## dbt-redshift next
+## dbt-snowflake 1.3.0b1 (Release TBD)
+
+
+## dbt-redshift 1.2.0b1 (July 12, 2022)
 
 ### Features
 - Add grants to materializations ([#128](https://github.com/dbt-labs/dbt-redshift/issues/128), [#131](https://github.com/dbt-labs/dbt-redshift/pull/131))
