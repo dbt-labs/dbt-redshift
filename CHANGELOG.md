@@ -1,4 +1,4 @@
-## dbt-redshift next
+## dbt-redshift next test
 
 ### Features
 - Add grants to materializations ([#128](https://github.com/dbt-labs/dbt-redshift/issues/128), [#131](https://github.com/dbt-labs/dbt-redshift/pull/131))
