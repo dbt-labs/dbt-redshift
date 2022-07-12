@@ -14,7 +14,7 @@
 
 dbt is the T in ELT. Organize, cleanse, denormalize, filter, rename, and pre-aggregate the raw data in your warehouse so that it's ready for analysis.
 
-## dbt-redshift
+## dbt-redshift test
 
 The `dbt-redshift` package contains all of the code enabling dbt to work with Amazon Redshift. For
 more information on using dbt with Redshift, consult [the docs](https://docs.getdbt.com/docs/profile-redshift).
