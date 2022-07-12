@@ -124,7 +124,7 @@ jobs:
 
     strategy:
       fail-fast: false
-      max-parallel: 4
+      max-parallel: 3
       matrix: ${{ fromJSON(needs.test-metadata.outputs.matrix) }}
 
     env:
