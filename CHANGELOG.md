@@ -1,5 +1,6 @@
 ## dbt-redshift 1.3.0b1 (Release TBD)
-
+### Features
+- Support IAM authentication for Redshift Serverless ([#138](https://github.com/dbt-labs/dbt-redshift/issues/138))
 
 ## dbt-redshift 1.2.0b1 (July 12, 2022)
 
