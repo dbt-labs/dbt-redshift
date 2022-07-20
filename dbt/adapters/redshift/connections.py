@@ -110,9 +110,7 @@ class RedshiftConnectionManager(PostgresConnectionManager):
         if iam_profile is None:
             session = boto3.Session()
         else:
-            logger.debug(
-                "Connecting to Redshift using 'IAM'" + f"with profile {iam_profile}"
-            )
+            logger.debug(f"Connecting to Redshift using 'IAM' with profile {iam_profile}")
             session = boto3.Session(profile_name=iam_profile)
 
         try:
@@ -148,8 +146,7 @@ class RedshiftConnectionManager(PostgresConnectionManager):
 
         if not cluster_id:
             raise dbt.exceptions.FailedToConnectException(
-                "'cluster_id' must be provided in profile if IAM "
-                "authentication method selected"
+                "'cluster_id' must be provided in profile if IAM " "authentication method selected"
             )
 
         cluster_creds = cls.fetch_cluster_credentials(
