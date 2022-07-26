@@ -1,3 +1,5 @@
+## dbt-redshift 1.2.0 (July 26, 2022)
+
 ## dbt-redshift 1.2.0rc1 (July 12, 2022)
 
 ### Features
