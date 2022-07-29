@@ -3,7 +3,7 @@
 ## dbt-redshift 1.3.0b1 (July 29, 2022)
 
 ### Under the hood
-- Rename compiled_sql to compiled_code ([#145](https://github.com/dbt-labs/dbt-redshift/pull/145)) 
+- Rename compiled_sql to compiled_code ([#145](https://github.com/dbt-labs/dbt-redshift/pull/145))
 
 ## dbt-redshift 1.2.0b1 (July 12, 2022)
 
