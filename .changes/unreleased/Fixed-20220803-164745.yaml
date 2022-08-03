@@ -1,3 +1,0 @@
-kind: Fixed
-body: Avoid truncating Redshift model names with more than 63 characters
-time: 2022-08-03T16:47:45.379673595+02:00
