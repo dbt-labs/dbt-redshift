@@ -230,6 +230,7 @@
     {{ return(result) }}
 {%- endmacro %}
 
+-- TODO: streamline the underlying postgres macro and pass in param of 127 here
 {% macro redshift__make_relation_with_suffix(base_relation, suffix, dstring) %}
     {% if dstring %}
       {% set dt = modules.datetime.datetime.now() %}
