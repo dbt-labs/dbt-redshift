@@ -7,4 +7,3 @@
 
 ### Under the hood
 - Rename compiled_sql to compiled_code ([#145](https://github.com/dbt-labs/dbt-redshift/pull/145))
-
