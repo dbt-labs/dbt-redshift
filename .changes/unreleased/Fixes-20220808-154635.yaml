@@ -1,0 +1,7 @@
+kind: Fixes
+body: Avoid truncating Redshift model names with more than 63 characters
+time: 2022-08-08T15:46:35.850848-05:00
+custom:
+  Author: Goodkat
+  Issue: "5586"
+  PR: "147"

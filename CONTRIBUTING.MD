@@ -95,6 +95,15 @@ Many changes will require an update to the `dbt-redshift` docs. If so, here are 
 - The changes made are likely to impact one or both of [Redshift Profile](https://docs.getdbt.com/reference/warehouse-profiles/redshift-profile), or [Redshift Configs](https://docs.getdbt.com/reference/resource-configs/redshift-configs).
 - We ask every community member who makes a user-facing change to open an issue or PR regarding doc changes.
 
+## Adding CHANGELOG Entry
+
+We use [changie](https://changie.dev) to generate `CHANGELOG` entries. **Note:** Do not edit the `CHANGELOG.md` directly. Your modifications will be lost.
+
+Follow the steps to [install `changie`](https://changie.dev/guide/installation/) for your system.
+
+Once changie is installed and your PR is created, simply run `changie new` and changie will walk you through the process of creating a changelog entry.  Commit the file that's created and your changelog entry is complete!
+
+You don't need to worry about which `dbt-redshift` version your change will go into. Just create the changelog entry with `changie`, and open your PR against the `main` branch. All merged changes will be included in the next minor version of `dbt-redshift`. The Core maintainers _may_ choose to "backport" specific changes in order to patch older minor versions. In that case, a maintainer will take care of that backport after merging your PR, before releasing the new version of `dbt-redshift`.
 
 
 ## Submitting a Pull Request
