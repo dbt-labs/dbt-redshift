@@ -26,4 +26,3 @@ jobs:
     with:
       version_number: ${{ inputs.version_number }}
     secrets: inherit  # ok since what we are calling is internally maintained
-
