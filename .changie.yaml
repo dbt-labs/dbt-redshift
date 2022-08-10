@@ -53,10 +53,10 @@ footerFormat: |
       {{- end}}
     {{- end}}
   {{- end }}
-  {{- /* no indentation here for formatting so the final markdown doesn't have unneeded indentations */}}
-  {{- if $contributorDict}}
-  ### Contributors
-  {{- range $k,$v := $contributorDict }}
-  - [@{{$k}}](https://github.com/{{$k}}) ({{ range $index, $element := $v }}{{if $index}}, {{end}}[#{{$element}}](https://github.com/dbt-labs/dbt-redshift/pull/{{$element}}){{end}})
+{{- /* no indentation here for formatting so the final markdown doesn't have unneeded indentations */}}
+{{- if $contributorDict}}
+### Contributors
+{{- range $k,$v := $contributorDict }}
+- [@{{$k}}](https://github.com/{{$k}}) ({{ range $index, $element := $v }}{{if $index}}, {{end}}[#{{$element}}](https://github.com/dbt-labs/dbt-redshift/pull/{{$element}}){{end}})
   {{- end }}
   {{- end }}
