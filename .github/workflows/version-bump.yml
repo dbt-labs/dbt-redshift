@@ -22,10 +22,8 @@ on:
 
 jobs:
   version_bump_and_changie:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: dbt-labs/dbt-release/.github/workflows/version-bump.yml@er/update-version-bump
-        with:
-          version_number: ${{ inputs.version_number }}
-          secrets: inherit
- 
+    uses: dbt-labs/dbt-release/.github/workflows/version-bump.yml@er/update-version-bump
+    with:
+      version_number: ${{ inputs.version_number }}
+    secrets: inherit  # ok since what we are calling is internally maintained
+
