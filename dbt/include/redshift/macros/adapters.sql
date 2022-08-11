@@ -254,6 +254,14 @@
                                               "database": none})) }}
 {% endmacro %}
 
+{% macro redshift__make_intermediate_relation(base_relation, suffix) %}
+    {{ return(redshift__make_relation_with_suffix(base_relation, suffix, dstring=False)) }}
+{% endmacro %}
+
+{% macro redshift__make_backup_relation(base_relation, backup_relation_type, suffix) %}
+    {% set backup_relation = redshift__make_relation_with_suffix(base_relation, suffix, dstring=False) %}
+    {{ return(backup_relation.incorporate(type=backup_relation_type)) }}
+{% endmacro %}
 
 {% macro redshift__persist_docs(relation, model, for_relation, for_columns) -%}
   {% if for_relation and config.persist_relation_docs() and model.description %}
