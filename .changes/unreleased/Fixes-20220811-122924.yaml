@@ -1,0 +1,7 @@
+kind: Fixes
+body: Add missing macros to complete PR 149.
+time: 2022-08-11T12:29:24.802344-07:00
+custom:
+  Author: mquesta
+  Issue: "5568"
+  PR: "164"
