@@ -8,6 +8,7 @@ from dbt.events import AdapterLogger
 import dbt.exceptions
 import dbt.flags
 
+import botocore
 import boto3
 
 from dbt.dataclass_schema import FieldEncoder, dbtClassMixin, StrEnum
@@ -43,7 +44,9 @@ class RedshiftCredentials(PostgresCredentials):
     password: Optional[str] = None
     cluster_id: Optional[str] = field(
         default=None,
-        metadata={"description": "If using IAM auth, the name of the cluster"},
+        metadata={
+            "description": "If using IAM auth, the name of the cluster or serverless workgroup"
+        },
     )
     iam_profile: Optional[str] = None
     iam_duration_seconds: int = 900
@@ -52,6 +55,7 @@ class RedshiftCredentials(PostgresCredentials):
     autocreate: bool = False
     db_groups: List[str] = field(default_factory=list)
     ra3_node: Optional[bool] = False
+    serverless: Optional[bool] = False
 
     @property
     def type(self):
@@ -88,32 +92,47 @@ class RedshiftConnectionManager(PostgresConnectionManager):
             self.commit()
             self.begin()
 
+    # TODO with the addition of the `serverless` field there are non non-nonsensical ways to call this function. It deserves a refactor.
     @classmethod
     def fetch_cluster_credentials(
-        cls, db_user, db_name, cluster_id, iam_profile, duration_s, autocreate, db_groups
+        cls,
+        db_user,
+        db_name,
+        cluster_id,
+        iam_profile,
+        duration_s,
+        autocreate,
+        db_groups,
+        serverless,
     ):
         """Fetches temporary login credentials from AWS. The specified user
         must already exist in the database, or else an error will occur"""
 
         if iam_profile is None:
             session = boto3.Session()
-            boto_client = session.client("redshift")
         else:
-            logger.debug("Connecting to Redshift using 'IAM'" + f"with profile {iam_profile}")
-            boto_session = boto3.Session(profile_name=iam_profile)
-            boto_client = boto_session.client("redshift")
+            logger.debug(f"Connecting to Redshift using 'IAM' with profile {iam_profile}")
+            session = boto3.Session(profile_name=iam_profile)
 
         try:
-            return boto_client.get_cluster_credentials(
-                DbUser=db_user,
-                DbName=db_name,
-                ClusterIdentifier=cluster_id,
-                DurationSeconds=duration_s,
-                AutoCreate=autocreate,
-                DbGroups=db_groups,
-            )
+            if serverless:
+                # redshift-serverless API is supported in boto3 1.24.20 and higher
+                boto_client = session.client("redshift-serverless")
+                return boto_client.get_credentials(
+                    dbName=db_name, workgroupName=cluster_id, durationSeconds=duration_s
+                )
+            else:
+                boto_client = session.client("redshift")
+                return boto_client.get_cluster_credentials(
+                    DbUser=db_user,
+                    DbName=db_name,
+                    ClusterIdentifier=cluster_id,
+                    DurationSeconds=duration_s,
+                    AutoCreate=autocreate,
+                    DbGroups=db_groups,
+                )
 
-        except boto_client.exceptions.ClientError as e:
+        except botocore.exceptions.ClientError as e:
             raise dbt.exceptions.FailedToConnectException(
                 "Unable to get temporary Redshift cluster credentials: {}".format(e)
             )
@@ -139,11 +158,21 @@ class RedshiftConnectionManager(PostgresConnectionManager):
             iam_duration_s,
             credentials.autocreate,
             credentials.db_groups,
+            credentials.serverless,
         )
+
+        # the serverless API returns credentials in camel case
+        if credentials.serverless:
+            db_user = "dbUser"
+            db_password = "dbPassword"
+        else:
+            db_user = "DbUser"
+            db_password = "DbPassword"
 
         # replace username and password with temporary redshift credentials
         return credentials.replace(
-            user=cluster_creds.get("DbUser"), password=cluster_creds.get("DbPassword")
+            user=cluster_creds.get(db_user),
+            password=cluster_creds.get(db_password),
         )
 
     @classmethod
