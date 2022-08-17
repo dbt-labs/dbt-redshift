@@ -107,6 +107,38 @@ class TestRedshiftAdapter(unittest.TestCase):
         }
 
         config_from_parts_or_dicts(self.config, profile_cfg)
+    
+    def test_iam_serverless(self):
+        def fetch_serverless_credentials(*args, **kwargs):
+            return {
+                'dbUser': 'temporary_iam_user',
+                'dbPassword': 'tmp_password'
+            }
+        
+        profile_cfg = {
+            'outputs': {
+                'test': {
+                    'type': 'redshift',
+                    'dbname': 'redshift',
+                    'user': 'root',
+                    'host': 'thishostshouldnotexist',
+                    'port': 5439,
+                    'schema': 'public',
+                    'method': 'iam',
+                    'serverless': True,
+                    'cluster_id': 'my_redshift',
+                }
+            },
+            'target': 'test'
+        }
+
+        conf = config_from_parts_or_dicts(self.config, profile_cfg)
+
+        with mock.patch.object(RedshiftAdapter.ConnectionManager, 'fetch_cluster_credentials', new=fetch_serverless_credentials):
+            creds = RedshiftAdapter.ConnectionManager.get_credentials(conf.credentials)
+
+        expected_creds = conf.credentials.replace(password='tmp_password', user='temporary_iam_user')
+        self.assertEqual(creds, expected_creds)
 
     def test_invalid_auth_method(self):
         # we have to set method this way, otherwise it won't validate
