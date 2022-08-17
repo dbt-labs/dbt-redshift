@@ -1,0 +1,7 @@
+kind: Features
+body: "Support IAM authentication for Redshift Serverless"
+time: 2022-08-17T21:50:26.358073214+02:00
+custom:
+  Author: mp24-git
+  Issue: "138"
+  PR: "139"
