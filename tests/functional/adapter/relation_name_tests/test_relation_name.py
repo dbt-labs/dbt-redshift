@@ -93,6 +93,9 @@ class TestAdapterDDL(TestAdapterDDLBase):
         relname_63_chars_long = (
             "relation_whose_name_is_63_chars_long_abcdefghijklmnopqrstuvwxyz.sql"
         )
+        relname_63_chars_long_b = (
+            "relation_whose_name_is_63_chars_long_abcdefghijklmnopqrstuvwxya.sql"
+        )
         relname_64_chars_long = (
             "relation_whose_name_is_64_chars_long_abcdefghijklmnopqrstuvwxyz0.sql"
         )
@@ -105,12 +108,16 @@ class TestAdapterDDL(TestAdapterDDLBase):
             relname_51_chars_long: models__inc_relationname_51_chars_long,
             relname_52_chars_long: models__relationname_52_chars_long,
             relname_63_chars_long: models__relationname_63_chars_long,
+            relname_63_chars_long_b: models__relationname_63_chars_long,
             relname_64_chars_long: models__relationname_64_chars_long,
             relname_127_chars_long: models__relationname_127_chars_long
         }
 
     def test_long_name_succeeds(self, project):
-        run_dbt(["run"], expect_pass=True)
+        run_dbt(["run", "--threads", "2"], expect_pass=True)
+        # warn: second run will trigger the collision at Redshift relation
+        # name length max
+        run_dbt(["run", "--threads", "2"], expect_pass=True)
 
 
 class TestAdapterDDLExceptions(TestAdapterDDLBase):
