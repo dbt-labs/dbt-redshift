@@ -230,30 +230,6 @@
     {{ return(result) }}
 {%- endmacro %}
 
--- TODO: streamline the underlying postgres macro and pass in param of 127 here
-{% macro redshift__make_relation_with_suffix(base_relation, suffix, dstring) %}
-    {% if dstring %}
-      {% set dt = modules.datetime.datetime.now() %}
-      {% set dtstring = dt.strftime("%H%M%S%f") %}
-      {% set suffix = suffix ~ dtstring %}
-    {% endif %}
-    {% set suffix_length = suffix|length %}
-    {% set relation_max_name_length = 127 %}
-    {% if suffix_length > relation_max_name_length %}
-        {% do exceptions.raise_compiler_error('Relation suffix is too long (' ~ suffix_length ~ ' characters). Maximum length is ' ~ relation_max_name_length ~ ' characters.') %}
-    {% endif %}
-    {% set identifier = base_relation.identifier[:relation_max_name_length - suffix_length] ~ suffix %}
-
-    {{ return(base_relation.incorporate(path={"identifier": identifier })) }}
-
-  {% endmacro %}
-
-{% macro redshift__make_temp_relation(base_relation, suffix) %}
-    {% set temp_relation = redshift__make_relation_with_suffix(base_relation, suffix, dstring=True) %}
-    {{ return(temp_relation.incorporate(path={"schema": none,
-                                              "database": none})) }}
-{% endmacro %}
-
 
 {% macro redshift__persist_docs(relation, model, for_relation, for_columns) -%}
   {% if for_relation and config.persist_relation_docs() and model.description %}
