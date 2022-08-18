@@ -1,0 +1,7 @@
+kind: Under the Hood
+body: Removing unneeded code for truncation logic
+time: 2022-08-18T12:20:11.855469-04:00
+custom:
+  Author: VersusFacit
+  Issue: "150"
+  PR: "167"
