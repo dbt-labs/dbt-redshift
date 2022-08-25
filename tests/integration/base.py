@@ -153,7 +153,7 @@ class DBTIntegrationTest(unittest.TestCase):
                     'default2': {
                         'type': 'redshift',
                         'threads': 1,
-                        'retries': 2,
+                        'retries': 6,
                         'host': os.getenv('REDSHIFT_TEST_HOST'),
                         'port': int(os.getenv('REDSHIFT_TEST_PORT')),
                         'user': os.getenv('REDSHIFT_TEST_USER'),
