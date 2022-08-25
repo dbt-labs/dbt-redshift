@@ -1,7 +1,0 @@
-kind: Fixes
-body: Backport fix to up redshift filename truncate limit all the way to 127 chars.
-time: 2022-08-10T13:04:16.221527-07:00
-custom:
-  Author: mquesta goodkat
-  Issue: "5586"
-  PR: "149"
