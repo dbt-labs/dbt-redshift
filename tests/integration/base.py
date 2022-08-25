@@ -153,6 +153,7 @@ class DBTIntegrationTest(unittest.TestCase):
                     'default2': {
                         'type': 'redshift',
                         'threads': 1,
+                        'retries': 6,
                         'host': os.getenv('REDSHIFT_TEST_HOST'),
                         'port': int(os.getenv('REDSHIFT_TEST_PORT')),
                         'user': os.getenv('REDSHIFT_TEST_USER'),
@@ -219,7 +220,7 @@ class DBTIntegrationTest(unittest.TestCase):
         return normalize(tempfile.mkdtemp(prefix='dbt-int-test-'))
 
     def setUp(self):
-        # Logbook warnings are ignored so we don't have to fork logbook to support python 3.10. 
+        # Logbook warnings are ignored so we don't have to fork logbook to support python 3.10.
         # This _only_ works for tests in `test/integration`.
         warnings.filterwarnings(
             "ignore",
