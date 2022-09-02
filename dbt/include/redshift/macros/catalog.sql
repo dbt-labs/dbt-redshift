@@ -53,6 +53,21 @@
             and not col.attisdropped
     ),
 
+    external_cols as (
+        select
+            '{{ database }}'::varchar as table_database,
+            schemaname as table_schema,
+            tablename as table_name,
+            'EXTERNAL'::varchar as table_type,
+            null::text as table_comment,
+            columnname as column_name,
+            columnnum as column_index,
+            external_type as column_type,
+            null::text as column_comment
+        from svv_external_columns
+        order by column_index
+    ),
+
     table_owners as (
 
         select
@@ -84,6 +99,11 @@
 
         select *
         from late_binding
+
+        union all
+
+        select *
+        from external_cols
 
     )
 
