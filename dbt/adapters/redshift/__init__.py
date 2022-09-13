@@ -8,8 +8,8 @@ from dbt.adapters.redshift.impl import RedshiftAdapter
 from dbt.adapters.base import AdapterPlugin  # type: ignore
 from dbt.include import redshift  # type: ignore
 
-Plugin = AdapterPlugin(
-    adapter=RedshiftAdapter,
+Plugin: AdapterPlugin = AdapterPlugin(
+    adapter=RedshiftAdapter,  # type: ignore
     credentials=RedshiftCredentials,
     include_path=redshift.PACKAGE_PATH,
     dependencies=["postgres"],
