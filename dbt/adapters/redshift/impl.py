@@ -25,9 +25,9 @@ class RedshiftConfig(AdapterConfig):
 class RedshiftAdapter(PostgresAdapter, SQLAdapter):
     Relation = RedshiftRelation
     ConnectionManager = RedshiftConnectionManager
-    Column = RedshiftColumn
+    Column = RedshiftColumn  # type: ignore
 
-    AdapterSpecificConfigs = RedshiftConfig
+    AdapterSpecificConfigs = RedshiftConfig  # type: ignore
 
     @classmethod
     def date_function(cls):
