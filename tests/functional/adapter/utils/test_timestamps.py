@@ -1,8 +1,8 @@
 import pytest
-from dbt.tests.adapter.utils.test_timestamps import TestCurrentTimestamps
+from dbt.tests.adapter.utils import test_timestamps
 
 
-class TestCurrentTimestampSnowflake(TestCurrentTimestamps):
+class TestCurrentTimestampSnowflake(test_timestamps.TestCurrentTimestamps):
     @pytest.fixture(scope="class")
     def expected_schema(self):
         return {
