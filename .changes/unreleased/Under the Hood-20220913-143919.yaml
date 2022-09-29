@@ -1,7 +1,0 @@
-kind: Under the Hood
-body: Add type ignores to mypy checks
-time: 2022-09-13T14:39:19.052395-07:00
-custom:
-  Author: colin-rogers-dbt
-  Issue: "185"
-  PR: "186"
