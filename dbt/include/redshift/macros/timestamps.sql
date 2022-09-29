@@ -11,6 +11,10 @@
     {{ return(result) }}
 {%- endmacro %}
 
+{% macro redshift__current_timestamp_backcompat() -%}
+    getdate()
+{%- endmacro %}
+
 {% macro redshift__current_timestamp_in_utc_backcompat() -%}
     getdate()
 {%- endmacro %}
