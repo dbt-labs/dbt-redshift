@@ -1,7 +1,0 @@
-kind: Under the Hood
-body: Rename compiled_sql to compiled_code.
-time: 2022-08-08T15:44:22.161657-05:00
-custom:
-  Author: jtcohen6
-  Issue: "150"
-  PR: "145"
