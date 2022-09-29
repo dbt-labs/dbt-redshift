@@ -10,3 +10,12 @@
     {%- set result = "'" ~ timestamp ~ "'::timestamp" -%}
     {{ return(result) }}
 {%- endmacro %}
+
+{% macro redshift__snapshot_string_as_time(timestamp) -%}
+    {%- set result = "'" ~ timestamp ~ "'::timestamp" -%}
+    {{ return(result) }}
+{%- endmacro %}
+
+{% macro redshift__current_timestamp_in_utc_backcompat -%}
+    getdate()
+{%- endmacro %}
