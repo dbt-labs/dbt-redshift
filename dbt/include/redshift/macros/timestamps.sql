@@ -10,7 +10,3 @@
     {%- set result = "'" ~ timestamp ~ "'::timestamp" -%}
     {{ return(result) }}
 {%- endmacro %}
-
-{% macro current_timestamp_in_utc_backcompat() %}
-    {{ return(adapter.dispatch('current_timestamp_backcompat', 'dbt')()) }}
-{% endmacro %}
