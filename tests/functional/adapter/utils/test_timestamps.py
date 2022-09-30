@@ -1,8 +1,8 @@
 import pytest
-from dbt.tests.adapter.utils import test_timestamps
+from dbt.tests.adapter.utils.test_timestamps import BaseCurrentTimestamps
 
 
-class TestCurrentTimestampRedshift(test_timestamps.BaseCurrentTimestamps):
+class TestCurrentTimestampRedshift(BaseCurrentTimestamps):
     @pytest.fixture(scope="class")
     def expected_schema(self):
         return {
