@@ -1,5 +1,5 @@
 import pytest
-from dbt.tests.adapter.query_comment.test_query_comment.py import (
+from dbt.tests.adapter.query_comment.test_query_comment import (
     BaseQueryComments,
     BaseMacroQueryComments,
     BaseMacroArgsQueryComments,
@@ -9,20 +9,20 @@ from dbt.tests.adapter.query_comment.test_query_comment.py import (
 )
 
 
-class BaseQueryCommentsRedshift(BaseQueryComments):
+class TestQueryCommentsRedshift(BaseQueryComments):
     pass
 
-class BaseMacroQueryCommentsRedshift(BaseMacroQueryComments):
+class TestMacroQueryCommentsRedshift(BaseMacroQueryComments):
     pass
 
-class BaseMacroArgsQueryCommentsRedshift(BaseMacroArgsQueryComments):
+class TestMacroArgsQueryCommentsRedshift(BaseMacroArgsQueryComments):
     pass
 
-class BaseMacroInvalidQueryCommentsRedshift(BaseMacroInvalidQueryComments):
+class TestMacroInvalidQueryCommentsRedshift(BaseMacroInvalidQueryComments):
     pass
 
-class BaseNullQueryCommentsRedshift(BaseNullQueryComments):
+class TestNullQueryCommentsRedshift(BaseNullQueryComments):
     pass
 
-class BaseEmptyQueryCommentsRedshift(BaseEmptyQueryComments):
+class TestEmptyQueryCommentsRedshift(BaseEmptyQueryComments):
     pass
