@@ -2,7 +2,7 @@ import pytest
 from dbt.tests.adapter.utils import test_timestamps
 
 
-class TestCurrentTimestampSnowflake(test_timestamps.TestCurrentTimestamps):
+class TestCurrentTimestampRedshift(test_timestamps.BaseCurrentTimestamps):
     @pytest.fixture(scope="class")
     def expected_schema(self):
         return {
