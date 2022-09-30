@@ -1,0 +1,7 @@
+kind: Features
+body: Migrate dbt-utils current_timestamp macros into core + adapters
+time: 2022-09-26T10:16:06.676737-07:00
+custom:
+  Author: colin-rogers-dbt
+  Issue: "194"
+  PR: "191"
