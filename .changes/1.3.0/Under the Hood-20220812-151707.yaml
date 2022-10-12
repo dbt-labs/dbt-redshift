@@ -1,7 +1,0 @@
-kind: Under the Hood
-body: Add test for column precision changes
-time: 2022-08-12T15:17:07.183316-07:00
-custom:
-  Author: epapineau
-  Issue: "5351"
-  PR: "166"
