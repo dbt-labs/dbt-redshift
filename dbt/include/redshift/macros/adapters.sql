@@ -43,15 +43,32 @@
 
   {{ sql_header if sql_header is not none }}
 
+  {% if not config.get('constraints_enabled', False) %}
+    
   create {% if temporary -%}temporary{%- endif %} table
     {{ relation.include(database=(not temporary), schema=(not temporary)) }}
-    {{ get_columns_spec_ddl() }}
     {% if backup == false -%}backup no{%- endif %}
     {{ dist(_dist) }}
     {{ sort(_sort_type, _sort) }}
   as (
     {{ sql }}
   );
+  {% else%}
+  create {% if temporary -%}temporary{%- endif %} table
+    {{ relation.include(database=(not temporary), schema=(not temporary)) }}
+    {{ get_columns_spec_ddl() }}
+    {% if backup == false -%}backup no{%- endif %}
+    {{ dist(_dist) }}
+    {{ sort(_sort_type, _sort) }}
+  ;
+
+  insert into {{ relation.include(database=(not temporary), schema=(not temporary)) }}
+    (
+      {{ sql }}
+    )
+  ;
+
+  {% endif %}
 {%- endmacro %}
 
 
