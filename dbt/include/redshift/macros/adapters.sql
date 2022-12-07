@@ -45,6 +45,7 @@
 
   create {% if temporary -%}temporary{%- endif %} table
     {{ relation.include(database=(not temporary), schema=(not temporary)) }}
+    {{ get_columns_spec_ddl() }}
     {% if backup == false -%}backup no{%- endif %}
     {{ dist(_dist) }}
     {{ sort(_sort_type, _sort) }}
