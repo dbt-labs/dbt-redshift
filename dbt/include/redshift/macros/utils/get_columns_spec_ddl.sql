@@ -5,7 +5,7 @@
     {%- set primary_keys = [] -%}
     {%- set ddl_lines = [] -%}
 
-    {% for i in user_provided_columns %}
+    {%- for i in user_provided_columns %}
       {%- set col = user_provided_columns[i] -%}
       {%- set constraints = col['constraints'] -%}
       {%- set ns = namespace(not_null_line = '') -%}
@@ -18,14 +18,14 @@
         {%- endif -%}
       {%- endfor -%}
 
-      {% set not_null_line = " not null" if not_null_col else "" %}
+      {%- set not_null_line = " not null" if not_null_col else "" -%}
 
-      {%- set checks = col['checks'] -%}
-      {%- if checks -%}
-        {{ exceptions.warn("We noticed you have `checks` in your configs, these are NOT compatible with Snowflake and will be ignored") }}
-      {%- endif %}
+      {%- set check = col['check'] -%}
+      {%- if check -%}
+        {{ exceptions.warn("We noticed you have `check` in your configs, these are NOT compatible with Redshift and will be ignored") }}
+      {%- endif -%}
 
-      {% set col_line = col['name'] ~ " " ~ col['data_type'] ~ ns.not_null_line %}
+      {%- set col_line = col['name'] ~ " " ~ col['data_type'] ~ ns.not_null_line -%}
       {%- do ddl_lines.append(col_line) -%}
     {%- endfor %}
 
