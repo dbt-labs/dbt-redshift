@@ -1,0 +1,7 @@
+kind: Under the Hood
+body: Code cleanup and fixes due to graph parsed -> nodes. Fix tests.
+time: 2022-12-08T01:10:18.63667-08:00
+custom:
+  Author: versusfacit
+  Issue: "228"
+  PR: "230"
