@@ -40,7 +40,6 @@ def mock_connection(name, state='open'):
 def profile_from_dict(profile, profile_name, cli_vars='{}'):
     from dbt.config import Profile
     from dbt.config.renderer import ProfileRenderer
-    from dbt.context.base import generate_base_context
     from dbt.config.utils import parse_cli_vars
     if not isinstance(cli_vars, dict):
         cli_vars = parse_cli_vars(cli_vars)
@@ -54,8 +53,6 @@ def profile_from_dict(profile, profile_name, cli_vars='{}'):
 
 
 def project_from_dict(project, profile, packages=None, selectors=None, cli_vars='{}'):
-    from dbt.context.target import generate_target_context
-    from dbt.config import Project
     from dbt.config.renderer import DbtProjectYamlRenderer
     from dbt.config.utils import parse_cli_vars
     if not isinstance(cli_vars, dict):
@@ -72,7 +69,6 @@ def project_from_dict(project, profile, packages=None, selectors=None, cli_vars=
         selectors_dict=selectors,
     )
     return partial.render(renderer)
-
 
 
 def config_from_parts_or_dicts(project, profile, packages=None, selectors=None, cli_vars='{}'):
@@ -155,7 +151,7 @@ class ContractTestCase(TestCase):
         if cls is None:
             cls = self.ContractType
         cls.validate(dct)
-        self.assertEqual(cls.from_dict(dct),  obj)
+        self.assertEqual(cls.from_dict(dct), obj)
 
     def assert_symmetric(self, obj, dct, cls=None):
         self.assert_to_dict(obj, dct)
@@ -219,33 +215,6 @@ def assert_fails_validation(dct, cls):
         cls.from_dict(dct)
 
 
-def generate_name_macros(package):
-    from dbt.contracts.graph.parsed import ParsedMacro
-    from dbt.node_types import NodeType
-    name_sql = {}
-    for component in ('database', 'schema', 'alias'):
-        if component == 'alias':
-            source = 'node.name'
-        else:
-            source = f'target.{component}'
-        name = f'generate_{component}_name'
-        sql = f'{{% macro {name}(value, node) %}} {{% if value %}} {{{{ value }}}} {{% else %}} {{{{ {source} }}}} {{% endif %}} {{% endmacro %}}'
-        name_sql[name] = sql
-
-    for name, sql in name_sql.items():
-        pm = ParsedMacro(
-            name=name,
-            resource_type=NodeType.Macro,
-            unique_id=f'macro.{package}.{name}',
-            package_name=package,
-            original_file_path=normalize('macros/macro.sql'),
-            root_path='./dbt_packages/root',
-            path=normalize('macros/macro.sql'),
-            macro_sql=sql,
-        )
-        yield pm
-
-
 class TestAdapterConversions(TestCase):
     def _get_tester_for(self, column_type):
         from dbt.clients import agate_helper
@@ -268,97 +237,9 @@ class TestAdapterConversions(TestCase):
         return table
 
 
-def MockMacro(package, name='my_macro', **kwargs):
-    from dbt.contracts.graph.parsed import ParsedMacro
-    from dbt.node_types import NodeType
-
-    mock_kwargs = dict(
-        resource_type=NodeType.Macro,
-        package_name=package,
-        unique_id=f'macro.{package}.{name}',
-        original_file_path='/dev/null',
-    )
-
-    mock_kwargs.update(kwargs)
-
-    macro = mock.MagicMock(
-        spec=ParsedMacro,
-        **mock_kwargs
-    )
-    macro.name = name
-    return macro
-
-
-def MockMaterialization(package, name='my_materialization', adapter_type=None, **kwargs):
-    if adapter_type is None:
-        adapter_type = 'default'
-    kwargs['adapter_type'] = adapter_type
-    return MockMacro(package, f'materialization_{name}_{adapter_type}', **kwargs)
-
-
-def MockGenerateMacro(package, component='some_component', **kwargs):
-    name = f'generate_{component}_name'
-    return MockMacro(package, name=name, **kwargs)
-
-
-def MockSource(package, source_name, name, **kwargs):
-    from dbt.node_types import NodeType
-    from dbt.contracts.graph.parsed import ParsedSourceDefinition
-    src = mock.MagicMock(
-        __class__=ParsedSourceDefinition,
-        resource_type=NodeType.Source,
-        source_name=source_name,
-        package_name=package,
-        unique_id=f'source.{package}.{source_name}.{name}',
-        search_name=f'{source_name}.{name}',
-        **kwargs
-    )
-    src.name = name
-    return src
-
-
-def MockNode(package, name, resource_type=None, **kwargs):
-    from dbt.node_types import NodeType
-    from dbt.contracts.graph.parsed import ParsedModelNode, ParsedSeedNode
-    if resource_type is None:
-        resource_type = NodeType.Model
-    if resource_type == NodeType.Model:
-        cls = ParsedModelNode
-    elif resource_type == NodeType.Seed:
-        cls = ParsedSeedNode
-    else:
-        raise ValueError(f'I do not know how to handle {resource_type}')
-    node = mock.MagicMock(
-        __class__=cls,
-        resource_type=resource_type,
-        package_name=package,
-        unique_id=f'{str(resource_type)}.{package}.{name}',
-        search_name=name,
-        **kwargs
-    )
-    node.name = name
-    return node
-
-
-def MockDocumentation(package, name, **kwargs):
-    from dbt.node_types import NodeType
-    from dbt.contracts.graph.parsed import ParsedDocumentation
-    doc = mock.MagicMock(
-        __class__=ParsedDocumentation,
-        resource_type=NodeType.Documentation,
-        package_name=package,
-        search_name=name,
-        unique_id=f'{package}.{name}',
-        **kwargs
-    )
-    doc.name = name
-    return doc
-
-
-def load_internal_manifest_macros(config, macro_hook = lambda m: None):
+def load_internal_manifest_macros(config, macro_hook=lambda m: None):
     from dbt.parser.manifest import ManifestLoader
     return ManifestLoader.load_macros(config, macro_hook)
-
 
 
 def dict_replace(dct, **kwargs):
