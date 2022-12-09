@@ -1,19 +1,27 @@
-import unittest
 import os
+import pytest
+import unittest
+
 from unittest import mock
 
-import pytest
+from .utils import config_from_parts_or_dicts, inject_adapter, clear_plugin
+from .mock_adapter import adapter_factory
+import dbt.exceptions
 
-from dbt.adapters import redshift
-from dbt.adapters import factory
-from dbt.contracts.graph.parsed import (
-    ParsedModelNode, NodeConfig, DependsOn, ParsedMacro  # TODO: this doesn't exist in the installed package
+from dbt.adapters import (
+    redshift,
+    factory,
+)
+from dbt.contracts.graph.model_config import (
+    NodeConfig,
+)
+from dbt.contracts.graph.nodes import (
+    ModelNode,
+    DependsOn,
+    Macro
 )
 from dbt.context import providers
 from dbt.node_types import NodeType
-import dbt.exceptions
-from .utils import config_from_parts_or_dicts, inject_adapter, clear_plugin
-from .mock_adapter import adapter_factory
 
 
 class TestRuntimeWrapper(unittest.TestCase):
@@ -56,7 +64,7 @@ PROJECT_DATA = {
 
 
 def model():
-    return ParsedModelNode(
+    return ModelNode(
         alias='model_one',
         name='model_one',
         database='dbt',
@@ -91,7 +99,7 @@ def model():
 
 def mock_macro(name, package_name):
     macro = mock.MagicMock(
-        __class__=ParsedMacro,
+        __class__=Macro,
         package_name=package_name,
         resource_type='macro',
         unique_id=f'macro.{package_name}.{name}',
@@ -111,7 +119,7 @@ def mock_manifest(config):
 
 def mock_model():
     return mock.MagicMock(
-        __class__=ParsedModelNode,
+        __class__=ModelNode,
         alias='model_one',
         name='model_one',
         database='dbt',
@@ -214,12 +222,11 @@ def test_resolve_specific(config, manifest_extended, redshift_adapter, get_inclu
 
     # override 'dbt' namespace search order, dispatch to 'root' first
     ctx['adapter'].config.dispatch = [{'macro_namespace': 'dbt', 'search_order': ['root', 'dbt']}]
-    assert ctx['adapter'].dispatch('some_macro', macro_namespace = 'dbt').macro is package_rs_macro
+    assert ctx['adapter'].dispatch('some_macro', macro_namespace='dbt').macro is package_rs_macro
 
     # override 'dbt' namespace search order, dispatch to 'dbt' only
     ctx['adapter'].config.dispatch = [{'macro_namespace': 'dbt', 'search_order': ['dbt']}]
-    assert ctx['adapter'].dispatch('some_macro', macro_namespace = 'dbt').macro is rs_macro
+    assert ctx['adapter'].dispatch('some_macro', macro_namespace='dbt').macro is rs_macro
 
     # override 'root' namespace search order, dispatch to 'dbt' first
     ctx['adapter'].config.dispatch = [{'macro_namespace': 'root', 'search_order': ['dbt', 'root']}]
-    assert ctx['adapter'].dispatch('some_macro', macro_namespace = 'root').macro is rs_macro

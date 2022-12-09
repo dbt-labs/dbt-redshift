@@ -45,9 +45,9 @@ test: ## Runs unit tests with py38 and code checks against staged changes.
 	pre-commit run mypy-check --hook-stage manual | grep -v "INFO"
 
 .PHONY: integration
-integration: ## Runs snowflake integration tests with py38.
+integration: ## Runs redshift integration tests with py38.
 	@\
-	tox -e py38-snowflake --
+	tox -e py38-redshift --
 
 .PHONY: clean
 	@echo "cleaning repo"
