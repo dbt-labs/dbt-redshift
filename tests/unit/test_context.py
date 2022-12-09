@@ -7,13 +7,14 @@ import pytest
 from dbt.adapters import redshift
 from dbt.adapters import factory
 from dbt.contracts.graph.parsed import (
-    ParsedModelNode, NodeConfig, DependsOn, ParsedMacro
+    ParsedModelNode, NodeConfig, DependsOn, ParsedMacro  # TODO: this doesn't exist in the installed package
 )
 from dbt.context import providers
 from dbt.node_types import NodeType
 import dbt.exceptions
 from .utils import config_from_parts_or_dicts, inject_adapter, clear_plugin
 from .mock_adapter import adapter_factory
+
 
 class TestRuntimeWrapper(unittest.TestCase):
     def setUp(self):
@@ -26,6 +27,7 @@ class TestRuntimeWrapper(unittest.TestCase):
         self.wrapper = providers.RuntimeDatabaseWrapper(
             self.mock_adapter, self.namespace)
         self.responder = self.mock_adapter.responder
+
 
 PROFILE_DATA = {
     'target': 'test',
@@ -42,6 +44,7 @@ PROFILE_DATA = {
         }
     },
 }
+
 
 PROJECT_DATA = {
     'name': 'root',
@@ -84,6 +87,7 @@ def model():
         description='',
         columns={}
     )
+
 
 def mock_macro(name, package_name):
     macro = mock.MagicMock(
