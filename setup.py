@@ -1,10 +1,5 @@
 #!/usr/bin/env python
 import sys
-from pathlib import Path
-from setuptools import setup
-
-from dbt.adapters.redshift.__version__ import version
-
 
 if sys.version_info < (3, 7):
     print("Error: dbt does not support this version of Python.")
@@ -20,17 +15,32 @@ except ImportError:
     sys.exit(1)
 
 
+from pathlib import Path
+from setuptools import setup
+
+
+README = Path(__file__).parent / "README.md"
+VERSION = Path(__file__).parent / "dbt/adapters/redshift/__version__.py"
+
+
+def dbt_redshift_version() -> str:
+    attributes = {}
+    exec(VERSION.read_text(), attributes)
+    return attributes["version"]
+
+
 # require a compatible minor version (~=) and prerelease if this is a prerelease
-def dbt_core_version():
+def dbt_core_version() -> str:
+    plugin_version = dbt_redshift_version()
     try:
-        major, minor, plugin_patch = version.split(".")
+        major, minor, plugin_patch = plugin_version.split(".")
     except ValueError:
-        raise ValueError(f"Invalid version: {version}")
+        raise ValueError(f"Invalid version: {plugin_version}")
 
     pre_release_phase = "".join([i for i in plugin_patch if not i.isdigit()])
     if pre_release_phase:
         if pre_release_phase not in ["a", "b", "rc"]:
-            raise ValueError(f"Invalid version: {version}")
+            raise ValueError(f"Invalid version: {plugin_version}")
         core_patch = f"0{pre_release_phase}1"
     else:
         core_patch = "0"
@@ -40,9 +50,9 @@ def dbt_core_version():
 
 setup(
     name="dbt-redshift",
-    version=version,
+    version=dbt_redshift_version(),
     description="The Redshift adapter plugin for dbt",
-    long_description=Path(Path(__file__).parent / "README.md").read_text(),
+    long_description=README.read_text(),
     long_description_content_type="text/markdown",
     author="dbt Labs",
     author_email="info@dbtlabs.com",
