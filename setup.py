@@ -1,64 +1,48 @@
 #!/usr/bin/env python
-import os
 import sys
-import re
+from pathlib import Path
+from setuptools import setup
 
-# require python 3.7 or newer
+from dbt.adapters.redshift.__version__ import version
+
+
 if sys.version_info < (3, 7):
     print("Error: dbt does not support this version of Python.")
     print("Please upgrade to Python 3.7 or higher.")
     sys.exit(1)
 
 
-# require version of setuptools that supports find_namespace_packages
-from setuptools import setup
-
 try:
     from setuptools import find_namespace_packages
 except ImportError:
-    # the user has a downlevel version of setuptools.
     print("Error: dbt requires setuptools v40.1.0 or higher.")
-    print('Please upgrade setuptools with "pip install --upgrade setuptools" ' "and try again")
+    print('Please upgrade setuptools with "pip install --upgrade setuptools" and try again')
     sys.exit(1)
 
 
-# pull long description from README
-this_directory = os.path.abspath(os.path.dirname(__file__))
-with open(os.path.join(this_directory, "README.md")) as f:
-    long_description = f.read()
+# require a compatible minor version (~=) and prerelease if this is a prerelease
+def dbt_core_version():
+    try:
+        major, minor, plugin_patch = version.split(".")
+    except ValueError:
+        raise ValueError(f"Invalid version: {version}")
 
+    pre_release_phase = "".join([i for i in plugin_patch if not i.isdigit()])
+    if pre_release_phase:
+        if pre_release_phase not in ["a", "b", "rc"]:
+            raise ValueError(f"Invalid version: {version}")
+        core_patch = f"0{pre_release_phase}1"
+    else:
+        core_patch = "0"
 
-# get this package's version from dbt/adapters/<name>/__version__.py
-def _get_plugin_version_dict():
-    _version_path = os.path.join(this_directory, "dbt", "adapters", "redshift", "__version__.py")
-    _semver = r"""(?P<major>\d+)\.(?P<minor>\d+)\.(?P<patch>\d+)"""
-    _pre = r"""((?P<prekind>a|b|rc)(?P<pre>\d+))?"""
-    _version_pattern = fr"""version\s*=\s*["']{_semver}{_pre}["']"""
-    with open(_version_path) as f:
-        match = re.search(_version_pattern, f.read().strip())
-        if match is None:
-            raise ValueError(f"invalid version at {_version_path}")
-        return match.groupdict()
+    return f"{major}.{minor}.{core_patch}"
 
-
-# require a compatible minor version (~=), prerelease if this is a prerelease
-def _get_dbt_core_version():
-    parts = _get_plugin_version_dict()
-    minor = "{major}.{minor}.0".format(**parts)
-    pre = parts["prekind"] + "1" if parts["prekind"] else ""
-    return f"{minor}{pre}"
-
-
-package_name = "dbt-redshift"
-package_version = "1.4.0a1"
-dbt_core_version = _get_dbt_core_version()
-description = """The Redshift adapter plugin for dbt"""
 
 setup(
-    name=package_name,
-    version=package_version,
-    description=description,
-    long_description=long_description,
+    name="dbt-redshift",
+    version=version,
+    description="The Redshift adapter plugin for dbt",
+    long_description=Path(Path(__file__).parent / "README.md").read_text(),
     long_description_content_type="text/markdown",
     author="dbt Labs",
     author_email="info@dbtlabs.com",
@@ -66,9 +50,8 @@ setup(
     packages=find_namespace_packages(include=["dbt", "dbt.*"]),
     include_package_data=True,
     install_requires=[
-        "dbt-core~={}".format(dbt_core_version),
-        "dbt-postgres~={}".format(dbt_core_version),
-        # the following are all to match snowflake-connector-python
+        f"dbt-core~={dbt_core_version()}",
+        f"dbt-postgres~={dbt_core_version()}",
         "boto3>=1.4.4,<2.0.0",
     ],
     zip_safe=False,
@@ -82,6 +65,7 @@ setup(
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
     ],
     python_requires=">=3.7",
 )
