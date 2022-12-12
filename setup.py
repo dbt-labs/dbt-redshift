@@ -19,19 +19,28 @@ from pathlib import Path
 from setuptools import setup
 
 
+# pull the long description from the README
 README = Path(__file__).parent / "README.md"
+
+
+# used for this adapter's version and in determining the compatible dbt-core version
 VERSION = Path(__file__).parent / "dbt/adapters/redshift/__version__.py"
 
 
-def dbt_redshift_version() -> str:
+def _dbt_redshift_version() -> str:
+    """
+    Pull the package version from the main package version file
+    """
     attributes = {}
     exec(VERSION.read_text(), attributes)
     return attributes["version"]
 
 
 # require a compatible minor version (~=) and prerelease if this is a prerelease
-def dbt_core_version() -> str:
-    plugin_version = dbt_redshift_version()
+def _dbt_core_version(plugin_version: str) -> str:
+    """
+    Determine the compatible version of dbt-core using this package's version
+    """
     try:
         major, minor, plugin_patch = plugin_version.split(".")
     except ValueError:
@@ -50,7 +59,7 @@ def dbt_core_version() -> str:
 
 setup(
     name="dbt-redshift",
-    version=dbt_redshift_version(),
+    version=_dbt_redshift_version(),
     description="The Redshift adapter plugin for dbt",
     long_description=README.read_text(),
     long_description_content_type="text/markdown",
@@ -60,8 +69,8 @@ setup(
     packages=find_namespace_packages(include=["dbt", "dbt.*"]),
     include_package_data=True,
     install_requires=[
-        f"dbt-core~={dbt_core_version()}",
-        f"dbt-postgres~={dbt_core_version()}",
+        f"dbt-core~={_dbt_core_version(_dbt_redshift_version())}",
+        f"dbt-postgres~={_dbt_core_version(_dbt_redshift_version())}",
         "boto3>=1.4.4,<2.0.0",
     ],
     zip_safe=False,
