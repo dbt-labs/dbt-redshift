@@ -71,7 +71,7 @@ setup(
     install_requires=[
         f"dbt-core~={_dbt_core_version(_dbt_redshift_version())}",
         f"dbt-postgres~={_dbt_core_version(_dbt_redshift_version())}",
-        "boto3>=1.4.4,<2.0.0",
+        "boto3~=1.26.26",
     ],
     zip_safe=False,
     classifiers=[
