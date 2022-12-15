@@ -22,7 +22,7 @@
 
       {%- set check = col['check'] -%}
       {%- if check -%}
-        {{ exceptions.warn("We noticed you have `check` in your configs, these are NOT compatible with Redshift and will be ignored") }}
+        {{ exceptions.warn("We noticed you have `check` in your configs, these are NOT compatible with Redshift and will be ignored. See column `" ~ col['name'] ~ "`") }}
       {%- endif -%}
 
       {%- set col_line = col['name'] ~ " " ~ col['data_type'] ~ ns.not_null_line -%}
@@ -35,9 +35,9 @@
     {%- endif -%}
 
     (
-      {% for line in ddl_lines %}
+      {%- for line in ddl_lines %}
         {{ line }} {{ "," if not loop.last }}
-      {% endfor %}
+      {%- endfor %}
     )
 
   {%- endif %}
