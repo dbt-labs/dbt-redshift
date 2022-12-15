@@ -43,17 +43,9 @@
 
   {{ sql_header if sql_header is not none }}
 
-  {% if not config.get('constraints_enabled', False) %}
+  {%- if config.get('constraints_enabled', False) %}
     
-  create {% if temporary -%}temporary{%- endif %} table
-    {{ relation.include(database=(not temporary), schema=(not temporary)) }}
-    {% if backup == false -%}backup no{%- endif %}
-    {{ dist(_dist) }}
-    {{ sort(_sort_type, _sort) }}
-  as (
-    {{ sql }}
-  );
-  {% else%}
+  BEGIN;
   create {% if temporary -%}temporary{%- endif %} table
     {{ relation.include(database=(not temporary), schema=(not temporary)) }}
     {{ get_columns_spec_ddl() }}
@@ -67,8 +59,20 @@
       {{ sql }}
     )
   ;
+  COMMIT;
+  
+  {%- else %}
 
-  {% endif %}
+  create {% if temporary -%}temporary{%- endif %} table
+    {{ relation.include(database=(not temporary), schema=(not temporary)) }}
+    {% if backup == false -%}backup no{%- endif %}
+    {{ dist(_dist) }}
+    {{ sort(_sort_type, _sort) }}
+  as (
+    {{ sql }}
+  );
+
+  {%- endif %}
 {%- endmacro %}
 
 
