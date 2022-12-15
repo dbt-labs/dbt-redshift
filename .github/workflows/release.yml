@@ -11,7 +11,7 @@
 name: Build, Test, and Package
 
 on:
-  workflow_call:
+  workflow_dispatch:
     inputs:
       sha:
         description: "The last commit sha in the release"
