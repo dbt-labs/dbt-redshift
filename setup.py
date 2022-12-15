@@ -50,7 +50,7 @@ def _get_dbt_core_version():
 
 
 package_name = "dbt-redshift"
-package_version = "1.4.0a1"
+package_version = "1.4.0b1"
 dbt_core_version = _get_dbt_core_version()
 description = """The Redshift adapter plugin for dbt"""
 
