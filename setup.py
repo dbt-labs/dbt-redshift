@@ -27,7 +27,7 @@ README = Path(__file__).parent / "README.md"
 VERSION = Path(__file__).parent / "dbt/adapters/redshift/__version__.py"
 
 
-def _dbt_redshift_version() -> str:
+def _plugin_version() -> str:
     """
     Pull the package version from the main package version file
     """
@@ -36,30 +36,42 @@ def _dbt_redshift_version() -> str:
     return attributes["version"]
 
 
-# require a compatible minor version (~=) and prerelease if this is a prerelease
-def _dbt_core_version(plugin_version: str) -> str:
+def _core_patch(plugin_patch: str):
     """
-    Determine the compatible version of dbt-core using this package's version
+    Determines the compatible dbt-core patch given this plugin's patch
+
+    Args:
+        plugin_patch: the version patch of this plugin
+    """
+    pre_release_phase = "".join([i for i in plugin_patch if not i.isdigit()])
+    if pre_release_phase:
+        if pre_release_phase not in ["a", "b", "rc"]:
+            raise ValueError(f"Invalid prerelease patch: {plugin_patch}")
+        return f"0{pre_release_phase}1"
+    return "0"
+
+
+# require a compatible minor version (~=) and prerelease if this is a prerelease
+def _core_version(plugin_version: str = _plugin_version()) -> str:
+    """
+    Determine the compatible dbt-core version give this plugin's version.
+
+    We assume that the plugin must agree with `dbt-core` down to the minor version.
+
+    Args:
+        plugin_version: the version of this plugin, this is an argument in case we ever want to unit test this
     """
     try:
         major, minor, plugin_patch = plugin_version.split(".")
     except ValueError:
         raise ValueError(f"Invalid version: {plugin_version}")
 
-    pre_release_phase = "".join([i for i in plugin_patch if not i.isdigit()])
-    if pre_release_phase:
-        if pre_release_phase not in ["a", "b", "rc"]:
-            raise ValueError(f"Invalid version: {plugin_version}")
-        core_patch = f"0{pre_release_phase}1"
-    else:
-        core_patch = "0"
-
-    return f"{major}.{minor}.{core_patch}"
+    return f"{major}.{minor}.{_core_patch(plugin_patch)}"
 
 
 setup(
     name="dbt-redshift",
-    version=_dbt_redshift_version(),
+    version=_plugin_version(),
     description="The Redshift adapter plugin for dbt",
     long_description=README.read_text(),
     long_description_content_type="text/markdown",
@@ -69,8 +81,8 @@ setup(
     packages=find_namespace_packages(include=["dbt", "dbt.*"]),
     include_package_data=True,
     install_requires=[
-        f"dbt-core~={_dbt_core_version(_dbt_redshift_version())}",
-        f"dbt-postgres~={_dbt_core_version(_dbt_redshift_version())}",
+        f"dbt-core~={_core_version()}",
+        f"dbt-postgres~={_core_version()}",
         "boto3~=1.26.26",
     ],
     zip_safe=False,
