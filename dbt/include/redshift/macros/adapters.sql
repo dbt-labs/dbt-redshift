@@ -44,8 +44,7 @@
   {{ sql_header if sql_header is not none }}
 
   {%- if config.get('constraints_enabled', False) %}
-    
-  BEGIN;
+  
   create {% if temporary -%}temporary{%- endif %} table
     {{ relation.include(database=(not temporary), schema=(not temporary)) }}
     {{ get_columns_spec_ddl() }}
@@ -59,7 +58,6 @@
       {{ sql }}
     )
   ;
-  COMMIT;
   
   {%- else %}
 

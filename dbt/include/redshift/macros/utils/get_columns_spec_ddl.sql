@@ -1,16 +1,16 @@
 {% macro redshift__get_columns_spec_ddl() %}
-  {# loop through user_provided_columns to create DDL with data types and constraints #}
-  {%- if config.get('constraints_enabled', False) %}
+  {#- loop through user_provided_columns to create DDL with data types and constraints -#}
+  {%- if config.get('constraints_enabled', False) -%}
     {%- set user_provided_columns = model['columns'] -%}
     {%- set primary_keys = [] -%}
     {%- set ddl_lines = [] -%}
 
-    {%- for i in user_provided_columns %}
+    {%- for i in user_provided_columns -%}
       {%- set col = user_provided_columns[i] -%}
       {%- set constraints = col['constraints'] -%}
       {%- set ns = namespace(not_null_line = '') -%}
 
-      {%- for constraint in constraints %}
+      {%- for constraint in constraints -%}
         {%- if constraint == 'primary key' -%}
           {%- do primary_keys.append(col['name']) -%}
         {%- elif constraint == 'not null' %}
@@ -27,18 +27,18 @@
 
       {%- set col_line = col['name'] ~ " " ~ col['data_type'] ~ ns.not_null_line -%}
       {%- do ddl_lines.append(col_line) -%}
-    {%- endfor %}
+    {%- endfor -%}
 
     {%- if primary_keys -%}
       {%- set primary_key_line = "primary key(" ~ primary_keys | join(", ") ~")" -%}
       {%- do ddl_lines.append(primary_key_line) -%}
-    {%- endif -%}
+    {%- endif %}
 
     (
       {%- for line in ddl_lines %}
-        {{ line }} {{ "," if not loop.last }}
+        {{ line }}{{ "," if not loop.last }}
       {%- endfor %}
     )
 
-  {%- endif %}
+  {%- endif -%}
 {% endmacro %}
