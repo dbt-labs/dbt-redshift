@@ -45,11 +45,12 @@ models:
         data_type: date
 """
 
+database_name = "database_placeholder"
 schema_name = "schema_placeholder"
 
 _expected_sql = f"""
   create  table
-    "dbt"."{schema_name}"."my_model__dbt_tmp"
+    "{database_name}"."{schema_name}"."my_model__dbt_tmp"
     
 
     (
@@ -63,7 +64,7 @@ _expected_sql = f"""
     
   ;
 
-  insert into "dbt"."{schema_name}"."my_model__dbt_tmp"
+  insert into "{database_name}"."{schema_name}"."my_model__dbt_tmp"
     (
       
 
@@ -114,9 +115,11 @@ class TestRedshiftConstraints(BaseConstraintsEnabledModelvsProject):
 
         model_unique_id = 'model.test.my_model'
         schema_name_generated = (generated_manifest['nodes'][model_unique_id]['schema'])
+        database_name_generated = (generated_manifest['nodes'][model_unique_id]['database'])
 
         if expected_sql:
             expected_sql = expected_sql.replace(schema_name, schema_name_generated)
+            expected_sql = expected_sql.replace(database_name, database_name_generated)
             generated_sql_check = re.sub(r"\s+", "", generated_sql).lower()
             expected_sql_check = re.sub(r"\s+", "", expected_sql).lower()
             assert (
@@ -143,11 +146,12 @@ class TestRedshiftConstraints(BaseConstraintsEnabledModelvsProject):
 
         model_unique_id = 'model.test.my_model'
         schema_name_generated = (generated_manifest['nodes'][model_unique_id]['schema'])
+        database_name_generated = (generated_manifest['nodes'][model_unique_id]['database'])
 
         # verify the previous table exists
-        sql = """
-            select id from dbt.{0}.my_model where id = 1
-        """.format(schema_name_generated)
+        sql = f"""
+            select id from {database_name_generated}.{schema_name_generated}.my_model where id = 1
+        """
         results = project.run_sql(sql, fetch="all")
         assert len(results) == 1
         assert results[0][0] == 1
