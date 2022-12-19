@@ -3,7 +3,6 @@ from typing import Optional
 from dbt.adapters.base.impl import AdapterConfig
 from dbt.adapters.sql import SQLAdapter
 from dbt.adapters.base.meta import available
-from dbt.adapters.postgres import PostgresAdapter
 from dbt.adapters.redshift import RedshiftConnectionManager
 from dbt.adapters.redshift import RedshiftColumn
 from dbt.adapters.redshift import RedshiftRelation
@@ -22,7 +21,7 @@ class RedshiftConfig(AdapterConfig):
     backup: Optional[bool] = True
 
 
-class RedshiftAdapter(PostgresAdapter, SQLAdapter):
+class RedshiftAdapter(SQLAdapter):
     Relation = RedshiftRelation
     ConnectionManager = RedshiftConnectionManager
     Column = RedshiftColumn  # type: ignore

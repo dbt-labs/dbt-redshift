@@ -70,6 +70,7 @@ setup(
         "dbt-postgres~={}".format(dbt_core_version),
         # the following are all to match snowflake-connector-python
         "boto3>=1.4.4,<2.0.0",
+        "redshift-connector",
     ],
     zip_safe=False,
     classifiers=[
