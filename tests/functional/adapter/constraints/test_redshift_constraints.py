@@ -136,7 +136,7 @@ class TestRedshiftConstraints(BaseConstraintsEnabledModelvsProject):
         return _expected_sql
 
     def test__model_constraints_DDL(self, project, expected_sql):
-        results = run_dbt(["run"])
+        results = run_dbt(["run", "-s", "my_model"])
         assert len(results) == 1
         with open("./target/run/test/models/my_model.sql", "r") as fp:
             generated_sql = fp.read()
@@ -158,7 +158,7 @@ class TestRedshiftConstraints(BaseConstraintsEnabledModelvsProject):
             ), f"generated sql did not match expected: {generated_sql}"
 
     def test__rollback(self, project):
-        results = run_dbt(["run"])
+        results = run_dbt(["run", "-s", "my_model"])
         assert len(results) == 1
 
         with open("./models/my_model.sql", "r") as fp:
@@ -169,7 +169,7 @@ class TestRedshiftConstraints(BaseConstraintsEnabledModelvsProject):
         with open("./models/my_model.sql", "w") as fp:
             fp.write(my_model_sql_error)
 
-        results = run_dbt(["run"], expect_pass=False)
+        results = run_dbt(["run", "-s", "my_model"], expect_pass=False)
         assert len(results) == 1
 
         with open("./target/manifest.json", "r") as fp:
