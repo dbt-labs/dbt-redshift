@@ -65,7 +65,9 @@ _expected_sql = f"""
 
   insert into "dbt"."{schema_name}"."my_model__dbt_tmp"
     (
-      select
+      
+
+select
   1 as id,
   'blue' as color,
   cast('2019-01-01' as date) as date_day
@@ -89,7 +91,7 @@ class BaseConstraintsEnabledModelvsProject:
         }
 
 
-class TestConstraints(BaseConstraintsEnabledModelvsProject):
+class TestRedshiftConstraints(BaseConstraintsEnabledModelvsProject):
     @pytest.fixture(scope="class")
     def models(self):
         return {
