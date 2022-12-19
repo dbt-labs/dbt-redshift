@@ -48,7 +48,7 @@ class RedshiftCredentials(PostgresCredentials):
     iam_profile: Optional[str] = None
     iam_duration_seconds: int = 900
     search_path: Optional[str] = None
-    keepalives_idle: int = 240
+    keepalives_idle: int = 4
     autocreate: bool = False
     db_groups: List[str] = field(default_factory=list)
     ra3_node: Optional[bool] = False
