@@ -40,7 +40,7 @@ models:
         tests:
           - unique
       - name: color
-        data_type: text
+        data_type: varchar
       - name: date_day
         data_type: date
 """
