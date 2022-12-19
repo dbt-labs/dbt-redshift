@@ -116,7 +116,7 @@ def inject_plugin_for(config):
     # from dbt.adapters.postgres import Plugin, PostgresAdapter
     from dbt.adapters.factory import FACTORY
     FACTORY.load_plugin(config.credentials.type)
-    adapter = FACTORY.get_adapter(config)
+    adapter = FACTORY.get_adapter(config)  # TODO: there's a get_adaptor function in factory.py, but no method on AdapterContainer
     return adapter
 
 
@@ -216,7 +216,9 @@ def assert_fails_validation(dct, cls):
 
 
 class TestAdapterConversions(TestCase):
-    def _get_tester_for(self, column_type):
+
+    @staticmethod
+    def _get_tester_for(column_type):
         from dbt.clients import agate_helper
         if column_type is agate.TimeDelta:  # dbt never makes this!
             return agate.TimeDelta()

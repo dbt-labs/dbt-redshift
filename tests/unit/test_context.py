@@ -53,6 +53,7 @@ PROFILE_DATA = {
     },
 }
 
+
 PROJECT_DATA = {
     'name': 'root',
     'version': '0.1',
