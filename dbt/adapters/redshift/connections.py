@@ -1,8 +1,9 @@
 import os
 from multiprocessing import Lock
 from contextlib import contextmanager
-from typing import NewType, Any
+from typing import NewType
 
+import boto3
 from dbt.adapters.sql import SQLConnectionManager
 from dbt.contracts.connection import AdapterResponse, Connection, Credentials
 from dbt.events import AdapterLogger
@@ -53,8 +54,8 @@ class RedshiftCredentials(Credentials):
     )
     iam_profile: Optional[str] = None
     iam_duration_seconds: int = 900
-    search_path: Optional[str] = None
-    keepalives_idle: int = 4
+    search_path: Optional[str] = None  # TODO: Not supported in redshift python connector
+    keepalives_idle: int = 4  # TODO: Not supported in redshift python connector
     autocreate: bool = False
     db_groups: List[str] = field(default_factory=list)
     ra3_node: Optional[bool] = False
@@ -65,19 +66,151 @@ class RedshiftCredentials(Credentials):
     sslkey: Optional[str] = None
     sslrootcert: Optional[str] = None
     application_name: Optional[str] = "dbt"
-    retries: int = 1
+    retries: int = 0  # this is in-built into redshift python connector
+
+    _ALIASES = {"dbname": "database", "pass": "password"}
 
     @property
     def type(self):
         return "redshift"
 
     def _connection_keys(self):
-        keys = super()._connection_keys()
-        return keys + ("method", "cluster_id", "iam_profile", "iam_duration_seconds")
+        return "method", "cluster_id", "iam_profile", "iam_duration_seconds"
 
     @property
     def unique_field(self) -> str:
         return self.host
+
+
+class RedshiftConnectMethodFactory:
+    credentials: RedshiftCredentials
+
+    def __init__(self, credentials):
+        self.credentials = credentials
+
+    def get_connect_method(self):
+        method = self.credentials.method
+        # Support missing 'method' for backwards compatibility
+        if method == RedshiftConnectionMethod.DATABASE or method is None:
+            logger.debug("Connecting to Redshift using 'database' credentials")
+            # this requirement is really annoying to encode into json schema,
+            # so validate it here
+            if self.credentials.password is None:
+                raise dbt.exceptions.FailedToConnectException(
+                    "'password' field is required for 'database' credentials"
+                )
+
+            def connect():
+                c = redshift_connector.connect(
+                    host=self.credentials.host,
+                    database=self.credentials.database,
+                    user=self.credentials.user,
+                    password=self.credentials.password,
+                    port=self.credentials.port if self.credentials.port else 5439,
+                    auto_create=self.credentials.autocreate,
+                    db_groups=self.credentials.db_groups,
+                )
+                if self.credentials.role:
+                    c.cursor().execute("set role {}".format(self.credentials.role))
+                return c
+
+            return connect
+
+        elif method == RedshiftConnectionMethod.IAM:
+            if not self.credentials.cluster_id:
+                raise dbt.exceptions.FailedToConnectException(
+                    "Failed to use IAM method, 'cluster_id' must be provided"
+                )
+
+            if self.credentials.iam_profile is None:
+                return self._get_iam_connect_method_from_env_vars()
+            else:
+                return self._get_iam_connect_method_with_tmp_cluster_credentials()
+        else:
+            raise dbt.exceptions.FailedToConnectException(
+                "Invalid 'method' in profile: '{}'".format(method)
+            )
+
+    def _get_iam_connect_method_from_env_vars(self):
+        aws_credentials_env_vars = [
+            "AWS_ACCESS_KEY_ID",
+            "AWS_SECRET_ACCESS_KEY",
+            "AWS_SESSION_TOKEN",
+        ]
+
+        def check_if_env_vars_empty(var):
+            return os.environ.get(var, "") == ""
+
+        empty_env_vars = list(filter(check_if_env_vars_empty, aws_credentials_env_vars))
+        if len(empty_env_vars) > 0:
+            raise dbt.exceptions.FailedToConnectException(
+                "Failed to specify {} as environment variable(s) in shell".format(empty_env_vars)
+            )
+
+        def connect():
+            c = redshift_connector.connect(
+                iam=True,
+                database=self.credentials.database,
+                db_user=self.credentials.user,
+                password="",
+                user="",
+                cluster_identifier=self.credentials.cluster_id,
+                access_key_id=os.environ["AWS_ACCESS_KEY_ID"],
+                secret_access_key=os.environ["AWS_SECRET_ACCESS_KEY"],
+                session_token=os.environ["AWS_SESSION_TOKEN"],
+                region=self.credentials.host.split(".")[2],
+                auto_create=self.credentials.autocreate,
+                db_groups=self.credentials.db_groups,
+            )
+            if self.credentials.role:
+                c.cursor().execute("set role {}".format(self.credentials.role))
+            return c
+
+        return connect
+
+    def _get_iam_connect_method_with_tmp_cluster_credentials(self):
+        tmp_user, tmp_password = self._get_tmp_iam_cluster_credentials()
+
+        def connect():
+            c = redshift_connector.connect(
+                iam=True,
+                database=self.credentials.database,
+                db_user=self.credentials.user,
+                password=tmp_password,
+                user=tmp_user,
+                cluster_identifier=self.credentials.cluster_id,
+                region=self.credentials.host.split(".")[2],
+                auto_create=self.credentials.autocreate,
+                db_groups=self.credentials.db_groups,
+            )
+            if self.credentials.role:
+                c.cursor().execute("set role {}".format(self.credentials.role))
+            return c
+
+        return connect
+
+    def _get_tmp_iam_cluster_credentials(self):
+        """Fetches temporary login credentials from AWS. The specified user
+        must already exist in the database, or else an error will occur"""
+        iam_profile = self.credentials.iam_profile
+        logger.debug("Connecting to Redshift using 'IAM'" + f"with profile {iam_profile}")
+        boto_session = boto3.Session(profile_name=iam_profile)
+        boto_client = boto_session.client("redshift")
+
+        try:
+            cluster_creds = boto_client.get_cluster_credentials(
+                DbUser=self.credentials.user,
+                DbName=self.credentials.database,
+                ClusterIdentifier=self.credentials.cluster_id,
+                DurationSeconds=self.credentials.iam_duration_seconds,
+                AutoCreate=self.credentials.autocreate,
+                DbGroups=self.credentials.db_groups,
+            )
+            return cluster_creds.get("DbUser"), cluster_creds.get("DbPassword")
+        except boto_client.exceptions.ClientError as e:
+            raise dbt.exceptions.FailedToConnectException(
+                "Unable to get temporary Redshift cluster credentials: {}".format(e)
+            )
 
 
 class RedshiftConnectionManager(SQLConnectionManager):
@@ -104,13 +237,10 @@ class RedshiftConnectionManager(SQLConnectionManager):
             raise
 
     @classmethod
-    def get_response(cls, cursor: Any) -> AdapterResponse:
-        message = str(cursor.statusmessage)
+    def get_response(cls, cursor: redshift_connector.Cursor) -> AdapterResponse:
         rows = cursor.rowcount
-        status_message_parts = message.split() if message is not None else []
-        status_message_strings = [part for part in status_message_parts if not part.isdigit()]
-        code = " ".join(status_message_strings)
-        return AdapterResponse(_message=message, code=code, rows_affected=rows)
+        message = f"{rows} cursor.rowcount"
+        return AdapterResponse(_message=message, rows_affected=rows)
 
     @contextmanager
     def exception_handler(self, sql):
@@ -151,58 +281,6 @@ class RedshiftConnectionManager(SQLConnectionManager):
             self.commit()
             self.begin()
 
-    @staticmethod
-    def _get_connect_method(credentials):
-        method = credentials.method
-        # Support missing 'method' for backwards compatibility
-        if method == "database" or method is None:
-            logger.debug("Connecting to Redshift using 'database' credentials")
-            # this requirement is really annoying to encode into json schema,
-            # so validate it here
-            if credentials.password is None:
-                raise dbt.exceptions.FailedToConnectException(
-                    "'password' field is required for 'database' credentials"
-                )
-
-            def connect():
-                c = redshift_connector.connect(
-                    host=credentials.host,
-                    database=credentials.database,
-                    user=credentials.user,
-                    password=credentials.password,
-                    port=credentials.port if credentials.port else 5439,
-                )
-                if credentials.role:
-                    c.cursor().execute("set role {}".format(credentials.role))
-                return c
-
-            return connect
-
-        elif method == "iam":
-
-            def connect():
-                c = redshift_connector.connect(
-                    iam=True,
-                    database=credentials.database,
-                    db_user=credentials.user,
-                    password="",
-                    user="",
-                    cluster_identifier=credentials.cluster_id,
-                    access_key_id=os.environ["AWS_ACCESS_KEY_ID"],
-                    secret_access_key=os.environ["AWS_SECRET_ACCESS_KEY"],
-                    session_token=os.environ["AWS_SESSION_TOKEN"],
-                    region=credentials.host.split(".")[2],
-                )
-                if credentials.role:
-                    c.cursor().execute("set role {}".format(credentials.role))
-                return c
-
-            return connect
-        else:
-            raise dbt.exceptions.FailedToConnectException(
-                "Invalid 'method' in profile: '{}'".format(method)
-            )
-
     @classmethod
     def open(cls, connection):
         if connection.state == "open":
@@ -210,6 +288,7 @@ class RedshiftConnectionManager(SQLConnectionManager):
             return connection
 
         credentials = connection.credentials
+        connect_method_factory = RedshiftConnectMethodFactory(credentials)
 
         def exponential_backoff(attempt: int):
             return attempt * attempt
@@ -218,7 +297,7 @@ class RedshiftConnectionManager(SQLConnectionManager):
 
         return cls.retry_connection(
             connection,
-            connect=cls._get_connect_method(credentials),
+            connect=connect_method_factory.get_connect_method(),
             logger=logger,
             retry_limit=credentials.retries,
             retry_timeout=exponential_backoff,

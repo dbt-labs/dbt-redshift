@@ -1,9 +1,12 @@
+import os
 import unittest
 from unittest import mock
-from unittest.mock import Mock
+from unittest.mock import Mock, call, ANY
 
 import agate
 import boto3
+import dbt.exceptions
+import redshift_connector
 
 from dbt.adapters.redshift import (
     RedshiftAdapter,
@@ -12,15 +15,8 @@ from dbt.adapters.redshift import (
 from dbt.clients import agate_helper
 from dbt.exceptions import FailedToConnectException
 
+from dbt.adapters.redshift.connections import RedshiftConnectMethodFactory
 from .utils import config_from_parts_or_dicts, mock_connection, TestAdapterConversions, inject_adapter
-
-
-@classmethod
-def fetch_cluster_credentials(*args, **kwargs):
-    return {
-        'DbUser': 'root',
-        'DbPassword': 'tmp_password'
-    }
 
 
 class TestRedshiftAdapter(unittest.TestCase):
@@ -63,28 +59,100 @@ class TestRedshiftAdapter(unittest.TestCase):
             inject_adapter(self._adapter, RedshiftPlugin)
         return self._adapter
 
+    @mock.patch("redshift_connector.connect", Mock())
     def test_implicit_database_conn(self):
-        creds = RedshiftAdapter.ConnectionManager.get_credentials(self.config.credentials)
-        self.assertEqual(creds, self.config.credentials)
+        connection = self.adapter.acquire_connection("dummy")
+        connection.handle
+        redshift_connector.connect.assert_called_once_with(
+            host='thishostshouldnotexist',
+            database='redshift',
+            user='root',
+            password='password',
+            port=5439,
+            auto_create=False,
+            db_groups=[]
+        )
 
+    @mock.patch("redshift_connector.connect", Mock())
     def test_explicit_database_conn(self):
         self.config.method = 'database'
 
-        creds = RedshiftAdapter.ConnectionManager.get_credentials(self.config.credentials)
-        self.assertEqual(creds, self.config.credentials)
+        connection = self.adapter.acquire_connection("dummy")
+        connection.handle
+        redshift_connector.connect.assert_called_once_with(
+            host='thishostshouldnotexist',
+            database='redshift',
+            user='root',
+            password='password',
+            port=5439,
+            auto_create=False,
+            db_groups=[]
+        )
 
-    def test_explicit_iam_conn(self):
+    @mock.patch("redshift_connector.connect", Mock())
+    @mock.patch.dict(os.environ, {"AWS_ACCESS_KEY_ID": "Test", "AWS_SECRET_ACCESS_KEY": "Test",
+                                  "AWS_SESSION_TOKEN": "Test"})
+    def test_explicit_iam_conn_with_env_vars(self):
         self.config.credentials = self.config.credentials.replace(
             method='iam',
             cluster_id='my_redshift',
-            iam_duration_seconds=1200
+            iam_duration_seconds=1200,
+            host='thishostshouldnotexist.test.us-east-1'
+        )
+        connection = self.adapter.acquire_connection("dummy")
+        connection.handle
+        redshift_connector.connect.assert_called_once_with(
+            iam=True,
+            database='redshift',
+            db_user='root',
+            password='',
+            user='',
+            cluster_identifier='my_redshift',
+            access_key_id='Test',
+            secret_access_key='Test',
+            session_token='Test',
+            region='us-east-1',
+            auto_create=False,
+            db_groups=[]
         )
 
-        with mock.patch.object(RedshiftAdapter.ConnectionManager, 'fetch_cluster_credentials', new=fetch_cluster_credentials):
-            creds = RedshiftAdapter.ConnectionManager.get_credentials(self.config.credentials)
+    @mock.patch('redshift_connector.connect', Mock())
+    @mock.patch('boto3.Session', Mock())
+    def test_explicit_iam_conn_with_tmp_cluster_credentials(self):
+        self.config.credentials = self.config.credentials.replace(
+            method='iam',
+            cluster_id='my_redshift',
+            iam_duration_seconds=1200,
+            iam_profile='test',
+            host='thishostshouldnotexist.test.us-east-1'
+        )
+        connection = self.adapter.acquire_connection("dummy")
+        connection.handle
 
-        expected_creds = self.config.credentials.replace(password='tmp_password')
-        self.assertEqual(creds, expected_creds)
+        redshift_connector.connect.assert_called_once_with(
+            iam=True,
+            database='redshift',
+            password=ANY,
+            user=ANY,
+            cluster_identifier='my_redshift',
+            region='us-east-1',
+            auto_create=False,
+            db_groups=[],
+            db_user='root'
+        )
+
+    @mock.patch("redshift_connector.connect", Mock())
+    def test_explicit_iam_conn_error_when_environment_vars_not_specified(self):
+        self.config.credentials = self.config.credentials.replace(
+            method='iam',
+            cluster_id='my_redshift',
+            iam_duration_seconds=1200,
+            host='thishostshouldnotexist.test.us-east-1'
+        )
+        connection = self.adapter.acquire_connection("dummy")
+        with self.assertRaises(dbt.exceptions.FailedToConnectException) as context:
+            connection.handle
+        self.assertTrue("environment variable(s)" in context.exception.msg)
 
     def test_iam_conn_optionals(self):
 
@@ -108,40 +176,48 @@ class TestRedshiftAdapter(unittest.TestCase):
 
         config_from_parts_or_dicts(self.config, profile_cfg)
 
-    def test_invalid_auth_method(self):
-        # we have to set method this way, otherwise it won't validate
-        self.config.credentials.method = 'badmethod'
-
-        with self.assertRaises(FailedToConnectException) as context:
-            with mock.patch.object(RedshiftAdapter.ConnectionManager, 'fetch_cluster_credentials', new=fetch_cluster_credentials):
-                RedshiftAdapter.ConnectionManager.get_credentials(self.config.credentials)
-
-        self.assertTrue('badmethod' in context.exception.msg)
-
-    def test_invalid_iam_no_cluster_id(self):
-        self.config.credentials = self.config.credentials.replace(method='iam')
-        with self.assertRaises(FailedToConnectException) as context:
-            with mock.patch.object(RedshiftAdapter.ConnectionManager, 'fetch_cluster_credentials', new=fetch_cluster_credentials):
-                RedshiftAdapter.ConnectionManager.get_credentials(self.config.credentials)
-
-        self.assertTrue("'cluster_id' must be provided" in context.exception.msg)
-
     def test_default_session_is_not_used_when_iam_used(self):
         boto3.DEFAULT_SESSION = Mock()
         self.config.credentials = self.config.credentials.replace(method='iam')
         self.config.credentials.cluster_id = 'clusterid'
+        self.config.credentials.iam_profile = 'test'
         with mock.patch('dbt.adapters.redshift.connections.boto3.Session'):
-            RedshiftAdapter.ConnectionManager.get_credentials(self.config.credentials)
-            self.assertEqual(boto3.DEFAULT_SESSION.client.call_count, 0,
-                              "The redshift client should not be created using the default session because the session object is not thread-safe")
+            connect_method_factory = RedshiftConnectMethodFactory(self.config.credentials)
+            connect_method_factory.get_connect_method()
+            self.assertEqual(
+                boto3.DEFAULT_SESSION.client.call_count,
+                0,
+                "The redshift client should not be created using "
+                "the default session because the session object is not thread-safe"
+            )
 
     def test_default_session_is_not_used_when_iam_not_used(self):
         boto3.DEFAULT_SESSION = Mock()
         self.config.credentials = self.config.credentials.replace(method=None)
         with mock.patch('dbt.adapters.redshift.connections.boto3.Session'):
-            RedshiftAdapter.ConnectionManager.get_credentials(self.config.credentials)
-            self.assertEqual(boto3.DEFAULT_SESSION.client.call_count, 0,
-                              "The redshift client should not be created using the default session because the session object is not thread-safe")
+            connect_method_factory = RedshiftConnectMethodFactory(self.config.credentials)
+            connect_method_factory.get_connect_method()
+            self.assertEqual(
+                boto3.DEFAULT_SESSION.client.call_count, 0,
+                "The redshift client should not be created using "
+                "the default session because the session object is not thread-safe"
+            )
+
+    def test_invalid_auth_method(self):
+        # we have to set method this way, otherwise it won't validate
+        self.config.credentials.method = 'badmethod'
+        with self.assertRaises(FailedToConnectException) as context:
+            connect_method_factory = RedshiftConnectMethodFactory(self.config.credentials)
+            connect_method_factory.get_connect_method()
+        self.assertTrue('badmethod' in context.exception.msg)
+
+    def test_invalid_iam_no_cluster_id(self):
+        self.config.credentials = self.config.credentials.replace(method='iam')
+        with self.assertRaises(FailedToConnectException) as context:
+            connect_method_factory = RedshiftConnectMethodFactory(self.config.credentials)
+            connect_method_factory.get_connect_method()
+
+        self.assertTrue("'cluster_id' must be provided" in context.exception.msg)
 
     def test_cancel_open_connections_empty(self):
         self.assertEqual(len(list(self.adapter.cancel_open_connections())), 0)
@@ -154,7 +230,6 @@ class TestRedshiftAdapter(unittest.TestCase):
     def test_cancel_open_connections_single(self):
         master = mock_connection('master')
         model = mock_connection('model')
-        model.handle.get_backend_pid.return_value = 42
 
         key = self.adapter.connections.get_thread_identifier()
         self.adapter.connections.thread_connections.update({
@@ -163,99 +238,14 @@ class TestRedshiftAdapter(unittest.TestCase):
         })
         with mock.patch.object(self.adapter.connections, 'add_query') as add_query:
             query_result = mock.MagicMock()
-            add_query.return_value = (None, query_result)
+            cursor = mock.Mock()
+            cursor.fetchone.return_value = 42
+            add_query.side_effect = [(None, cursor), (None, query_result)]
 
             self.assertEqual(len(list(self.adapter.cancel_open_connections())), 1)
-
-            add_query.assert_called_once_with('select pg_terminate_backend(42)')
+            add_query.assert_has_calls([call('select pg_backend_pid()'), call('select pg_terminate_backend(42)')])
 
         master.handle.get_backend_pid.assert_not_called()
-
-    @mock.patch('dbt.adapters.postgres.connections.psycopg2')
-    def test_default_keepalive(self, psycopg2):
-        connection = self.adapter.acquire_connection('dummy')
-
-        psycopg2.connect.assert_not_called()
-        connection.handle
-        psycopg2.connect.assert_called_once_with(
-            dbname='redshift',
-            user='root',
-            host='thishostshouldnotexist',
-            password='password',
-            port=5439,
-            connect_timeout=10,
-            keepalives_idle=4,
-            application_name='dbt'
-        )
-
-    @mock.patch('dbt.adapters.postgres.connections.psycopg2')
-    def test_changed_keepalive(self, psycopg2):
-        self.config.credentials = self.config.credentials.replace(keepalives_idle=5)
-        connection = self.adapter.acquire_connection('dummy')
-
-        psycopg2.connect.assert_not_called()
-        connection.handle
-        psycopg2.connect.assert_called_once_with(
-            dbname='redshift',
-            user='root',
-            host='thishostshouldnotexist',
-            password='password',
-            port=5439,
-            connect_timeout=10,
-            keepalives_idle=5,
-            application_name='dbt')
-
-    @mock.patch('dbt.adapters.postgres.connections.psycopg2')
-    def test_search_path(self, psycopg2):
-        self.config.credentials = self.config.credentials.replace(search_path="test")
-        connection = self.adapter.acquire_connection('dummy')
-
-        psycopg2.connect.assert_not_called()
-        connection.handle
-        psycopg2.connect.assert_called_once_with(
-            dbname='redshift',
-            user='root',
-            host='thishostshouldnotexist',
-            password='password',
-            port=5439,
-            connect_timeout=10,
-            options="-c search_path=test",
-            keepalives_idle=4,
-            application_name='dbt')
-
-    @mock.patch('dbt.adapters.postgres.connections.psycopg2')
-    def test_search_path_with_space(self, psycopg2):
-        self.config.credentials = self.config.credentials.replace(search_path="test test")
-        connection = self.adapter.acquire_connection('dummy')
-
-        psycopg2.connect.assert_not_called()
-        connection.handle
-        psycopg2.connect.assert_called_once_with(
-            dbname='redshift',
-            user='root',
-            host='thishostshouldnotexist',
-            password='password',
-            port=5439,
-            connect_timeout=10,
-            options=r"-c search_path=test\ test",
-            keepalives_idle=4,
-            application_name='dbt')
-
-    @mock.patch('dbt.adapters.postgres.connections.psycopg2')
-    def test_set_zero_keepalive(self, psycopg2):
-        self.config.credentials = self.config.credentials.replace(keepalives_idle=0)
-        connection = self.adapter.acquire_connection('dummy')
-
-        psycopg2.connect.assert_not_called()
-        connection.handle
-        psycopg2.connect.assert_called_once_with(
-            dbname='redshift',
-            user='root',
-            host='thishostshouldnotexist',
-            password='password',
-            port=5439,
-            connect_timeout=10,
-            application_name='dbt')
 
     def test_dbname_verification_is_case_insensitive(self):
         # Override adapter settings from setUp()
