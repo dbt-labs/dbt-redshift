@@ -75,7 +75,7 @@ class RedshiftCredentials(Credentials):
         return "redshift"
 
     def _connection_keys(self):
-        return "method", "cluster_id", "iam_profile", "iam_duration_seconds"
+        return "host", "port", "user", "database", "schema"
 
     @property
     def unique_field(self) -> str:
