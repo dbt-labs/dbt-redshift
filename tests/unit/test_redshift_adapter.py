@@ -15,7 +15,6 @@ from dbt.exceptions import FailedToConnectException
 from .utils import config_from_parts_or_dicts, mock_connection, TestAdapterConversions, inject_adapter
 
 
-@classmethod
 def fetch_cluster_credentials(*args, **kwargs):
     return {
         'DbUser': 'root',
@@ -80,7 +79,11 @@ class TestRedshiftAdapter(unittest.TestCase):
             iam_duration_seconds=1200
         )
 
-        with mock.patch.object(RedshiftAdapter.ConnectionManager, 'fetch_cluster_credentials', new=fetch_cluster_credentials):
+        with mock.patch.object(
+                RedshiftAdapter.ConnectionManager,
+                'fetch_cluster_credentials',
+                new=fetch_cluster_credentials
+        ):
             creds = RedshiftAdapter.ConnectionManager.get_credentials(self.config.credentials)
 
         expected_creds = self.config.credentials.replace(password='tmp_password')
@@ -113,7 +116,11 @@ class TestRedshiftAdapter(unittest.TestCase):
         self.config.credentials.method = 'badmethod'
 
         with self.assertRaises(FailedToConnectException) as context:
-            with mock.patch.object(RedshiftAdapter.ConnectionManager, 'fetch_cluster_credentials', new=fetch_cluster_credentials):
+            with mock.patch.object(
+                    RedshiftAdapter.ConnectionManager,
+                    'fetch_cluster_credentials',
+                    new=fetch_cluster_credentials
+            ):
                 RedshiftAdapter.ConnectionManager.get_credentials(self.config.credentials)
 
         self.assertTrue('badmethod' in context.exception.msg)
@@ -121,7 +128,11 @@ class TestRedshiftAdapter(unittest.TestCase):
     def test_invalid_iam_no_cluster_id(self):
         self.config.credentials = self.config.credentials.replace(method='iam')
         with self.assertRaises(FailedToConnectException) as context:
-            with mock.patch.object(RedshiftAdapter.ConnectionManager, 'fetch_cluster_credentials', new=fetch_cluster_credentials):
+            with mock.patch.object(
+                    RedshiftAdapter.ConnectionManager,
+                    'fetch_cluster_credentials',
+                    new=fetch_cluster_credentials
+            ):
                 RedshiftAdapter.ConnectionManager.get_credentials(self.config.credentials)
 
         self.assertTrue("'cluster_id' must be provided" in context.exception.msg)
@@ -132,16 +143,23 @@ class TestRedshiftAdapter(unittest.TestCase):
         self.config.credentials.cluster_id = 'clusterid'
         with mock.patch('dbt.adapters.redshift.connections.boto3.Session'):
             RedshiftAdapter.ConnectionManager.get_credentials(self.config.credentials)
-            self.assertEqual(boto3.DEFAULT_SESSION.client.call_count, 0,
-                              "The redshift client should not be created using the default session because the session object is not thread-safe")
+            self.assertEqual(
+                boto3.DEFAULT_SESSION.client.call_count,
+                0,
+                "The redshift client should not be created using "
+                "the default session because the session object is not thread-safe"
+            )
 
     def test_default_session_is_not_used_when_iam_not_used(self):
         boto3.DEFAULT_SESSION = Mock()
         self.config.credentials = self.config.credentials.replace(method=None)
         with mock.patch('dbt.adapters.redshift.connections.boto3.Session'):
             RedshiftAdapter.ConnectionManager.get_credentials(self.config.credentials)
-            self.assertEqual(boto3.DEFAULT_SESSION.client.call_count, 0,
-                              "The redshift client should not be created using the default session because the session object is not thread-safe")
+            self.assertEqual(
+                boto3.DEFAULT_SESSION.client.call_count, 0,
+                "The redshift client should not be created using "
+                "the default session because the session object is not thread-safe"
+            )
 
     def test_cancel_open_connections_empty(self):
         self.assertEqual(len(list(self.adapter.cancel_open_connections())), 0)
@@ -176,7 +194,7 @@ class TestRedshiftAdapter(unittest.TestCase):
         connection = self.adapter.acquire_connection('dummy')
 
         psycopg2.connect.assert_not_called()
-        connection.handle
+        connection.handle  # this "property" changes the state of the class
         psycopg2.connect.assert_called_once_with(
             dbname='redshift',
             user='root',
@@ -194,7 +212,7 @@ class TestRedshiftAdapter(unittest.TestCase):
         connection = self.adapter.acquire_connection('dummy')
 
         psycopg2.connect.assert_not_called()
-        connection.handle
+        connection.handle  # this "property" changes the state of the class
         psycopg2.connect.assert_called_once_with(
             dbname='redshift',
             user='root',
@@ -211,7 +229,7 @@ class TestRedshiftAdapter(unittest.TestCase):
         connection = self.adapter.acquire_connection('dummy')
 
         psycopg2.connect.assert_not_called()
-        connection.handle
+        connection.handle  # this "property" changes the state of the class
         psycopg2.connect.assert_called_once_with(
             dbname='redshift',
             user='root',
@@ -229,7 +247,7 @@ class TestRedshiftAdapter(unittest.TestCase):
         connection = self.adapter.acquire_connection('dummy')
 
         psycopg2.connect.assert_not_called()
-        connection.handle
+        connection.handle  # this "property" changes the state of the class
         psycopg2.connect.assert_called_once_with(
             dbname='redshift',
             user='root',
@@ -247,7 +265,7 @@ class TestRedshiftAdapter(unittest.TestCase):
         connection = self.adapter.acquire_connection('dummy')
 
         psycopg2.connect.assert_not_called()
-        connection.handle
+        connection.handle  # this "property" changes the state of the class
         psycopg2.connect.assert_called_once_with(
             dbname='redshift',
             user='root',
@@ -349,7 +367,6 @@ class TestRedshiftAdapterConversions(TestAdapterConversions):
 
     def test_convert_time_type(self):
         # dbt's default type testers actually don't have a TimeDelta at all.
-        agate.TimeDelta
         rows = [
             ['', '120s', '10s'],
             ['', '3m', '11s'],
@@ -359,9 +376,3 @@ class TestRedshiftAdapterConversions(TestAdapterConversions):
         expected = ['varchar(24)', 'varchar(24)', 'varchar(24)']
         for col_idx, expect in enumerate(expected):
             assert RedshiftAdapter.convert_time_type(agate_table, col_idx) == expect
-
-
-# convert_boolean_type
-# convert_datetime_type
-# convert_date_type
-# convert_time_type
