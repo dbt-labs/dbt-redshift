@@ -20,9 +20,9 @@
 
       {%- set not_null_line = " not null" if not_null_col else "" -%}
 
-      {%- set check = col['check'] -%}
+      {%- set check = col['constraints_check'] -%}
       {%- if check -%}
-        {{ exceptions.warn("We noticed you have `check` in your configs, these are NOT compatible with Redshift and will be ignored. See column `" ~ col['name'] ~ "`") }}
+        {{ exceptions.warn("We noticed you have `constraints_check` in your configs, these are NOT compatible with Redshift and will be ignored. See column `" ~ col['name'] ~ "`") }}
       {%- endif -%}
 
       {%- set col_line = col['name'] ~ " " ~ col['data_type'] ~ ns.not_null_line -%}

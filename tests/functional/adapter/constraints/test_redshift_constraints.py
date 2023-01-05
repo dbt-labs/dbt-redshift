@@ -51,7 +51,7 @@ models:
         data_type: integer
         description: hello
         constraints: ['not null','primary key']
-        check: (id > 0)
+        constraints_check: (id > 0)
         tests:
           - unique
       - name: color
@@ -66,7 +66,7 @@ models:
         data_type: integer
         description: hello
         constraints: ['not null','primary key']
-        check: (id > 0)
+        constraints_check: (id > 0)
         tests:
           - unique
       - name: color
