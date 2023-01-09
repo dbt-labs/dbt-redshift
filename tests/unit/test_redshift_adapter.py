@@ -1,11 +1,9 @@
-import os
 import unittest
 from unittest import mock
-from unittest.mock import Mock, call, ANY
+from unittest.mock import Mock, call
 
 import agate
 import boto3
-import dbt.exceptions
 import redshift_connector
 
 from dbt.adapters.redshift import (
@@ -28,7 +26,7 @@ class TestRedshiftAdapter(unittest.TestCase):
                     'type': 'redshift',
                     'dbname': 'redshift',
                     'user': 'root',
-                    'host': 'thishostshouldnotexist',
+                    'host': 'thishostshouldnotexist.test.us-east-1',
                     'pass': 'password',
                     'port': 5439,
                     'schema': 'public'
@@ -64,13 +62,16 @@ class TestRedshiftAdapter(unittest.TestCase):
         connection = self.adapter.acquire_connection("dummy")
         connection.handle
         redshift_connector.connect.assert_called_once_with(
-            host='thishostshouldnotexist',
+            host='thishostshouldnotexist.test.us-east-1',
             database='redshift',
             user='root',
             password='password',
             port=5439,
             auto_create=False,
-            db_groups=[]
+            db_groups=[],
+            application_name='dbt',
+            timeout=10,
+            region='us-east-1'
         )
 
     @mock.patch("redshift_connector.connect", Mock())
@@ -80,19 +81,20 @@ class TestRedshiftAdapter(unittest.TestCase):
         connection = self.adapter.acquire_connection("dummy")
         connection.handle
         redshift_connector.connect.assert_called_once_with(
-            host='thishostshouldnotexist',
+            host='thishostshouldnotexist.test.us-east-1',
             database='redshift',
             user='root',
             password='password',
             port=5439,
             auto_create=False,
-            db_groups=[]
+            db_groups=[],
+            region='us-east-1',
+            application_name='dbt',
+            timeout=10
         )
 
     @mock.patch("redshift_connector.connect", Mock())
-    @mock.patch.dict(os.environ, {"AWS_ACCESS_KEY_ID": "Test", "AWS_SECRET_ACCESS_KEY": "Test",
-                                  "AWS_SESSION_TOKEN": "Test"})
-    def test_explicit_iam_conn_with_env_vars(self):
+    def test_explicit_iam_conn_without_profile(self):
         self.config.credentials = self.config.credentials.replace(
             method='iam',
             cluster_id='my_redshift',
@@ -103,22 +105,24 @@ class TestRedshiftAdapter(unittest.TestCase):
         connection.handle
         redshift_connector.connect.assert_called_once_with(
             iam=True,
+            host='thishostshouldnotexist.test.us-east-1',
             database='redshift',
             db_user='root',
             password='',
             user='',
             cluster_identifier='my_redshift',
-            access_key_id='Test',
-            secret_access_key='Test',
-            session_token='Test',
             region='us-east-1',
             auto_create=False,
-            db_groups=[]
+            db_groups=[],
+            profile=None,
+            application_name='dbt',
+            timeout=10,
+            port=5439
         )
 
     @mock.patch('redshift_connector.connect', Mock())
     @mock.patch('boto3.Session', Mock())
-    def test_explicit_iam_conn_with_tmp_cluster_credentials(self):
+    def test_explicit_iam_conn_with_profile(self):
         self.config.credentials = self.config.credentials.replace(
             method='iam',
             cluster_id='my_redshift',
@@ -131,28 +135,20 @@ class TestRedshiftAdapter(unittest.TestCase):
 
         redshift_connector.connect.assert_called_once_with(
             iam=True,
+            host='thishostshouldnotexist.test.us-east-1',
             database='redshift',
-            password=ANY,
-            user=ANY,
             cluster_identifier='my_redshift',
             region='us-east-1',
             auto_create=False,
             db_groups=[],
-            db_user='root'
+            db_user='root',
+            password='',
+            user='',
+            profile='test',
+            application_name='dbt',
+            timeout=10,
+            port=5439
         )
-
-    @mock.patch("redshift_connector.connect", Mock())
-    def test_explicit_iam_conn_error_when_environment_vars_not_specified(self):
-        self.config.credentials = self.config.credentials.replace(
-            method='iam',
-            cluster_id='my_redshift',
-            iam_duration_seconds=1200,
-            host='thishostshouldnotexist.test.us-east-1'
-        )
-        connection = self.adapter.acquire_connection("dummy")
-        with self.assertRaises(dbt.exceptions.FailedToConnectException) as context:
-            connection.handle
-        self.assertTrue("environment variable(s)" in context.exception.msg)
 
     def test_iam_conn_optionals(self):
 
