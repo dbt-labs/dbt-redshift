@@ -10,7 +10,6 @@ from dbt.adapters.redshift import (
     Plugin as RedshiftPlugin,
 )
 from dbt.clients import agate_helper
-from dbt.exceptions import FailedToConnectException
 
 from .utils import config_from_parts_or_dicts, mock_connection, TestAdapterConversions, inject_adapter
 
