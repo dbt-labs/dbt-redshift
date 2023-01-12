@@ -1,7 +1,0 @@
-kind: Dependencies
-body: Add support for python 3.11
-time: 2022-12-09T23:39:05.296196-05:00
-custom:
-  Author: mikealfare
-  Issue: "225"
-  PR: "236"
