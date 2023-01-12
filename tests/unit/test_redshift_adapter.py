@@ -10,7 +10,7 @@ from dbt.adapters.redshift import (
     Plugin as RedshiftPlugin,
 )
 from dbt.clients import agate_helper
-from dbt.exceptions import FailedToConnectException
+from dbt.exceptions import FailedToConnectError
 
 from .utils import config_from_parts_or_dicts, mock_connection, TestAdapterConversions, inject_adapter
 
@@ -115,7 +115,7 @@ class TestRedshiftAdapter(unittest.TestCase):
         # we have to set method this way, otherwise it won't validate
         self.config.credentials.method = 'badmethod'
 
-        with self.assertRaises(FailedToConnectException) as context:
+        with self.assertRaises(FailedToConnectError) as context:
             with mock.patch.object(
                     RedshiftAdapter.ConnectionManager,
                     'fetch_cluster_credentials',
@@ -127,7 +127,7 @@ class TestRedshiftAdapter(unittest.TestCase):
 
     def test_invalid_iam_no_cluster_id(self):
         self.config.credentials = self.config.credentials.replace(method='iam')
-        with self.assertRaises(FailedToConnectException) as context:
+        with self.assertRaises(FailedToConnectError) as context:
             with mock.patch.object(
                     RedshiftAdapter.ConnectionManager,
                     'fetch_cluster_credentials',

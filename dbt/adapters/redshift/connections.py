@@ -114,7 +114,7 @@ class RedshiftConnectionManager(PostgresConnectionManager):
             )
 
         except boto_client.exceptions.ClientError as e:
-            raise dbt.exceptions.FailedToConnectException(
+            raise dbt.exceptions.FailedToConnectError(
                 "Unable to get temporary Redshift cluster credentials: {}".format(e)
             )
 
@@ -127,7 +127,7 @@ class RedshiftConnectionManager(PostgresConnectionManager):
         iam_duration_s = credentials.iam_duration_seconds
 
         if not cluster_id:
-            raise dbt.exceptions.FailedToConnectException(
+            raise dbt.exceptions.FailedToConnectError(
                 "'cluster_id' must be provided in profile if IAM " "authentication method selected"
             )
 
@@ -156,7 +156,7 @@ class RedshiftConnectionManager(PostgresConnectionManager):
             # this requirement is really annoying to encode into json schema,
             # so validate it here
             if credentials.password is None:
-                raise dbt.exceptions.FailedToConnectException(
+                raise dbt.exceptions.FailedToConnectError(
                     "'password' field is required for 'database' credentials"
                 )
             return credentials
@@ -166,6 +166,6 @@ class RedshiftConnectionManager(PostgresConnectionManager):
             return cls.get_tmp_iam_cluster_credentials(credentials)
 
         else:
-            raise dbt.exceptions.FailedToConnectException(
+            raise dbt.exceptions.FailedToConnectError(
                 "Invalid 'method' in profile: '{}'".format(method)
             )
