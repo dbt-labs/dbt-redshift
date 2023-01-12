@@ -113,7 +113,7 @@ class BaseConstraintsEnabledModelvsProject:
         return {
             "models": {
                 "test": {
-                    "+constraints_enabled": True,
+                    "+constraints_enabled": False,
                     "subdirectory": {
                         "+constraints_enabled": False,
                     },
