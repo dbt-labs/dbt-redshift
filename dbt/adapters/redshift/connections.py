@@ -50,20 +50,9 @@ class RedshiftCredentials(Credentials):
         metadata={"description": "If using IAM auth, the name of the cluster"},
     )
     iam_profile: Optional[str] = None
-    iam_duration_seconds: Optional[
-        int
-    ] = 900  # TODO:Not supported in redshift python connector, should we remove this?
-    search_path: Optional[
-        str
-    ] = None  # TODO:Not supported in redshift python connector, should we remove this?
-    keepalives_idle: int = (
-        4  # TODO:Not supported in redshift python connector, should we remove this?
-    )
     autocreate: bool = False
     db_groups: List[str] = field(default_factory=list)
-    ra3_node: Optional[
-        bool
-    ] = False  # TODO:Need to confirm if there is special handling needed for this option
+    ra3_node: Optional[bool] = False
     connect_timeout: int = 10
     role: Optional[str] = None
     sslmode: Optional[str] = None
@@ -77,9 +66,7 @@ class RedshiftCredentials(Credentials):
         str
     ] = None  # TODO:Not supported by redshift python connector, should we remove this?
     application_name: Optional[str] = "dbt"
-    retries: int = (
-        0  # TODO:Retries are done by redshift python connector natively, is this required?
-    )
+    retries: int = 1
 
     _ALIASES = {"dbname": "database", "pass": "password"}
 
@@ -88,7 +75,7 @@ class RedshiftCredentials(Credentials):
         return "redshift"
 
     def _connection_keys(self):
-        return "host", "port", "user", "database", "schema"
+        return "host", "port", "user", "database", "schema", "method", "cluster_id", "iam_profile"
 
     @property
     def unique_field(self) -> str:
@@ -207,7 +194,7 @@ class RedshiftConnectionManager(SQLConnectionManager):
             # Raise DBT native exceptions as is.
             if isinstance(e, dbt.exceptions.Exception):
                 raise
-            raise dbt.exceptions.DbtRuntimeError(str(e)) from e
+            raise RuntimeError(str(e)) from e
 
     @contextmanager
     def fresh_transaction(self, name=None):
