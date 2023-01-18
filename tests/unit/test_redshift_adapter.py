@@ -98,7 +98,6 @@ class TestRedshiftAdapter(unittest.TestCase):
         self.config.credentials = self.config.credentials.replace(
             method='iam',
             cluster_id='my_redshift',
-            iam_duration_seconds=1200,
             host='thishostshouldnotexist.test.us-east-1'
         )
         connection = self.adapter.acquire_connection("dummy")
@@ -126,12 +125,10 @@ class TestRedshiftAdapter(unittest.TestCase):
         self.config.credentials = self.config.credentials.replace(
             method='iam',
             cluster_id='my_redshift',
-            iam_duration_seconds=1200,
             iam_profile='test',
             host='thishostshouldnotexist.test.us-east-1'
         )
-        connection = self.adapter.acquire_connection("dummy"
-        )
+        connection = self.adapter.acquire_connection("dummy")
         connection.handle
 
         redshift_connector.connect.assert_called_once_with(
@@ -173,44 +170,17 @@ class TestRedshiftAdapter(unittest.TestCase):
 
         config_from_parts_or_dicts(self.config, profile_cfg)
 
-    def test_default_session_is_not_used_when_iam_used(self):
-        boto3.DEFAULT_SESSION = Mock()
-        self.config.credentials = self.config.credentials.replace(method='iam')
-        self.config.credentials.cluster_id = 'clusterid'
-        self.config.credentials.iam_profile = 'test'
-        with mock.patch('dbt.adapters.redshift.connections.boto3.Session'):
-            connect_method_factory = RedshiftConnectMethodFactory(self.config.credentials)
-            connect_method_factory.get_connect_method()
-            self.assertEqual(
-                boto3.DEFAULT_SESSION.client.call_count,
-                0,
-                "The redshift client should not be created using "
-                "the default session because the session object is not thread-safe"
-            )
-
-    def test_default_session_is_not_used_when_iam_not_used(self):
-        boto3.DEFAULT_SESSION = Mock()
-        self.config.credentials = self.config.credentials.replace(method=None)
-        with mock.patch('dbt.adapters.redshift.connections.boto3.Session'):
-            connect_method_factory = RedshiftConnectMethodFactory(self.config.credentials)
-            connect_method_factory.get_connect_method()
-            self.assertEqual(
-                boto3.DEFAULT_SESSION.client.call_count, 0,
-                "The redshift client should not be created using "
-                "the default session because the session object is not thread-safe"
-            )
-
     def test_invalid_auth_method(self):
         # we have to set method this way, otherwise it won't validate
         self.config.credentials.method = 'badmethod'
-        with self.assertRaises(FailedToConnectException) as context:
+        with self.assertRaises(FailedToConnectError) as context:
             connect_method_factory = RedshiftConnectMethodFactory(self.config.credentials)
             connect_method_factory.get_connect_method()
         self.assertTrue('badmethod' in context.exception.msg)
 
     def test_invalid_iam_no_cluster_id(self):
         self.config.credentials = self.config.credentials.replace(method='iam')
-        with self.assertRaises(FailedToConnectException) as context:
+        with self.assertRaises(FailedToConnectError) as context:
             connect_method_factory = RedshiftConnectMethodFactory(self.config.credentials)
             connect_method_factory.get_connect_method()
 

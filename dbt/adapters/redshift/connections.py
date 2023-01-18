@@ -108,7 +108,7 @@ class RedshiftConnectMethodFactory:
             # this requirement is really annoying to encode into json schema,
             # so validate it here
             if self.credentials.password is None:
-                raise dbt.exceptions.FailedToConnectException(
+                raise dbt.exceptions.FailedToConnectError(
                     "'password' field is required for 'database' credentials"
                 )
 
@@ -125,7 +125,7 @@ class RedshiftConnectMethodFactory:
 
         elif method == RedshiftConnectionMethod.IAM:
             if not self.credentials.cluster_id:
-                raise dbt.exceptions.FailedToConnectException(
+                raise dbt.exceptions.FailedToConnectError(
                     "Failed to use IAM method, 'cluster_id' must be provided"
                 )
 
@@ -146,7 +146,7 @@ class RedshiftConnectMethodFactory:
 
             return connect
         else:
-            raise dbt.exceptions.FailedToConnectException(
+            raise dbt.exceptions.FailedToConnectError(
                 "Invalid 'method' in profile: '{}'".format(method)
             )
 
