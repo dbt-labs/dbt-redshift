@@ -71,7 +71,7 @@ class RedshiftAdapter(SQLAdapter):
         ra3_node = self.config.credentials.ra3_node
 
         if database.lower() != expected.lower() and not ra3_node:
-            raise dbt.exceptions.NotImplementedException(
+            raise dbt.exceptions.NotImplementedError(
                 "Cross-db references allowed only in RA3.* node. ({} vs {})".format(
                     database, expected
                 )
@@ -84,8 +84,8 @@ class RedshiftAdapter(SQLAdapter):
         schemas = super(SQLAdapter, self)._get_catalog_schemas(manifest)
         try:
             return schemas.flatten(allow_multiple_databases=self.config.credentials.ra3_node)
-        except dbt.exceptions.RuntimeException as exc:
-            dbt.exceptions.raise_compiler_error(
+        except dbt.exceptions.DbtRuntimeError as exc:
+            raise dbt.exceptions.CompilationError(
                 "Cross-db references allowed only in {} RA3.* node. Got {}".format(
                     self.type(), exc.msg
                 )

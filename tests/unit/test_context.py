@@ -53,6 +53,7 @@ PROFILE_DATA = {
     },
 }
 
+
 PROJECT_DATA = {
     'name': 'root',
     'version': '0.1',
@@ -211,7 +212,7 @@ def test_resolve_specific(config, manifest_extended, redshift_adapter, get_inclu
     ctx['adapter'].config.dispatch
 
     # macro_a exists, but default__macro_a and redshift__macro_a do not
-    with pytest.raises(dbt.exceptions.CompilationException):
+    with pytest.raises(dbt.exceptions.CompilationError):
         ctx['adapter'].dispatch('macro_a').macro
 
     # root namespace is always preferred, unless search order is explicitly defined in 'dispatch' config

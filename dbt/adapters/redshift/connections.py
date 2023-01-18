@@ -8,7 +8,6 @@ from dbt.events import AdapterLogger
 import dbt.exceptions
 import dbt.flags
 import redshift_connector
-from dbt.exceptions import RuntimeException
 from dbt.dataclass_schema import FieldEncoder, dbtClassMixin, StrEnum
 
 from dataclasses import dataclass, field
@@ -208,7 +207,7 @@ class RedshiftConnectionManager(SQLConnectionManager):
             # Raise DBT native exceptions as is.
             if isinstance(e, dbt.exceptions.Exception):
                 raise
-            raise RuntimeException(str(e)) from e
+            raise dbt.exceptions.DbtRuntimeError(str(e)) from e
 
     @contextmanager
     def fresh_transaction(self, name=None):

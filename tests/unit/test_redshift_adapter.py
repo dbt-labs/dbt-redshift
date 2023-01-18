@@ -11,7 +11,7 @@ from dbt.adapters.redshift import (
     Plugin as RedshiftPlugin,
 )
 from dbt.clients import agate_helper
-from dbt.exceptions import FailedToConnectException
+from dbt.exceptions import FailedToConnectError
 
 from dbt.adapters.redshift.connections import RedshiftConnectMethodFactory
 from .utils import config_from_parts_or_dicts, mock_connection, TestAdapterConversions, inject_adapter
@@ -130,7 +130,8 @@ class TestRedshiftAdapter(unittest.TestCase):
             iam_profile='test',
             host='thishostshouldnotexist.test.us-east-1'
         )
-        connection = self.adapter.acquire_connection("dummy")
+        connection = self.adapter.acquire_connection("dummy"
+        )
         connection.handle
 
         redshift_connector.connect.assert_called_once_with(
@@ -335,7 +336,6 @@ class TestRedshiftAdapterConversions(TestAdapterConversions):
 
     def test_convert_time_type(self):
         # dbt's default type testers actually don't have a TimeDelta at all.
-        agate.TimeDelta
         rows = [
             ['', '120s', '10s'],
             ['', '3m', '11s'],
@@ -345,9 +345,3 @@ class TestRedshiftAdapterConversions(TestAdapterConversions):
         expected = ['varchar(24)', 'varchar(24)', 'varchar(24)']
         for col_idx, expect in enumerate(expected):
             assert RedshiftAdapter.convert_time_type(agate_table, col_idx) == expect
-
-
-# convert_boolean_type
-# convert_datetime_type
-# convert_date_type
-# convert_time_type
