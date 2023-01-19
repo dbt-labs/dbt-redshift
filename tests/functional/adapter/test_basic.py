@@ -1,12 +1,9 @@
 import pytest
 
-from dbt.tests.util import AnyStringWith, AnyFloat
-
+from dbt.tests.util import AnyStringWith
 from dbt.tests.adapter.basic.test_base import BaseSimpleMaterializations
 from dbt.tests.adapter.basic.test_singular_tests import BaseSingularTests
-from dbt.tests.adapter.basic.test_singular_tests_ephemeral import (
-    BaseSingularTestsEphemeral,
-)
+from dbt.tests.adapter.basic.test_singular_tests_ephemeral import BaseSingularTestsEphemeral
 from dbt.tests.adapter.basic.test_empty import BaseEmpty
 from dbt.tests.adapter.basic.test_ephemeral import BaseEphemeral
 from dbt.tests.adapter.basic.test_incremental import BaseIncremental
@@ -16,12 +13,12 @@ from dbt.tests.adapter.basic.test_snapshot_timestamp import BaseSnapshotTimestam
 from dbt.tests.adapter.basic.test_adapter_methods import BaseAdapterMethod
 from dbt.tests.adapter.basic.test_docs_generate import BaseDocsGenerate, BaseDocsGenReferences
 from dbt.tests.adapter.basic.expected_catalog import base_expected_catalog, no_stats, expected_references_catalog
-from tests.functional.adapter.expected_stats import redshift_stats, redshift_ephemeral_summary_stats
-
 from dbt.tests.adapter.basic.files import seeds_base_csv, seeds_added_csv, seeds_newcolumns_csv
 
-# set the datatype of the name column in the 'added' seed so it
-# can hold the '_update' that's added
+from tests.functional.adapter.expected_stats import redshift_stats, redshift_ephemeral_summary_stats
+
+
+# set the datatype of the name column in the 'added' seed so that it can hold the '_update' that's added
 schema_seed_added_yml = """
 version: 2
 seeds:
@@ -32,6 +29,7 @@ seeds:
 """
 
 
+# TODO: update these with test cases or remove them if not needed
 class TestSimpleMaterializationsRedshift(BaseSimpleMaterializations):
     pass
 
@@ -61,8 +59,7 @@ class TestGenericTestsRedshift(BaseGenericTests):
 
 
 class TestSnapshotCheckColsRedshift(BaseSnapshotCheckCols):
-    # Redshift defines the 'name' column such that it's not big enough
-    # to hold the '_update' added in the test.
+    # Redshift defines the 'name' column such that it's not big enough to hold the '_update' added in the test.
     @pytest.fixture(scope="class")
     def models(self):
         return {
@@ -73,8 +70,7 @@ class TestSnapshotCheckColsRedshift(BaseSnapshotCheckCols):
 
 
 class TestSnapshotTimestampRedshift(BaseSnapshotTimestamp):
-    # Redshift defines the 'name' column such that it's not big enough
-    # to hold the '_update' added in the test.
+    # Redshift defines the 'name' column such that it's not big enough to hold the '_update' added in the test.
     @pytest.fixture(scope="class")
     def models(self):
         return {
@@ -84,9 +80,9 @@ class TestSnapshotTimestampRedshift(BaseSnapshotTimestamp):
             "seeds.yml": schema_seed_added_yml,
         }
 
+
 class TestBaseAdapterMethod(BaseAdapterMethod):
     pass
-
 
 
 class TestDocsGenerateRedshift(BaseDocsGenerate):
@@ -105,6 +101,7 @@ class TestDocsGenerateRedshift(BaseDocsGenerate):
         )             
 
 
+# TODO: update this or delete it
 @pytest.mark.skip(reason="Needs updated dbt-core code")
 class TestDocsGenReferencesRedshift(BaseDocsGenReferences):
     @pytest.fixture(scope="class")
@@ -123,4 +120,3 @@ class TestDocsGenReferencesRedshift(BaseDocsGenReferences):
             view_summary_stats=no_stats(),
             ephemeral_summary_stats=redshift_ephemeral_summary_stats(),
         )
-

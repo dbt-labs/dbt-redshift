@@ -1,9 +1,9 @@
 .DEFAULT_GOAL:=help
 
 .PHONY: dev
-dev: ## Installs adapter in develop mode along with development depedencies
+dev: ## Installs adapter in develop mode along with development dependencies
 	@\
-	pip install -r dev-requirements.txt && pre-commit install
+	pip install -e . -r dev-requirements.txt && pre-commit install
 
 .PHONY: mypy
 mypy: ## Runs mypy against staged changes for static type checking.
@@ -45,9 +45,9 @@ test: ## Runs unit tests with py38 and code checks against staged changes.
 	pre-commit run mypy-check --hook-stage manual | grep -v "INFO"
 
 .PHONY: integration
-integration: ## Runs snowflake integration tests with py38.
+integration: ## Runs redshift integration tests with py38.
 	@\
-	tox -e py38-snowflake --
+	tox -e py38-redshift --
 
 .PHONY: clean
 	@echo "cleaning repo"

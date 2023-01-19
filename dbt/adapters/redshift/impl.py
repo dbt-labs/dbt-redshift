@@ -25,9 +25,9 @@ class RedshiftConfig(AdapterConfig):
 class RedshiftAdapter(PostgresAdapter, SQLAdapter):
     Relation = RedshiftRelation
     ConnectionManager = RedshiftConnectionManager
-    Column = RedshiftColumn
+    Column = RedshiftColumn  # type: ignore
 
-    AdapterSpecificConfigs = RedshiftConfig
+    AdapterSpecificConfigs = RedshiftConfig  # type: ignore
 
     @classmethod
     def date_function(cls):
@@ -72,7 +72,7 @@ class RedshiftAdapter(PostgresAdapter, SQLAdapter):
         ra3_node = self.config.credentials.ra3_node
 
         if database.lower() != expected.lower() and not ra3_node:
-            raise dbt.exceptions.NotImplementedException(
+            raise dbt.exceptions.NotImplementedError(
                 "Cross-db references allowed only in RA3.* node. ({} vs {})".format(
                     database, expected
                 )
@@ -85,8 +85,8 @@ class RedshiftAdapter(PostgresAdapter, SQLAdapter):
         schemas = super(SQLAdapter, self)._get_catalog_schemas(manifest)
         try:
             return schemas.flatten(allow_multiple_databases=self.config.credentials.ra3_node)
-        except dbt.exceptions.RuntimeException as exc:
-            dbt.exceptions.raise_compiler_error(
+        except dbt.exceptions.DbtRuntimeError as exc:
+            raise dbt.exceptions.CompilationError(
                 "Cross-db references allowed only in {} RA3.* node. Got {}".format(
                     self.type(), exc.msg
                 )
