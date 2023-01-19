@@ -198,7 +198,17 @@
 
 
 {% macro redshift__list_relations_without_caching(schema_relation) %}
-  {{ return(postgres__list_relations_without_caching(schema_relation)) }}
+  {% call statement('list_relations_without_caching', fetch_result=True) -%}
+    select
+      database_name as database,
+      table_name as name,
+      schema_name as schema,
+      lower(table_type) as type
+    from pg_catalog.svv_all_tables
+    where schema_name ilike '{{ schema_relation.schema }}'
+      and database_name ilike '{{ schema_relation.database }}'
+  {% endcall %}
+  {{ return(load_result('list_relations_without_caching').table) }}
 {% endmacro %}
 
 
