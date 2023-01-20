@@ -1,0 +1,7 @@
+kind: Fixes
+body: get_relation method returns an identifier for external tables
+time: 2023-01-20T01:37:26.785447-05:00
+custom:
+  Author: mattyb
+  Issue: "17"
+  PR: "273"
