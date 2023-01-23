@@ -1,7 +1,10 @@
+import re
 from multiprocessing import Lock
 from contextlib import contextmanager
-from typing import NewType
+from typing import NewType, Tuple
 
+import agate
+import sqlparse
 from dbt.adapters.sql import SQLConnectionManager
 from dbt.contracts.connection import AdapterResponse, Connection, Credentials
 from dbt.events import AdapterLogger
@@ -184,9 +187,10 @@ class RedshiftConnectionManager(SQLConnectionManager):
     def exception_handler(self, sql):
         try:
             yield
-        except redshift_connector.error.Error as e:
+        except redshift_connector.error.DatabaseError as e:
             logger.debug(f"Redshift error: {str(e)}")
             self.rollback_if_open()
+            raise dbt.exceptions.DbtDatabaseError(str(e))
         except Exception as e:
             logger.debug("Error running SQL: {}", sql)
             logger.debug("Rolling back transaction.")
@@ -194,7 +198,7 @@ class RedshiftConnectionManager(SQLConnectionManager):
             # Raise DBT native exceptions as is.
             if isinstance(e, dbt.exceptions.Exception):
                 raise
-            raise RuntimeError(str(e)) from e
+            raise dbt.exceptions.DbtRuntimeError(str(e)) from e
 
     @contextmanager
     def fresh_transaction(self, name=None):
@@ -241,3 +245,47 @@ class RedshiftConnectionManager(SQLConnectionManager):
             retry_timeout=exponential_backoff,
             retryable_exceptions=retryable_exceptions,
         )
+
+    def execute(
+        self, sql: str, auto_begin: bool = False, fetch: bool = False
+    ) -> Tuple[AdapterResponse, agate.Table]:
+        _, cursor = self.add_query(sql, auto_begin)
+        response = self.get_response(cursor)
+        if fetch:
+            table = self.get_result_from_cursor(cursor)
+        else:
+            table = dbt.clients.agate_helper.empty_table()
+        return response, table
+
+    def add_query(self, sql, auto_begin=True, bindings=None, abridge_sql_log=False):
+
+        connection = None
+        cursor = None
+
+        queries = sqlparse.split(sql)
+
+        for query in queries:
+            # Strip off comments from the current query
+            without_comments = re.sub(
+                re.compile(r"(\".*?\"|\'.*?\')|(/\*.*?\*/|--[^\r\n]*$)", re.MULTILINE),
+                "",
+                query,
+            ).strip()
+
+            if without_comments == "":
+                continue
+
+            connection, cursor = super().add_query(
+                query, auto_begin, bindings=bindings, abridge_sql_log=abridge_sql_log
+            )
+
+        if cursor is None:
+            conn = self.get_thread_connection()
+            conn_name = conn.name if conn and conn.name else "<None>"
+            raise dbt.exceptions.DbtRuntimeError(f"Tried to run invalid SQL: {sql} on {conn_name}")
+
+        return connection, cursor
+
+    @classmethod
+    def get_credentials(cls, credentials):
+        return credentials
