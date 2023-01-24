@@ -70,7 +70,7 @@ class TestRedshiftAdapter(unittest.TestCase):
             auto_create=False,
             db_groups=[],
             application_name='dbt',
-            timeout=10,
+            timeout=30,
             region='us-east-1'
         )
 
@@ -90,7 +90,7 @@ class TestRedshiftAdapter(unittest.TestCase):
             db_groups=[],
             region='us-east-1',
             application_name='dbt',
-            timeout=10
+            timeout=30
         )
 
     @mock.patch("redshift_connector.connect", Mock())
@@ -115,7 +115,7 @@ class TestRedshiftAdapter(unittest.TestCase):
             db_groups=[],
             profile=None,
             application_name='dbt',
-            timeout=10,
+            timeout=30,
             port=5439
         )
 
@@ -144,7 +144,7 @@ class TestRedshiftAdapter(unittest.TestCase):
             user='',
             profile='test',
             application_name='dbt',
-            timeout=10,
+            timeout=30,
             port=5439
         )
 
