@@ -56,18 +56,9 @@ class RedshiftCredentials(Credentials):
     autocreate: bool = False
     db_groups: List[str] = field(default_factory=list)
     ra3_node: Optional[bool] = False
-    connect_timeout: int = 10
+    connect_timeout: int = 30
     role: Optional[str] = None
     sslmode: Optional[str] = None
-    sslcert: Optional[
-        str
-    ] = None  # TODO:Not supported by redshift python connector, should we remove this?
-    sslkey: Optional[
-        str
-    ] = None  # TODO:Not supported by redshift python connector, should we remove this?
-    sslrootcert: Optional[
-        str
-    ] = None  # TODO:Not supported by redshift python connector, should we remove this?
     application_name: Optional[str] = "dbt"
     retries: int = 1
 
