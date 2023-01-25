@@ -129,7 +129,7 @@ class TestSourceFreshness(SuccessfulSourcesTest):
                     'warn_after': {'count': 10, 'period': 'hour'},
                     'error_after': {'count': 18, 'period': 'hour'},
                 },
-                'adapter_response': {},
+                'adapter_response': {'_message': 'cursor.rowcount = -1', 'rows_affected': -1},
                 'thread_id': AnyStringWith('Thread-'),
                 'execution_time': AnyFloat(),
                 'timing': [

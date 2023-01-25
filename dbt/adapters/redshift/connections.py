@@ -171,7 +171,7 @@ class RedshiftConnectionManager(SQLConnectionManager):
     @classmethod
     def get_response(cls, cursor: redshift_connector.Cursor) -> AdapterResponse:
         rows = cursor.rowcount
-        message = f"{rows} cursor.rowcount"
+        message = f"cursor.rowcount = {rows}"
         return AdapterResponse(_message=message, rows_affected=rows)
 
     @contextmanager
