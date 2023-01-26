@@ -1,0 +1,7 @@
+kind: Fixes
+body: Fix grant and revoke for Redshift grantees containing special characters
+time: 2023-01-26T11:26:28.9178898+01:00
+custom:
+  Author: mp24-git
+  Issue: "277"
+  PR: "282"
