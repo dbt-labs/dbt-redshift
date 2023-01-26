@@ -4,6 +4,7 @@ from unittest.mock import Mock, call
 
 import agate
 import boto3
+import dbt
 import redshift_connector
 
 from dbt.adapters.redshift import (
@@ -246,6 +247,36 @@ class TestRedshiftAdapter(unittest.TestCase):
         self.adapter.cleanup_connections()
         self._adapter = RedshiftAdapter(self.config)
         self.adapter.verify_database('redshift')
+
+    def test_execute_with_fetch(self):
+        cursor = mock.Mock()
+        table = dbt.clients.agate_helper.empty_table()
+        with mock.patch.object(self.adapter.connections, 'add_query') as mock_add_query:
+            mock_add_query.return_value = (
+            None, cursor)  # when mock_add_query is called, it will always return None, cursor
+            with mock.patch.object(self.adapter.connections, 'get_response') as mock_get_response:
+                mock_get_response.return_value = None
+                with mock.patch.object(self.adapter.connections,
+                                       'get_result_from_cursor') as mock_get_result_from_cursor:
+                    mock_get_result_from_cursor.return_value = table
+                    self.adapter.connections.execute(sql="select * from test", fetch=True)
+        mock_add_query.assert_called_once_with('select * from test', False)
+        mock_get_result_from_cursor.assert_called_once_with(cursor)
+        mock_get_response.assert_called_once_with(cursor)
+
+    def test_execute_without_fetch(self):
+        cursor = mock.Mock()
+        with mock.patch.object(self.adapter.connections, 'add_query') as mock_add_query:
+            mock_add_query.return_value = (
+            None, cursor)  # when mock_add_query is called, it will always return None, cursor
+            with mock.patch.object(self.adapter.connections, 'get_response') as mock_get_response:
+                mock_get_response.return_value = None
+                with mock.patch.object(self.adapter.connections,
+                                       'get_result_from_cursor') as mock_get_result_from_cursor:
+                    self.adapter.connections.execute(sql="select * from test2", fetch=False)
+        mock_add_query.assert_called_once_with('select * from test2', False)
+        mock_get_result_from_cursor.assert_not_called()
+        mock_get_response.assert_called_once_with(cursor)
 
 
 class TestRedshiftAdapterConversions(TestAdapterConversions):
