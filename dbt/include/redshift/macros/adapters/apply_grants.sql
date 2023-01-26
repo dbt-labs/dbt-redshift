@@ -25,3 +25,21 @@ where has_table_privilege(u.usename, '{{ relation }}', privilege_type)
     and not u.usesuper
 
 {% endmacro %}
+
+
+{%- macro redshift__get_grant_sql(relation, privilege, grantees) -%}
+    grant {{ privilege }} on {{ relation }} to
+    {% for grantee in grantees %}
+    {{ adapter.quote(grantee) }}
+    {% if not loop.last %},{% endif %}
+    {% endfor %}
+{%- endmacro -%}
+
+
+{%- macro redshift__get_revoke_sql(relation, privilege, grantees) -%}
+    revoke {{ privilege }} on {{ relation }} from
+    {% for grantee in grantees %}
+    {{ adapter.quote(grantee) }}
+    {% if not loop.last %},{% endif %}
+    {% endfor %}
+{%- endmacro -%}
