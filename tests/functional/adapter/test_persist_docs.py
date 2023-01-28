@@ -4,7 +4,7 @@ import pytest
 from dbt.tests.util import run_dbt
 
 from dbt.tests.adapter.persist_docs.test_persist_docs import (
-    BasePersistDocsTest,
+    BasePersistDocsBase,
     BasePersistDocs,
     BasePersistDocsColumnMissing,
     BasePersistDocsCommentOnQuotedColumn,
@@ -23,7 +23,7 @@ class TestPersistDocsCommentOnQuotedColumn(BasePersistDocsCommentOnQuotedColumn)
     pass
 
 
-class TestPersistDocsLateBinding(BasePersistDocsTest):
+class TestPersistDocsLateBinding(BasePersistDocsBase):
     @pytest.fixture(scope="class")
     def project_config_update(self):
         return {
