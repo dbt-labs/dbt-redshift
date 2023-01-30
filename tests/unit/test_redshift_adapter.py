@@ -13,7 +13,9 @@ from dbt.adapters.redshift import (
 )
 from dbt.clients import agate_helper
 from dbt.exceptions import FailedToConnectError
-
+from dbt.adapters.base import BaseConnectionManager
+from dbt.adapters.redshift.connections import RedshiftConnectionManager
+from dbt.adapters.sql import SQLConnectionManager
 from dbt.adapters.redshift.connections import RedshiftConnectMethodFactory
 from .utils import config_from_parts_or_dicts, mock_connection, TestAdapterConversions, inject_adapter
 
@@ -278,6 +280,20 @@ class TestRedshiftAdapter(unittest.TestCase):
         mock_get_result_from_cursor.assert_not_called()
         mock_get_response.assert_called_once_with(cursor)
 
+    def test_add_query_with_no_cursor(self):
+        with mock.patch.object(self.adapter.connections, 'get_thread_connection') as mock_get_thread_connection:
+            mock_get_thread_connection.return_value = None
+            with self.assertRaisesRegex(dbt.exceptions.DbtRuntimeError,
+                                        'Tried to run invalid SQL:  on <None>'):
+                self.adapter.connections.add_query(sql="")
+        mock_get_thread_connection.assert_called_once()
+
+    def test_add_query_success(self):
+        cursor = mock.Mock()
+        with mock.patch.object(dbt.adapters.redshift.connections.SQLConnectionManager, 'add_query') as mock_add_query:
+            mock_add_query.return_value = None, cursor
+            self.adapter.connections.add_query('select * from test3')
+        mock_add_query.assert_called_once_with('select * from test3', True, bindings=None, abridge_sql_log=False)
 
 class TestRedshiftAdapterConversions(TestAdapterConversions):
     def test_convert_text_type(self):
