@@ -118,9 +118,10 @@ class RedshiftConnectMethodFactory:
             return connect
 
         elif method == RedshiftConnectionMethod.IAM:
-            if not self.credentials.cluster_id:
+            if not self.credentials.cluster_id and "serverless" not in self.credentials.host:
                 raise dbt.exceptions.FailedToConnectError(
-                    "Failed to use IAM method, 'cluster_id' must be provided"
+                    "Failed to use IAM method. 'cluster_id' must be provided for provisioned cluster. "
+                    "'host' must be provided for serverless endpoint."
                 )
 
             def connect():
