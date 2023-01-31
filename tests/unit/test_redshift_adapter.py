@@ -13,9 +13,6 @@ from dbt.adapters.redshift import (
 )
 from dbt.clients import agate_helper
 from dbt.exceptions import FailedToConnectError
-from dbt.adapters.base import BaseConnectionManager
-from dbt.adapters.redshift.connections import RedshiftConnectionManager
-from dbt.adapters.sql import SQLConnectionManager
 from dbt.adapters.redshift.connections import RedshiftConnectMethodFactory
 from .utils import config_from_parts_or_dicts, mock_connection, TestAdapterConversions, inject_adapter
 
@@ -150,6 +147,62 @@ class TestRedshiftAdapter(unittest.TestCase):
             timeout=30,
             port=5439
         )
+
+    @mock.patch('redshift_connector.connect', Mock())
+    @mock.patch('boto3.Session', Mock())
+    def test_explicit_iam_serverless_with_profile(self):
+        self.config.credentials = self.config.credentials.replace(
+            method='iam',
+            iam_profile='test',
+            host='doesnotexist.1233.us-east-2.redshift-serverless.amazonaws.com'
+        )
+        connection = self.adapter.acquire_connection("dummy")
+        connection.handle
+        redshift_connector.connect.assert_called_once_with(
+            iam=True,
+            host='doesnotexist.1233.us-east-2.redshift-serverless.amazonaws.com',
+            database='redshift',
+            cluster_identifier=None,
+            region='us-east-2',
+            auto_create=False,
+            db_groups=[],
+            db_user='root',
+            password='',
+            user='',
+            profile='test',
+            application_name='dbt',
+            timeout=30,
+            port=5439
+        )
+
+    @mock.patch('redshift_connector.connect', Mock())
+    @mock.patch('boto3.Session', Mock())
+    def test_serverless_iam_failure(self):
+        self.config.credentials = self.config.credentials.replace(
+            method='iam',
+            iam_profile='test',
+            host='doesnotexist.1233.us-east-2.redshift-srvrlss.amazonaws.com'
+        )
+        with self.assertRaises(dbt.exceptions.FailedToConnectError) as context:
+            connection = self.adapter.acquire_connection("dummy")
+            connection.handle
+            redshift_connector.connect.assert_called_once_with(
+                iam=True,
+                host='doesnotexist.1233.us-east-2.redshift-srvrlss.amazonaws.com',
+                database='redshift',
+                cluster_identifier=None,
+                region='us-east-2',
+                auto_create=False,
+                db_groups=[],
+                db_user='root',
+                password='',
+                user='',
+                profile='test',
+                application_name='dbt',
+                timeout=30,
+                port=5439
+        )
+        self.assertTrue("'host' must be provided" in context.exception.msg)
 
     def test_iam_conn_optionals(self):
 
