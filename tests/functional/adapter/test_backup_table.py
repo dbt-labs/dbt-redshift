@@ -1,5 +1,7 @@
 import pytest
 
+from dbt.tests.util import run_dbt
+
 
 _MODELS = {
     "backup_is_false.sql": "{{ config(materialized='table', backup=False) }} select 1 as my_col",
@@ -12,6 +14,10 @@ _MODELS = {
 
 
 class BackupTableBase:
+
+    @pytest.fixture(scope="class", autouse=True)
+    def run_dbt_results(self, project):
+        yield run_dbt(["run"])
 
     @pytest.fixture(scope="class")
     def models(self):
@@ -38,7 +44,7 @@ class TestBackupTableModel(BackupTableBase):
         indirect=["model_ddl"]
     )
     def test_setting_reflects_config_option(self, model_ddl: str, backup_expected: bool):
-        backup_will_occur = "backup no" not in model_ddl
+        backup_will_occur = "backup no" not in model_ddl.lower()
         assert backup_will_occur == backup_expected
 
     @pytest.mark.parametrize(
@@ -68,5 +74,5 @@ class TestBackupTableProject(BackupTableBase):
         indirect=["model_ddl"]
     )
     def test_setting_defaults_to_project_option(self, model_ddl: str, backup_expected: bool):
-        backup_will_occur = "backup no" not in model_ddl
+        backup_will_occur = "backup no" not in model_ddl.lower()
         assert backup_will_occur == backup_expected
