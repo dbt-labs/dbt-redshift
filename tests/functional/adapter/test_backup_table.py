@@ -1,5 +1,4 @@
 import pytest
-from dbt.tests.util import run_dbt
 
 
 _MODELS = {
@@ -14,19 +13,9 @@ _MODELS = {
 
 class BackupTableBase:
 
-    @pytest.fixture(scope="class", autouse=True)
-    def run_dbt_results(self, project):
-        yield run_dbt(["run"])
-
     @pytest.fixture(scope="class")
     def models(self):
         return _MODELS
-
-    @pytest.fixture
-    def model_ddl(self, request, project) -> str:
-        with open(f"{project.project_root}/target/run/test/models/{request.param}.sql", 'r') as ddl_file:
-            ddl_statement = ' '.join(ddl_file.readlines())
-            yield ddl_statement.lower()
 
 
 class TestBackupTableSetup(BackupTableBase):
@@ -48,7 +37,7 @@ class TestBackupTableModel(BackupTableBase):
         ],
         indirect=["model_ddl"]
     )
-    def test_setting_reflects_config_option(self, model_ddl: str, backup_expected: bool, project):
+    def test_setting_reflects_config_option(self, model_ddl: str, backup_expected: bool):
         backup_will_occur = "backup no" not in model_ddl
         assert backup_will_occur == backup_expected
 
