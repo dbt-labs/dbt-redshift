@@ -4,6 +4,7 @@ import pytest
 import psycopg2
 
 from dbt.tests.util import run_dbt, relation_from_name
+from dbt.tests.fixtures.project import TestProjInfo
 
 
 _SEED_BASE = """
@@ -46,8 +47,8 @@ id,first_name,last_name,email,gender,ip_address,updated_at
 """.strip()
 
 
-_SNAPSHOT_BASE = """
-{% snapshot snapshot_base %}
+_SNAPSHOT_TIMESTAMP = """
+{% snapshot snapshot_timestamp %}
     {{ config(
         target_database=database,
         target_schema=schema,
@@ -63,7 +64,36 @@ _SNAPSHOT_BASE = """
 """
 
 
-class TestSnapshotSimple:
+_SNAPSHOT_HARD_DELETE = """
+{% snapshot snapshot_hard_delete %}
+    {{ config(
+        target_database=database,
+        target_schema=schema,
+        unique_key='id',
+        strategy='timestamp',
+        updated_at='updated_at',
+        invalidate_hard_deletes=True,
+    ) }}
+    select * from {{ ref('seed_base') }}
+{% endsnapshot %}
+"""
+
+
+_SNAPSHOT_CHECK = """
+{% snapshot snapshot_check %}
+    {{ config(
+        target_database=database,
+        target_schema=schema,
+        unique_key='id',
+        strategy='check',
+        check_cols=['email'],
+    ) }}
+    select * from {{ ref('seed_base') }}
+{% endsnapshot %}
+"""
+
+
+class SnapshotSimpleBase:
 
     @pytest.fixture(scope="class")
     def seeds(self):
@@ -74,25 +104,40 @@ class TestSnapshotSimple:
 
     @pytest.fixture(scope="class")
     def snapshots(self):
-        return {"snapshot_base.sql": _SNAPSHOT_BASE}
+        return {
+            "snapshot_timestamp.sql": _SNAPSHOT_TIMESTAMP,
+            "snapshot_hard_delete.sql": _SNAPSHOT_HARD_DELETE,
+            "snapshot_check.sql": _SNAPSHOT_CHECK,
+        }
+
+    @property
+    def _snapshot_names(self) -> List[str]:
+        return ["snapshot_timestamp", "snapshot_hard_delete", "snapshot_check"]
 
     @pytest.fixture(scope="function", autouse=True)
-    def _setup(self, project):
+    def _setup(self, project: TestProjInfo):
         run_dbt(["seed", "--full-refresh"])
-        try:
-            project.run_sql(f"""delete from {relation_from_name(project.adapter, "snapshot_base")}""")
-        except psycopg2.errors.UndefinedTable:
-            pass  # the snapshot table does not exist before the first test runs and there is no --full-refresh option
+        self._truncate_snapshots(project)
         run_dbt(["snapshot"])
 
+    def _truncate_snapshots(self, project: TestProjInfo):
+        for snapshot in self._snapshot_names:
+            try:
+                project.run_sql(f"""delete from {relation_from_name(project.adapter, snapshot)}""")
+            except psycopg2.errors.UndefinedTable:
+                pass  # the snapshot table does not exist before the first test run
+
     @staticmethod
-    def _snapshot_records_with_id_and_is_current(project) -> List[Tuple[str, bool]]:
+    def _snapshot_records_with_id_and_is_current(project: TestProjInfo, snapshot: str) -> List[Tuple[str, bool]]:
         return project.run_sql(f"""
-            select id, dbt_valid_to is null as is_current_record
-            from {relation_from_name(project.adapter, "snapshot_base")}
+            select id, dbt_valid_to is null as is_current
+            from {relation_from_name(project.adapter, snapshot)}
         """, fetch="all")
 
-    def test_updated_records_are_captured_by_snapshot(self, project):
+
+class TestSnapshotSimple(SnapshotSimpleBase):
+
+    def test_updated_records_are_captured_by_snapshot(self, project: TestProjInfo):
         """
         - make updates to 5 records and rerun the snapshot
         - show that the snapshot reflects the updates
@@ -103,18 +148,18 @@ class TestSnapshotSimple:
         project.run_sql(f"""
             update {relation_from_name(project.adapter, "seed_base")}
             set updated_at = updated_at + interval '1 day',
-                email      = 'new_' || email
+                email      = left(email, 3)
             where id between 16 and 20
         """)
-        run_dbt(["snapshot"])
+        run_dbt(["snapshot", "--select", "snapshot_timestamp"])
 
-        records = self._snapshot_records_with_id_and_is_current(project)
+        records = self._snapshot_records_with_id_and_is_current(project, "snapshot_timestamp")
         expected_records = [(i, True) for i in range(1, 16)] + \
                            [(i, False) for i in range(16, 21)] + \
                            [(i, True) for i in range(16, 21)]
         assert set(records) == set(expected_records)
 
-    def test_inserted_records_are_captured_by_snapshot(self, project):
+    def test_inserted_records_are_captured_by_snapshot(self, project: TestProjInfo):
         """
         - insert 10 new records (new ids)
         - show that the snapshot reflects the updates
@@ -125,13 +170,13 @@ class TestSnapshotSimple:
             insert into {relation_from_name(project.adapter, "seed_base")}
             select * from {relation_from_name(project.adapter, "seed_insert")}
         """)
-        run_dbt(["snapshot"])
+        run_dbt(["snapshot", "--select", "snapshot_timestamp"])
 
-        records = self._snapshot_records_with_id_and_is_current(project)
+        records = self._snapshot_records_with_id_and_is_current(project, "snapshot_timestamp")
         expected_records = [(i, True) for i in range(1, 31)]
         assert set(records) == set(expected_records)
 
-    def test_new_column_in_base_is_recorded_correctly_in_snapshot(self, project):
+    def test_new_column_in_base_is_recorded_correctly_in_snapshot(self, project: TestProjInfo):
         """
         - add a new column and populate it with a value
         - show that the snapshot reflects the updates
@@ -147,14 +192,14 @@ class TestSnapshotSimple:
             set full_name = first_name || ' ' || last_name,
                 updated_at = updated_at + interval '1 day' 
         """)
-        run_dbt(["snapshot"])
+        run_dbt(["snapshot", "--select", "snapshot_timestamp"])
 
-        records = self._snapshot_records_with_id_and_is_current(project)
-        expected_records = [(i, True, False) for i in range(1, 21)] +\
-                           [(i, False, True) for i in range(1, 21)]
+        records = self._snapshot_records_with_id_and_is_current(project, "snapshot_timestamp")
+        expected_records = [(i, True) for i in range(1, 21)] +\
+                           [(i, False) for i in range(1, 21)]
         assert set(records) == set(expected_records)
 
-    def test_hard_delete_closes_out_records_in_snapshot(self, project):
+    def test_hard_delete_closes_out_records_in_snapshot(self, project: TestProjInfo):
         """
         - hard delete 5 records
         - show that the snapshot reflects the deletes
@@ -165,14 +210,14 @@ class TestSnapshotSimple:
             delete from {relation_from_name(project.adapter, "seed_base")}
             where id between 16 and 20
         """)
-        run_dbt(["snapshot", "--vars", "{invalidate_hard_deletes: True}"])
+        run_dbt(["snapshot", "--select", "snapshot_hard_delete"])
 
-        records = self._snapshot_records_with_id_and_is_current(project)
-        expected_records = [(i, False) for i in range(1, 16)] +\
-                           [(i, True) for i in range(16, 21)]
+        records = self._snapshot_records_with_id_and_is_current(project, "snapshot_hard_delete")
+        expected_records = [(i, True) for i in range(1, 16)] +\
+                           [(i, False) for i in range(16, 21)]
         assert set(records) == set(expected_records)
 
-    def test_revived_records_are_recorded_correctly_in_snapshot(self, project):
+    def test_revived_records_are_recorded_correctly_in_snapshot(self, project: TestProjInfo):
         """
         - retain 3 records to be revived (same data and same id)
         - hard delete 5 records (including the 3 to be revived)
@@ -192,34 +237,48 @@ class TestSnapshotSimple:
             delete from {relation_from_name(project.adapter, "seed_base")}
             where id between 16 and 20
         """)
-        run_dbt(["snapshot", "--vars", "{invalidate_hard_deletes: True}"])
+        run_dbt(["snapshot", "--select", "snapshot_hard_delete"])
 
         project.run_sql(f"""
             insert into {relation_from_name(project.adapter, "seed_base")}
             select * from {relation_from_name(project.adapter, "seed_temp")}
         """)
-        run_dbt(["snapshot", "--vars", "{invalidate_hard_deletes: True}"])
+        run_dbt(["snapshot", "--select", "snapshot_hard_delete"])
 
-        records = self._snapshot_records_with_id_and_is_current(project)
+        records = self._snapshot_records_with_id_and_is_current(project, "snapshot_hard_delete")
         expected_records = [(i, True) for i in range(1, 16)] + \
                            [(i, False) for i in range(16, 21)] +\
                            [(i, True) for i in range(16, 19)]
         assert set(records) == set(expected_records)
 
-
-class TestSnapshotSimpleColumnSelection:
-
-    def test_column_selection_is_reflected_in_snapshot(self):
+    def test_column_selection_is_reflected_in_snapshot(self, project: TestProjInfo):
         """
-        update project config
-        run the same tests that were in TestSimpleSnapshot considering a subset of columns for time phasing
+        - update 7 records for a column that is not checked by snapshot
+        - update 6 records for a column that is not checked by snapshot and another column that is checked by snapshot
+        - update 5 records for a column that is checked by snapshot
+        - leave 2 records untouched
+        - run snapshot
+        - show that the snapshot reflects the checked changes
+            - 7 original records remain current despite change
+            - 11 original records are closed out
+            - 11 new records for the updates which are now current
+            - 2 original records remain current with no change
         """
+        project.run_sql(f"""
+            update {relation_from_name(project.adapter, "seed_base")}
+            set last_name = left(last_name, 3)
+            where id between 1 and 13
+        """)
+        project.run_sql(f"""
+            update {relation_from_name(project.adapter, "seed_base")}
+            set email      = left(email, 3)
+            where id between 8 and 18
+        """)
+        run_dbt(["snapshot", "--select", "snapshot_check"])
 
-
-class TestSnapshotSimpleProjectDefaultColumnSelection:
-
-    def test_project_default_column_selection_is_reflected_in_snapshot(self):
-        """
-        update project config
-        run the same tests that were in TestSimpleSnapshot using the project default
-        """
+        records = self._snapshot_records_with_id_and_is_current(project, "snapshot_check")
+        expected_records = [(i, True) for i in range(1, 8)] + \
+                           [(i, False) for i in range(8, 19)] + \
+                           [(i, True) for i in range(8, 19)] + \
+                           [(i, True) for i in range(19, 21)]
+        assert set(records) == set(expected_records)
