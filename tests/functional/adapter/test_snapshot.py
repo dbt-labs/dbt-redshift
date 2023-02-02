@@ -93,7 +93,20 @@ _SNAPSHOT_CHECK = """
 """
 
 
-class SnapshotSimpleBase:
+_MACRO_UPDATE = """
+{% macro updated_records_are_captured_by_snapshot() %}
+    {% set sql %}
+        update {{ ref('seed_base') }}
+        set updated_at = updated_at + interval '1 day',
+            email      = left(email, 3)
+        where id between 16 and 20
+    {% endset %}
+    {% do run_query(sql) %}
+{% endmacro %}
+"""
+
+
+class SnapshotBase:
 
     @pytest.fixture(scope="class")
     def seeds(self):
@@ -108,6 +121,12 @@ class SnapshotSimpleBase:
             "snapshot_timestamp.sql": _SNAPSHOT_TIMESTAMP,
             "snapshot_hard_delete.sql": _SNAPSHOT_HARD_DELETE,
             "snapshot_check.sql": _SNAPSHOT_CHECK,
+        }
+
+    @pytest.fixture(scope="class")
+    def macros(self):
+        return {
+            "update.sql": _MACRO_UPDATE
         }
 
     @property
@@ -135,7 +154,7 @@ class SnapshotSimpleBase:
         """, fetch="all")
 
 
-class TestSnapshotSimple(SnapshotSimpleBase):
+class TestSnapshot(SnapshotBase):
 
     def test_updated_records_are_captured_by_snapshot(self, project: TestProjInfo):
         """
@@ -145,12 +164,7 @@ class TestSnapshotSimple(SnapshotSimpleBase):
             - 5 original records are closed out
             - 5 new records for the updates which are now current
         """
-        project.run_sql(f"""
-            update {relation_from_name(project.adapter, "seed_base")}
-            set updated_at = updated_at + interval '1 day',
-                email      = left(email, 3)
-            where id between 16 and 20
-        """)
+        run_dbt(["run-operation", "updated_records_are_captured_by_snapshot"])
         run_dbt(["snapshot", "--select", "snapshot_timestamp"])
 
         records = self._snapshot_records_with_id_and_is_current(project, "snapshot_timestamp")
