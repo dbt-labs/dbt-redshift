@@ -1,3 +1,4 @@
+import os
 import re
 from multiprocessing import Lock
 from contextlib import contextmanager
@@ -39,13 +40,16 @@ dbtClassMixin.register_field_encoders({IAMDuration: IAMDurationEncoder()})
 class RedshiftConnectionMethod(StrEnum):
     DATABASE = "database"
     IAM = "iam"
+    AUTH_PROFILE = "auth_profile"
+    IDP = "IdP"
 
 
 @dataclass
 class RedshiftCredentials(Credentials):
-    host: str
-    user: str
+    host: Optional[str]
+    user: Optional[str]
     port: Port
+    region: Optional[str] = None
     method: str = RedshiftConnectionMethod.DATABASE  # type: ignore
     password: Optional[str] = None  # type: ignore
     cluster_id: Optional[str] = field(
@@ -61,6 +65,7 @@ class RedshiftCredentials(Credentials):
     sslmode: Optional[str] = None
     application_name: Optional[str] = "dbt"
     retries: int = 1
+    auth_profile: Optional[str] = None
 
     _ALIASES = {"dbname": "database", "pass": "password"}
 
@@ -69,11 +74,20 @@ class RedshiftCredentials(Credentials):
         return "redshift"
 
     def _connection_keys(self):
-        return "host", "port", "user", "database", "schema", "method", "cluster_id", "iam_profile"
+        return (
+            "host",
+            "port",
+            "user",
+            "database",
+            "schema",
+            "method",
+            "cluster_id",
+            "iam_profile",
+        )
 
     @property
     def unique_field(self) -> str:
-        return self.host
+        return self.host if self.host else self.database
 
 
 class RedshiftConnectMethodFactory:
@@ -85,15 +99,18 @@ class RedshiftConnectMethodFactory:
     def get_connect_method(self):
         method = self.credentials.method
         kwargs = {
-            "host": self.credentials.host,
+            "host": "",
+            "region": self.credentials.region,
             "database": self.credentials.database,
             "port": self.credentials.port if self.credentials.port else 5439,
             "auto_create": self.credentials.autocreate,
             "db_groups": self.credentials.db_groups,
-            "region": self.credentials.host.split(".")[2],
             "application_name": self.credentials.application_name,
             "timeout": self.credentials.connect_timeout,
         }
+        if method != RedshiftConnectionMethod.AUTH_PROFILE:
+            kwargs["host"] = self.credentials.host
+            kwargs["region"] = self.credentials.host.split(".")[2]
         if self.credentials.sslmode:
             kwargs["sslmode"] = self.credentials.sslmode
 
@@ -109,7 +126,36 @@ class RedshiftConnectMethodFactory:
             def connect():
                 logger.debug("Connecting to redshift with username/password based auth...")
                 c = redshift_connector.connect(
-                    user=self.credentials.user, password=self.credentials.password, **kwargs
+                    user=self.credentials.user,
+                    password=self.credentials.password,
+                    **kwargs,
+                )
+                if self.credentials.role:
+                    c.cursor().execute("set role {}".format(self.credentials.role))
+                return c
+
+            return connect
+
+        elif method == RedshiftConnectionMethod.AUTH_PROFILE:
+            if not self.credentials.auth_profile:
+                raise dbt.exceptions.FailedToConnectError(
+                    "Failed to use auth profile method. 'auth_profile' must be provided."
+                )
+            if not self.credentials.region:
+                raise dbt.exceptions.FailedToConnectError(
+                    "Failed to use auth profile method. 'region' must be provided."
+                )
+
+            def connect():
+                logger.debug("Connecting to redshift with authentication profile...")
+                c = redshift_connector.connect(
+                    iam=True,
+                    access_key_id=os.environ["AWS_ACCESS_KEY_ID"],
+                    secret_access_key=os.environ["AWS_SECRET_ACCESS_KEY"],
+                    session_token=os.environ["AWS_SESSION_TOKEN"],
+                    db_user=self.credentials.user,
+                    auth_profile=self.credentials.auth_profile,
+                    **kwargs,
                 )
                 if self.credentials.role:
                     c.cursor().execute("set role {}".format(self.credentials.role))
@@ -140,6 +186,7 @@ class RedshiftConnectMethodFactory:
                 return c
 
             return connect
+
         else:
             raise dbt.exceptions.FailedToConnectError(
                 "Invalid 'method' in profile: '{}'".format(method)
