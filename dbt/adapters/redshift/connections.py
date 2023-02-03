@@ -105,8 +105,8 @@ class RedshiftConnectMethodFactory:
             "port": self.credentials.port if self.credentials.port else 5439,
             "auto_create": self.credentials.autocreate,
             "db_groups": self.credentials.db_groups,
-            "application_name": self.credentials.application_name,
             "timeout": self.credentials.connect_timeout,
+            "application_name": self.credentials.application_name,
         }
         if method != RedshiftConnectionMethod.AUTH_PROFILE:
             kwargs["host"] = self.credentials.host
