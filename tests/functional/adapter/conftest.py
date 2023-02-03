@@ -18,7 +18,8 @@ def model_ddl(request) -> str:
         assert backup_will_occur == backup_expected
     ===
 
-    This example will return the contents of the backup_is_false DDL file, which can be referenced via model_ddl.
+    In this example, the fixture returns the contents of the backup_is_false DDL file as a string.
+    This string is then referenced in the test as model_ddl.
     """
     with open(f"target/run/test/models/{request.param}.sql", 'r') as ddl_file:
-        yield ' '.join(ddl_file.readlines())
+        yield '\n'.join(ddl_file.readlines())
