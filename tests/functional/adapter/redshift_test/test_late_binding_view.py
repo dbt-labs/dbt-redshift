@@ -9,7 +9,6 @@ _MODEL_SQL = """{{
   )
 }}
 select * from {{ ref('seed') }}
-
 """
 
 _SEED_CSV = """
@@ -40,7 +39,7 @@ class TestLateBindingView:
             }
         }
 
-    def test__redshift_late_binding_view_query(self, project):
+    def test_late_binding_view_query(self, project):
         seed_run_result = run_dbt(['seed'])
         assert len(seed_run_result) == 1
         run_result = run_dbt()
