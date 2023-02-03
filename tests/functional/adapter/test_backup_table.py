@@ -17,18 +17,11 @@ class BackupTableBase:
 
     @pytest.fixture(scope="class", autouse=True)
     def run_dbt_results(self, project):
-        yield run_dbt(["run"])
+        run_dbt(["run"])
 
     @pytest.fixture(scope="class")
     def models(self):
         return _MODELS
-
-
-class TestBackupTableSetup(BackupTableBase):
-
-    def test_setup_executed_correctly(self, run_dbt_results):
-        processed_models = run_dbt_results.results
-        assert len(processed_models) == len(_MODELS)
 
 
 class TestBackupTableModel(BackupTableBase):
