@@ -1,9 +1,17 @@
-from typing import Set, Tuple
+from typing import Dict, Iterable
 
 import pytest
 
-from dbt.tests.util import run_dbt, relation_from_name
-from dbt.tests.fixtures.project import TestProjInfo
+from dbt.tests.util import run_dbt
+
+from tests.functional.adapter.common import (
+    get_records,
+    update_records,
+    insert_records,
+    delete_records,
+    clone_table,
+    add_column
+)
 
 
 _SEED = """
@@ -41,21 +49,11 @@ id,first_name,last_name,email,gender,ip_address,updated_at
 """.strip()
 
 
-_MODEL_FACT = """
+_MODEL = """
 {{ config(materialized="table") }}
-select *
-from {{ ref('seed') }}
+select * from {{ ref('seed') }}
 where id between 1 and 20
 """
-
-
-_MODEL_RESULTS = """
-{{ config(materialized="view") }}
-select id,
-       dbt_valid_to is null as is_current
-from {{ ref('snapshot') }}
-"""
-
 
 _SNAPSHOT_TIMESTAMP = """
 {% snapshot snapshot %}
@@ -86,74 +84,6 @@ _SNAPSHOT_CHECK = """
 """
 
 
-_MACROS = """
-{% macro update_records(range) %}
-    {% set sql %}
-    
-        update {{ ref('fact') }}
-        set updated_at = updated_at + interval '1 day'
-        where id between {{ range }}
-        
-    {% endset %}
-    {% do run_query(sql) %}
-{% endmacro %}
-
-{% macro insert_records(range) %}
-    {% set sql %}
-
-        insert into {{ ref('fact') }}
-        select * from {{ ref('seed') }}
-        where id between {{ range }}
-        
-    {% endset %}
-    {% do run_query(sql) %}
-{% endmacro %}
-
-{% macro delete_records(range) %}
-    {% set sql %}
-
-        delete from {{ ref('fact') }}
-        where id between {{ range }}
-        
-    {% endset %}
-    {% do run_query(sql) %}
-{% endmacro %}
-
-{% macro add_a_column() %}
-    {% set sql %}
-
-        alter table {{ ref('fact') }}
-        add column full_name varchar(200) default null
-        ;
-
-        update {{ ref('fact') }}
-        set full_name = first_name || ' ' || last_name,
-            updated_at = updated_at + interval '1 day'
-        ;
-        
-    {% endset %}
-    {% do run_query(sql) %}
-{% endmacro %}
-
-{% macro update_tracked_and_untracked_columns(tracked_range, untracked_range) %}
-    {% set sql %}
-    
-        update {{ ref('fact') }}
-        set last_name = left(last_name, 3)
-        where id between {{ untracked_range }}
-        ;
-
-        update {{ ref('fact') }}
-        set email = left(email, 3)
-        where id between {{ tracked_range }}
-        ;
-        
-    {% endset %}
-    {% do run_query(sql) %}
-{% endmacro %}
-"""
-
-
 class SnapshotBase:
 
     @pytest.fixture(scope="class")
@@ -162,33 +92,44 @@ class SnapshotBase:
 
     @pytest.fixture(scope="class")
     def models(self):
-        return {
-            "fact.sql": _MODEL_FACT,
-            "results.sql": _MODEL_RESULTS,
-        }
-
-    @pytest.fixture(scope="class")
-    def macros(self):
-        return {"macros.sql": _MACROS}
+        return {"fact.sql": _MODEL}
 
     @pytest.fixture(scope="class", autouse=True)
-    def _setup_class(self, project: TestProjInfo):
+    def _setup_class(self, project):
         run_dbt(["seed"])
-        run_dbt(["run", "--select", "fact"])
-        run_dbt(["snapshot"])
-        run_dbt(["run", "--select", "results"])
-        project.run_sql(f"""delete from {relation_from_name(project.adapter, "snapshot")}""")
 
     @pytest.fixture(scope="function", autouse=True)
-    def _setup_method(self, project: TestProjInfo):
-        run_dbt(["run", "--select", "fact"])
+    def _setup_method(self, project):
+        self.project = project
+        clone_table(project, "fact", "seed", "*", "id between 1 and 20")
         run_dbt(["snapshot"])
         yield
-        project.run_sql(f"""delete from {relation_from_name(project.adapter, "snapshot")}""")
+        delete_records(project, "snapshot")
+        self.delete_fact_records()
 
-    @staticmethod
-    def _results(project: TestProjInfo) -> Set[Tuple[str, bool]]:
-        return set(project.run_sql(f"select * from {relation_from_name(project.adapter, 'results')}", fetch="all"))
+    def update_fact_records(self, updates: Dict[str, str], where: str = None):
+        update_records(self.project, "fact", updates, where)
+
+    def insert_fact_records(self, where: str = None):
+        insert_records(self.project, "fact", "seed", "*", where)
+
+    def delete_fact_records(self, where: str = None):
+        delete_records(self.project, "fact", where)
+
+    def add_fact_column(self, column: str = None, definition: str = None):
+        add_column(self.project, "fact", column, definition)
+
+    def _assert_results(
+            self,
+            ids_with_current_snapshot_records: Iterable,
+            ids_with_closed_out_snapshot_records: Iterable
+    ):
+        records = set(get_records(self.project, "snapshot", "id, dbt_valid_to is null as is_current"))
+        expected_records = set().union(
+            {(i, True) for i in ids_with_current_snapshot_records},
+            {(i, False) for i in ids_with_closed_out_snapshot_records}
+        )
+        assert records == expected_records
 
 
 class TestSnapshot(SnapshotBase):
@@ -197,37 +138,54 @@ class TestSnapshot(SnapshotBase):
     def snapshots(self):
         return {"snapshot.sql": _SNAPSHOT_TIMESTAMP}
 
-    @pytest.mark.parametrize("operation,run_args,current_records,closed_records", [
-        ("update_records", "{range: '16 and 20'}", range(1, 21), range(16, 21)),
-        ("insert_records", "{range: '21 and 30'}", range(1, 31), []),
-        ("delete_records", "{range: '16 and 20'}", range(1, 16), range(16, 21)),
-        ("add_a_column", "{}", range(1, 21), range(1, 21)),
-    ])
-    def test_crud_operations_are_captured_by_snapshot(
-            self,
-            project: TestProjInfo,
-            operation,
-            run_args,
-            current_records,
-            closed_records
-    ):
-        run_dbt(["run-operation", operation, "--args", run_args])
+    def test_updates_are_captured_by_snapshot(self, project):
+        self.update_fact_records({"updated_at": "updated_at + interval '1 day'"}, "id between 16 and 20")
         run_dbt(["snapshot"])
+        self._assert_results(
+            ids_with_current_snapshot_records=range(1, 21),
+            ids_with_closed_out_snapshot_records=range(16, 21)
+        )
 
-        records = self._results(project)
-        expected_records = {(i, True) for i in current_records}.union({(i, False) for i in closed_records})
-        assert records == expected_records
-
-    def test_revived_records_are_recorded_correctly_in_snapshot(self, project: TestProjInfo):
-        run_dbt(["run-operation", "delete_records", "--args", "{range: '16 and 20'}"])
+    def test_inserts_are_captured_by_snapshot(self, project):
+        self.insert_fact_records("id between 21 and 30")
         run_dbt(["snapshot"])
+        self._assert_results(
+            ids_with_current_snapshot_records=range(1, 31),
+            ids_with_closed_out_snapshot_records=[]
+        )
 
-        run_dbt(["run-operation", "insert_records", "--args", "{range: '16 and 18'}"])
+    def test_deletes_are_captured_by_snapshot(self, project):
+        self.delete_fact_records("id between 16 and 20")
         run_dbt(["snapshot"])
+        self._assert_results(
+            ids_with_current_snapshot_records=range(1, 16),
+            ids_with_closed_out_snapshot_records=range(16, 21)
+        )
 
-        records = self._results(project)
-        expected_records = {(i, True) for i in range(1, 19)}.union({(i, False) for i in range(16, 21)})
-        assert records == expected_records
+    def test_revives_are_captured_by_snapshot(self, project):
+        self.delete_fact_records("id between 16 and 20")
+        run_dbt(["snapshot"])
+        self.insert_fact_records("id between 16 and 18")
+        run_dbt(["snapshot"])
+        self._assert_results(
+            ids_with_current_snapshot_records=range(1, 19),
+            ids_with_closed_out_snapshot_records=range(16, 21)
+        )
+
+    def test_new_column_captured_by_snapshot(self, project):
+        self.add_fact_column("full_name", "varchar(200) default null")
+        self.update_fact_records(
+            {
+                "full_name": "first_name || ' ' || last_name",
+                "updated_at": "updated_at + interval '1 day'",
+            },
+            "id between 11 and 20"
+        )
+        run_dbt(["snapshot"])
+        self._assert_results(
+            ids_with_current_snapshot_records=range(1, 21),
+            ids_with_closed_out_snapshot_records=range(11, 21)
+        )
 
 
 class TestSnapshotCheck(SnapshotBase):
@@ -236,13 +194,11 @@ class TestSnapshotCheck(SnapshotBase):
     def snapshots(self):
         return {"snapshot.sql": _SNAPSHOT_CHECK}
 
-    def test_column_selection_is_reflected_in_snapshot(self, project: TestProjInfo):
-        run_dbt([
-            "run-operation", "update_tracked_and_untracked_columns",
-            "--args", "{untracked_range: '1 and 13', tracked_range: '8 and 18'}"
-        ])
+    def test_column_selection_is_reflected_in_snapshot(self, project):
+        self.update_fact_records({"last_name": "left(last_name, 3)"}, "id between 1 and 13")  # not tracked
+        self.update_fact_records({"email": "left(email, 3)"}, "id between 8 and 18")          # tracked
         run_dbt(["snapshot"])
-
-        records = self._results(project)
-        expected_records = {(i, True) for i in range(1, 21)}.union({(i, False) for i in range(8, 19)})
-        assert records == expected_records
+        self._assert_results(
+            ids_with_current_snapshot_records=range(1, 21),
+            ids_with_closed_out_snapshot_records=range(8, 19)
+        )
