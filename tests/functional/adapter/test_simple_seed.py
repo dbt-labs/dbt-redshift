@@ -1,5 +1,5 @@
-from dbt.tests.adapter.simple_seed.test_seed_type_override import  TestSimpleSeedColumnOverride
+from dbt.tests.adapter.simple_seed.test_seed_type_override import BaseSimpleSeedColumnOverride
 
 
-class TestSimpleSeedColumnOverride(TestSimpleSeedColumnOverride):
+class TestSimpleSeedColumnOverride(BaseSimpleSeedColumnOverride):
     pass
