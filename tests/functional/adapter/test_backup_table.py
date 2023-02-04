@@ -71,7 +71,7 @@ class TestBackupTableOption(BackupTableBase):
     def models(self):
         return {
             "backup_is_false.sql": _MODEL_BACKUP_IS_FALSE,
-            "backup_is_true.sql": _MODEL_BACKUP_IS_FALSE,
+            "backup_is_true.sql": _MODEL_BACKUP_IS_TRUE,
             "backup_is_undefined.sql": _MODEL_IS_UNDEFINED,
             "backup_is_true_view.sql": _MODEL_IS_TRUE_VIEW,
         }
@@ -141,7 +141,7 @@ class TestBackupTableProjectDefault(BackupTableBase):
     @pytest.fixture(scope="class")
     def models(self):
         return {
-            "backup_is_true.sql": _MODEL_BACKUP_IS_FALSE,
+            "backup_is_true.sql": _MODEL_BACKUP_IS_TRUE,
             "backup_is_undefined.sql": _MODEL_IS_UNDEFINED,
         }
 
