@@ -46,10 +46,10 @@ class RedshiftConnectionMethod(StrEnum):
 
 @dataclass
 class RedshiftCredentials(Credentials):
-    host: Optional[str]
-    user: Optional[str]
     port: Port
     region: Optional[str] = None
+    host: Optional[str] = None
+    user: Optional[str] = None
     method: str = RedshiftConnectionMethod.DATABASE  # type: ignore
     password: Optional[str] = None  # type: ignore
     cluster_id: Optional[str] = field(
@@ -66,6 +66,16 @@ class RedshiftCredentials(Credentials):
     application_name: Optional[str] = "dbt"
     retries: int = 1
     auth_profile: Optional[str] = None
+    # Azure identity provider plugin
+    credentials_provider: Optional[str] = None
+    idp_tenant: Optional[str] = None
+    client_id: Optional[str] = None
+    client_secret: Optional[str] = None
+    preferred_role: Optional[str] = None
+    # Okta identity provider plugin
+    idp_host: Optional[str] = None
+    app_id: Optional[str] = None
+    app_name: Optional[str] = None
 
     _ALIASES = {"dbname": "database", "pass": "password"}
 
@@ -108,7 +118,7 @@ class RedshiftConnectMethodFactory:
             "timeout": self.credentials.connect_timeout,
             "application_name": self.credentials.application_name,
         }
-        if method != RedshiftConnectionMethod.AUTH_PROFILE:
+        if method == RedshiftConnectionMethod.IAM or method == RedshiftConnectionMethod.DATABASE:
             kwargs["host"] = self.credentials.host
             kwargs["region"] = self.credentials.host.split(".")[2]
         if self.credentials.sslmode:
@@ -162,7 +172,80 @@ class RedshiftConnectMethodFactory:
                 return c
 
             return connect
+        elif method == RedshiftConnectionMethod.IDP:
+            if not self.credentials.credentials_provider:
+                raise dbt.exceptions.FailedToConnectError(
+                    "'credentials_provider' field is required for 'IdP' credentials"
+                )
 
+            if not self.credentials.region:
+                raise dbt.exceptions.FailedToConnectError(
+                    "'region' field is required for 'IdP' credentials"
+                )
+
+            if not self.credentials.password or not self.credentials.user:
+                raise dbt.exceptions.FailedToConnectError(
+                    "'password' and 'user' fields are required for 'IdP' credentials"
+                )
+
+            if self.credentials.credentials_provider == "AzureCredentialsProvider":
+                if (
+                    not self.credentials.idp_tenant
+                    or not self.credentials.client_id
+                    or not self.credentials.client_secret
+                    or not self.credentials.preferred_role
+                ):
+                    raise dbt.exceptions.FailedToConnectError(
+                        "'idp_tenant', 'client_id', 'client_secret', and 'preferred_role' are required for"
+                        " Azure Credentials Provider"
+                    )
+
+                def connect():
+                    logger.debug("Connecting to redshift with Azure Credentials Provider...")
+                    c = redshift_connector.connect(
+                        iam=True,
+                        region=self.credentials.region,
+                        database=self.credentials.database,
+                        cluster_identifier=self.credentials.cluster_id,
+                        credentials_provider="AzureCredentialsProvider",
+                        user=self.credentials.user,
+                        password=self.credentials.password,
+                        idp_tenant=self.credentials.idp_tenant,
+                        client_id=self.credentials.client_id,
+                        client_secret=self.credentials.client_secret,
+                        preferred_role=self.credentials.preferred_role,
+                    )
+                    return c
+
+                return connect
+            elif self.credentials.credentials_provider == "OktaCredentialsProvider":
+                if (
+                    not self.credentials.idp_host
+                    or not self.credentials.app_id
+                    or not self.credentials.app_name
+                ):
+                    raise dbt.exceptions.FailedToConnectError(
+                        "'idp_host', 'app_id', 'app_name' are required for"
+                        " Okta Credentials Provider"
+                    )
+
+                def connect():
+                    logger.debug("Connecting to redshift with Okta Credentials Provider...")
+                    c = redshift_connector.connect(
+                        iam=True,
+                        region=self.credentials.region,
+                        database=self.credentials.database,
+                        cluster_identifier=self.credentials.cluster_id,
+                        credentials_provider="OktaCredentialsProvider",
+                        user=self.credentials.user,
+                        password=self.credentials.password,
+                        idp_host=self.credentials.idp_host,
+                        app_id=self.credentials.app_id,
+                        app_name=self.credentials.app_name,
+                    )
+                    return c
+
+                return connect
         elif method == RedshiftConnectionMethod.IAM:
             if not self.credentials.cluster_id and "serverless" not in self.credentials.host:
                 raise dbt.exceptions.FailedToConnectError(
