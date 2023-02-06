@@ -6,7 +6,7 @@ from dbt.tests.adapter.simple_seed.seeds import (
 )
 from dbt.tests.adapter.utils.base_utils import run_dbt
 
-_PROPERTIES_SCHEMA_YML = """
+_SCHEMA_YML = """
 version: 2
 seeds:
 - name: seed_enabled
@@ -78,7 +78,7 @@ class TestSimpleSeedColumnOverride:
     @pytest.fixture(scope="class")
     def models(self):
         return {
-            "models-rs.yml": _PROPERTIES_SCHEMA_YML
+            "models-rs.yml": _SCHEMA_YML
         }
 
     @pytest.fixture(scope="class")
