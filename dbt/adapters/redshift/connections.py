@@ -109,7 +109,7 @@ class RedshiftConnectMethodFactory:
     def get_connect_method(self):
         method = self.credentials.method
         kwargs = {
-            "host": "",
+            "host": None,
             "region": self.credentials.region,
             "database": self.credentials.database,
             "port": self.credentials.port if self.credentials.port else 5439,
