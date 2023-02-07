@@ -73,7 +73,11 @@ def project_from_dict(project, profile, packages=None, selectors=None, cli_vars=
 
 def config_from_parts_or_dicts(project, profile, packages=None, selectors=None, cli_vars='{}'):
     from dbt.config import Project, Profile, RuntimeConfig
+    from dbt.config.utils import parse_cli_vars
     from copy import deepcopy
+
+    if not isinstance(cli_vars, dict):
+        cli_vars = parse_cli_vars(cli_vars)
 
     if isinstance(project, Project):
         profile_name = project.profile_name
