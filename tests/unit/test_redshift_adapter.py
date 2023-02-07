@@ -212,7 +212,6 @@ class TestRedshiftAdapter(unittest.TestCase):
         connection.handle
         redshift_connector.connect.assert_called_once_with(
             iam=True,
-            #host="doesnotexist.1233.us-east-2.redshift-srvrlss.amazonaws.com",\
             database='dev',
             cluster_identifier='my-testing-cluster',
             credentials_provider='AzureCredentialsProvider',
@@ -224,8 +223,32 @@ class TestRedshiftAdapter(unittest.TestCase):
             preferred_role='arn:aws:iam:123:role/MyFirstDinnerRoll',
             region="us-east-1",
         )
+
     @mock.patch("redshift_connector.connect", Mock())
-    def test_idp_identity_no_region(self):
+    @mock.patch("boto3.Session", Mock())
+    def test_azure_no_region(self):
+        self.config.credentials = self.config.credentials.replace(
+            method="IdP",
+            database='dev',
+            cluster_id='my-testing-cluster',
+            credentials_provider='AzureCredentialsProvider',
+            user='someuser@myazure.org',
+            password='somepassword',
+            idp_tenant='my_idp_tenant',
+            client_id='my_client_id',
+            client_secret='my_client_secret',
+            preferred_role='arn:aws:iam:123:role/MyFirstDinnerRoll'
+        )
+        with self.assertRaises(FailedToConnectError) as context:
+            connect_method_factory = RedshiftConnectMethodFactory(
+                self.config.credentials
+            )
+            connect_method_factory.get_connect_method()
+        self.assertTrue("'region' must be provided" in context.exception.msg)
+
+
+    @mock.patch("redshift_connector.connect", Mock())
+    def test_idp_identity_no_provider(self):
         self.config.credentials = self.config.credentials.replace(
             method="IdP",
         )
@@ -250,7 +273,6 @@ class TestRedshiftAdapter(unittest.TestCase):
             app_id='my_first_appetizer',
             app_name='dinner_party',
             region='us-east-1'
-
         )
         connection = self.adapter.acquire_connection("dummy")
         connection.handle
@@ -303,7 +325,6 @@ class TestRedshiftAdapter(unittest.TestCase):
             host="",
             timeout=30,
         )
-
 
     @mock.patch("redshift_connector.connect", Mock())
     def test_auth_profile_no_profile(self):

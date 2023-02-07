@@ -109,7 +109,7 @@ class RedshiftConnectMethodFactory:
     def get_connect_method(self):
         method = self.credentials.method
         kwargs = {
-            "host": None,
+            "host": "",
             "region": self.credentials.region,
             "database": self.credentials.database,
             "port": self.credentials.port if self.credentials.port else 5439,
@@ -175,17 +175,17 @@ class RedshiftConnectMethodFactory:
         elif method == RedshiftConnectionMethod.IDP:
             if not self.credentials.credentials_provider:
                 raise dbt.exceptions.FailedToConnectError(
-                    "'credentials_provider' field is required for 'IdP' credentials"
+                    "Failed to use IdP credentials. 'credentials_provider' must be provided."
                 )
 
             if not self.credentials.region:
                 raise dbt.exceptions.FailedToConnectError(
-                    "'region' field is required for 'IdP' credentials"
+                    "Failed to use IdP credentials. 'region' must be provided."
                 )
 
             if not self.credentials.password or not self.credentials.user:
                 raise dbt.exceptions.FailedToConnectError(
-                    "'password' and 'user' fields are required for 'IdP' credentials"
+                    "Failed to use IdP credentials. 'password' and 'user' must be provided."
                 )
 
             if self.credentials.credentials_provider == "AzureCredentialsProvider":
@@ -196,8 +196,8 @@ class RedshiftConnectMethodFactory:
                     or not self.credentials.preferred_role
                 ):
                     raise dbt.exceptions.FailedToConnectError(
-                        "'idp_tenant', 'client_id', 'client_secret', and 'preferred_role' are required for"
-                        " Azure Credentials Provider"
+                        "Failed to use Azure credential. 'idp_tenant', 'client_id', 'client_secret', "
+                        "and 'preferred_role' must be provided"
                     )
 
                 def connect():
@@ -225,8 +225,7 @@ class RedshiftConnectMethodFactory:
                     or not self.credentials.app_name
                 ):
                     raise dbt.exceptions.FailedToConnectError(
-                        "'idp_host', 'app_id', 'app_name' are required for"
-                        " Okta Credentials Provider"
+                        "Failed to use Okta credential. 'idp_host', 'app_id', 'app_name' must be provided."
                     )
 
                 def connect():
