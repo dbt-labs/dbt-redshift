@@ -56,6 +56,9 @@ class RedshiftCredentials(Credentials):
     autocreate: bool = False
     db_groups: List[str] = field(default_factory=list)
     ra3_node: Optional[bool] = False
+    connect_timeout: int = 30
+    role: Optional[str] = None
+    sslmode: Optional[str] = None
     retries: int = 1
 
     _ALIASES = {"dbname": "database", "pass": "password"}
@@ -87,7 +90,10 @@ class RedshiftConnectMethodFactory:
             "auto_create": self.credentials.autocreate,
             "db_groups": self.credentials.db_groups,
             "region": self.credentials.host.split(".")[2],
+            "timeout": self.credentials.connect_timeout,
         }
+        if self.credentials.sslmode:
+            kwargs["sslmode"] = self.credentials.sslmode
 
         # Support missing 'method' for backwards compatibility
         if method == RedshiftConnectionMethod.DATABASE or method is None:
@@ -103,6 +109,8 @@ class RedshiftConnectMethodFactory:
                 c = redshift_connector.connect(
                     user=self.credentials.user, password=self.credentials.password, **kwargs
                 )
+                if self.credentials.role:
+                    c.cursor().execute("set role {}".format(self.credentials.role))
                 return c
 
             return connect
@@ -125,6 +133,8 @@ class RedshiftConnectMethodFactory:
                     profile=self.credentials.iam_profile,
                     **kwargs,
                 )
+                if self.credentials.role:
+                    c.cursor().execute("set role {}".format(self.credentials.role))
                 return c
 
             return connect
