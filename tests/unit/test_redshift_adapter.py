@@ -69,8 +69,6 @@ class TestRedshiftAdapter(unittest.TestCase):
             port=5439,
             auto_create=False,
             db_groups=[],
-            application_name='dbt',
-            timeout=30,
             region='us-east-1'
         )
 
@@ -88,9 +86,7 @@ class TestRedshiftAdapter(unittest.TestCase):
             port=5439,
             auto_create=False,
             db_groups=[],
-            region='us-east-1',
-            application_name='dbt',
-            timeout=30
+            region='us-east-1'
         )
 
     @mock.patch("redshift_connector.connect", Mock())
@@ -114,8 +110,6 @@ class TestRedshiftAdapter(unittest.TestCase):
             auto_create=False,
             db_groups=[],
             profile=None,
-            application_name='dbt',
-            timeout=30,
             port=5439
         )
 
@@ -143,8 +137,6 @@ class TestRedshiftAdapter(unittest.TestCase):
             password='',
             user='',
             profile='test',
-            application_name='dbt',
-            timeout=30,
             port=5439
         )
 
@@ -170,8 +162,6 @@ class TestRedshiftAdapter(unittest.TestCase):
             password='',
             user='',
             profile='test',
-            application_name='dbt',
-            timeout=30,
             port=5439
         )
 
@@ -198,8 +188,6 @@ class TestRedshiftAdapter(unittest.TestCase):
                 password='',
                 user='',
                 profile='test',
-                application_name='dbt',
-                timeout=30,
                 port=5439
         )
         self.assertTrue("'host' must be provided" in context.exception.msg)

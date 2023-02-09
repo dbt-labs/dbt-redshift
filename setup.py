@@ -84,7 +84,7 @@ setup(
         f"dbt-core~={_core_version()}",
         f"dbt-postgres~={_core_version()}",
         "boto3~=1.26.26",
-        "redshift-connector",
+        "redshift-connector~=2.0",
     ],
     zip_safe=False,
     classifiers=[
