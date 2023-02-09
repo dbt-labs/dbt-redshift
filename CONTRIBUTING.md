@@ -55,9 +55,9 @@ To confirm you have correct `dbt-core` and adapter versions installed please run
 
 ### Initial Setup
 
-`dbt-redshift` contains [unit](https://github.com/dbt-labs/dbt-redshift/tree/main/tests/unit) and [functional](https://github.com/dbt-labs/dbt-redshift/tree/main/tests/functional) tests. Integration tests require testing against an actual Redshift warehouse. We have CI set up to test against a Redshift warehouse during PR checks.
+`dbt-redshift` contains [unit](https://github.com/dbt-labs/dbt-redshift/tree/main/tests/unit) and [functional](https://github.com/dbt-labs/dbt-redshift/tree/main/tests/functional) tests. Functional tests require testing against an actual Redshift warehouse. We have CI set up to test against a Redshift warehouse during PR checks.
 
-In order to run integration tests locally, you will need a `test.env` file in the root of the repository that contains credentials for your Redshift warehouse.
+In order to run functional tests locally, you will need a `test.env` file in the root of the repository that contains credentials for your Redshift warehouse.
 
 Note: This `test.env` file is git-ignored, but please be extra careful to never check in credentials or other sensitive information when developing. To create your `test.env` file, copy the provided example file, then supply your relevant credentials.
 
@@ -76,8 +76,8 @@ There are a few methods for running tests locally.
 Finally, you can also run a specific test or group of tests using `pytest` directly. With a Python virtualenv active and dev dependencies installed you can do things like:
 
 ```sh
-# run specific redshift integration tests
-python -m pytest -m profile_redshift tests/functional/adapter/concurrent_transactions
+# run specific redshift functional tests
+python -m pytest tests/functional/adapter/concurrent_transactions
 # run specific redshift functional tests in a file
 python -m pytest tests/functional/adapter/test_basic.py
 # run all unit tests in a file
