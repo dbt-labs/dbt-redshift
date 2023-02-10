@@ -110,6 +110,6 @@ You don't need to worry about which `dbt-redshift` version your change will go i
 
 dbt Labs provides a CI environment to test changes to the `dbt-redshift` adapter and periodic checks against the development version of `dbt-core` through Github Actions.
 
-A `dbt-redshift` maintainer will review your PR. They may suggest code revision for style or clarity, or request that you add unit or integration test(s). These are good things! We believe that, with a little bit of help, anyone can contribute high-quality code.
+A `dbt-redshift` maintainer will review your PR. They may suggest code revision for style or clarity, or request that you add unit or functional test(s). These are good things! We believe that, with a little bit of help, anyone can contribute high-quality code.
 
 Once all tests are passing and your PR has been approved, a `dbt-redshift` maintainer will merge your changes into the active development branch. And that's it! Happy developing :tada:
