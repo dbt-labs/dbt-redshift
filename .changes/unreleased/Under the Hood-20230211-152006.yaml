@@ -1,0 +1,6 @@
+kind: Under the Hood
+body: Overwrite incremental strategies inherited from core
+time: 2023-02-11T15:20:06.7215754+01:00
+custom:
+  Author: rainermensing
+  Issue: "1880"
