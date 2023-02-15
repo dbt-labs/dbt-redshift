@@ -1,10 +1,10 @@
-from typing import Dict, Tuple, List
+from typing import Dict, List
 
 from dbt.tests.util import relation_from_name
 from dbt.tests.fixtures.project import TestProjInfo
 
 
-def get_records(project: TestProjInfo, table: str, select: str = None, where: str = None) -> List[Tuple]:
+def get_records(project: TestProjInfo, table: str, select: str = None, where: str = None) -> List[tuple]:
     """
     Gets records from a single table in a dbt project
 
@@ -25,7 +25,7 @@ def get_records(project: TestProjInfo, table: str, select: str = None, where: st
         from {table_name}
         where {where_clause}
     """
-    return project.run_sql(sql, fetch="all")
+    return [tuple(record) for record in project.run_sql(sql, fetch="all")]
 
 
 def update_records(project: TestProjInfo, table: str, updates: Dict[str, str], where: str = None):
@@ -106,14 +106,13 @@ def clone_table(project: TestProjInfo, to_table: str, from_table: str, select: s
     from_table_name = relation_from_name(project.adapter, from_table)
     select_clause = select or "*"
     where_clause = where or "1 = 1"
+    sql = f"drop table if exists {to_table_name}"
+    project.run_sql(sql)
     sql = f"""
-        drop table if exists {to_table_name};
-        
         create table {to_table_name} as
         select {select_clause}
         from {from_table_name}
         where {where_clause}
-        ;
     """
     project.run_sql(sql)
 
