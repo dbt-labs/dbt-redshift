@@ -1,4 +1,3 @@
-
 This test warrants some explanation. In dbt <=0.10.1, Redshift table and view materializations suffered from issues around concurrent transactions. In order to reliably reproduce this error, a query needs to select from a dbt model as the table is being rebuilt. Critically, this concurrent select needs to query the table during the drop/swap portition of the materialization. This looks like:
 
 ```sql
