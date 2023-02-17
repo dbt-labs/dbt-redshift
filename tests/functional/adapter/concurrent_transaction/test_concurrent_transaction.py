@@ -7,8 +7,8 @@ from tests.functional.adapter.concurrent_transaction.fixtures import *
 
 
 class BaseConcurrentTransaction(SeedConfigBase):
-    # def __init__(self):
-    #     self.query_state = None
+    def __init__(self):
+        self.query_state = None
 
     def reset(self):
         self.query_state = {
