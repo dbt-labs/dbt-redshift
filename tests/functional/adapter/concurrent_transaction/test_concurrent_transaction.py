@@ -68,7 +68,7 @@ class BaseConcurrentTransaction(SeedConfigBase):
         thread.start()
         return thread
 
-    def run_test(self, project):
+    def test_concurrent_transaction(self, project):
         # First run the project to make sure the models exist
         results = run_dbt(['run'])
         assert len(results) == 2
@@ -101,7 +101,7 @@ class TestTableConcurrentTransaction(BaseConcurrentTransaction):
         }
 
     def test_run(self, project):
-        self.run_test(project)
+        self.test_concurrent_transaction(project)
 
 
 class TestViewConcurrentTransaction(BaseConcurrentTransaction):
@@ -113,7 +113,7 @@ class TestViewConcurrentTransaction(BaseConcurrentTransaction):
         }
 
     def test_run(self, project):
-        self.run_test(project)
+        self.test_concurrent_transaction(project)
 
 
 class TestIncrementalConcurrentTransaction(BaseConcurrentTransaction):
@@ -125,4 +125,4 @@ class TestIncrementalConcurrentTransaction(BaseConcurrentTransaction):
         }
 
     def test_run(self, project):
-        self.run_test(project)
+        self.test_concurrent_transaction(project)

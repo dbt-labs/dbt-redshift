@@ -58,8 +58,3 @@ select 1 as id
 view_sql = """
 select * from {{ ref('model_1') }}
 """.lstrip()
-
-
-
-
-
