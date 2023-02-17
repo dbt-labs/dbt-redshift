@@ -3,7 +3,6 @@ from typing import Optional
 from dbt.adapters.base.impl import AdapterConfig
 from dbt.adapters.sql import SQLAdapter
 from dbt.adapters.base.meta import available
-from dbt.adapters.postgres import PostgresAdapter
 from dbt.adapters.redshift import RedshiftConnectionManager
 from dbt.adapters.redshift.column import RedshiftColumn
 from dbt.adapters.redshift import RedshiftRelation
@@ -22,7 +21,7 @@ class RedshiftConfig(AdapterConfig):
     backup: Optional[bool] = True
 
 
-class RedshiftAdapter(PostgresAdapter, SQLAdapter):
+class RedshiftAdapter(SQLAdapter):
     Relation = RedshiftRelation
     ConnectionManager = RedshiftConnectionManager
     Column = RedshiftColumn  # type: ignore
@@ -91,3 +90,12 @@ class RedshiftAdapter(PostgresAdapter, SQLAdapter):
                     self.type(), exc.msg
                 )
             )
+
+    def valid_incremental_strategies(self):
+        """The set of standard builtin strategies which this adapter supports out-of-the-box.
+        Not used to validate custom strategies defined by end users.
+        """
+        return ["append", "delete+insert"]
+
+    def timestamp_add_sql(self, add_to: str, number: int = 1, interval: str = "hour") -> str:
+        return f"{add_to} + interval '{number} {interval}'"
