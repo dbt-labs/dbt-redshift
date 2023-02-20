@@ -37,7 +37,7 @@ class BaseConcurrentTransaction(SeedConfigBase):
                     self.query_state[rel] = 'bad'
 
         except Exception as e:
-            print("Exception here: ", e.with_traceback())
+            print("Exception here: {}".format(e))
             self.query_state[rel] = 'error: {}'.format(e)
 
     def async_select(self, rel, project, sleep=10):
