@@ -31,38 +31,3 @@ id,first_name,last_name,email,gender,ip_address,updated_at
 29,Kelly,Edwards,kedwardss@phoca.cz,Female,47.121.157.66,2015-09-15
 30,Carl,Coleman,ccolemant@wikipedia.org,Male,82.227.154.83,2016-05-26
 """.strip()
-
-
-MODEL_FACT_SQL = """
-{{ config(materialized="table") }}
-select * from {{ ref('seed') }}
-where id between 1 and 20
-"""
-
-SNAPSHOT_TIMESTAMP_SQL = """
-{% snapshot snapshot %}
-    {{ config(
-        target_database=database,
-        target_schema=schema,
-        unique_key='id',
-        strategy='timestamp',
-        updated_at='updated_at',
-        invalidate_hard_deletes=True,
-    ) }}
-    select * from {{ ref('fact') }}
-{% endsnapshot %}
-"""
-
-
-SNAPSHOT_CHECK_SQL = """
-{% snapshot snapshot %}
-    {{ config(
-        target_database=database,
-        target_schema=schema,
-        unique_key='id',
-        strategy='check',
-        check_cols=['email'],
-    ) }}
-    select * from {{ ref('fact') }}
-{% endsnapshot %}
-"""

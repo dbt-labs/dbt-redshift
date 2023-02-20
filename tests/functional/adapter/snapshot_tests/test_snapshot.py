@@ -5,7 +5,14 @@ import pytest
 from dbt.tests.util import run_dbt
 
 from tests.functional.adapter import common
-from tests.functional.adapter.snapshot_tests import files
+from tests.functional.adapter.snapshot_tests import seeds, snapshots
+
+
+MODEL_FACT_SQL = """
+{{ config(materialized="table") }}
+select * from {{ ref('seed') }}
+where id between 1 and 20
+"""
 
 
 class SnapshotBase:
@@ -18,7 +25,7 @@ class SnapshotBase:
         will only need to be loaded once at the class level. It will never be altered, hence requires no further
         setup or teardown.
         """
-        return {"seed.csv": files.SEED_CSV}
+        return {"seed.csv": seeds.SEED_CSV}
 
     @pytest.fixture(scope="class")
     def models(self):
@@ -26,7 +33,7 @@ class SnapshotBase:
         This will be the working base table. It will be altered by each test, hence will require setup and
         teardown at the test case level.
         """
-        return {"fact.sql": files.MODEL_FACT_SQL}
+        return {"fact.sql": MODEL_FACT_SQL}
 
     @pytest.fixture(scope="class", autouse=True)
     def _setup_class(self, project):
@@ -107,7 +114,7 @@ class TestSnapshot(SnapshotBase):
 
     @pytest.fixture(scope="class")
     def snapshots(self):
-        return {"snapshot.sql": files.SNAPSHOT_TIMESTAMP_SQL}
+        return {"snapshot.sql": snapshots.SNAPSHOT_TIMESTAMP_SQL}
 
     def test_updates_are_captured_by_snapshot(self, project):
         """
@@ -181,7 +188,7 @@ class TestSnapshotCheck(SnapshotBase):
 
     @pytest.fixture(scope="class")
     def snapshots(self):
-        return {"snapshot.sql": files.SNAPSHOT_CHECK_SQL}
+        return {"snapshot.sql": snapshots.SNAPSHOT_CHECK_SQL}
 
     def test_column_selection_is_reflected_in_snapshot(self, project):
         """
