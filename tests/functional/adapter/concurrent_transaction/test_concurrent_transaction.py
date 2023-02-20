@@ -7,22 +7,15 @@ from tests.functional.adapter.concurrent_transaction.fixtures import *
 
 
 class BaseConcurrentTransaction(SeedConfigBase):
-    def __init__(self):
-        self.query_state = None
-
     def reset(self):
         self.query_state = {
             'view_model': 'wait',
             'model_1': 'wait',
         }
 
-    @pytest.fixture(scope="class")
+    @pytest.fixture(scope="class", autouse=True)
     def setUp(self, project):
         self.reset()
-
-    @pytest.fixture(scope="class")
-    def schema(self):
-        return "concurrent_transaction"
 
     @pytest.fixture(scope="class")
     def macros(self):
@@ -31,7 +24,7 @@ class BaseConcurrentTransaction(SeedConfigBase):
         }
 
     def run_select_and_check(self, rel, sql, project):
-        connection_name = '__test_{}'.format(id(threading.current_thread()))
+        connection_name = f"__test_{id(threading.current_thread())}"
         try:
             with project.adapter.connection_named(connection_name):
                 client = project.adapter.connections \
@@ -44,10 +37,8 @@ class BaseConcurrentTransaction(SeedConfigBase):
                     self.query_state[rel] = 'bad'
 
         except Exception as e:
-            if 'concurrent transaction' in str(e):
-                self.query_state[rel] = 'error: {}'.format(e)
-            else:
-                self.query_state[rel] = 'error: {}'.format(e)
+            print("Exception here: ", e.with_traceback())
+            self.query_state[rel] = 'error: {}'.format(e)
 
     def async_select(self, rel, project, sleep=10):
         # Run the select statement in a thread. When the query returns, the global
@@ -55,13 +46,10 @@ class BaseConcurrentTransaction(SeedConfigBase):
         # error will be reported if one was raised.
 
         schema = project.test_schema
-        query = '''
+        query = f"""
         -- async_select: {rel}
         select {schema}.f_sleep({sleep}) from {schema}.{rel}
-        '''.format(
-                schema=schema,
-                sleep=sleep,
-                rel=rel)
+        """
 
         thread = threading.Thread(target=self.run_select_and_check,
                                   args=(rel, query, project))
@@ -97,7 +85,7 @@ class TestTableConcurrentTransaction(BaseConcurrentTransaction):
     def models(self):
         return {
             "model_1.sql": table_model_sql,
-            "view_model.sql": table_view_sql
+            "view_model.sql": view_sql
         }
 
     def test_run(self, project):
@@ -121,7 +109,7 @@ class TestIncrementalConcurrentTransaction(BaseConcurrentTransaction):
     def models(self):
         return {
             "model_1.sql": incremental_model_sql,
-            "view_model.sql": incremental_view_sql
+            "view_model.sql": view_sql
         }
 
     def test_run(self, project):

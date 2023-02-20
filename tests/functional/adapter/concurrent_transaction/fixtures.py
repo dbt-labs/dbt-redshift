@@ -27,10 +27,6 @@ select 1 as id
 {% endif %}
 """.lstrip()
 
-incremental_view_sql = """
-select * from {{ ref('model_1') }}
-""".lstrip()
-
 #
 # table materialization
 #
@@ -39,10 +35,6 @@ table_model_sql = """
 
 -- table model
 select 1 as id
-""".lstrip()
-
-table_view_sql = """
-select * from {{ ref('model_1') }}
 """.lstrip()
 
 #
@@ -54,6 +46,10 @@ view_model_sql = """
 -- view model
 select 1 as id
 """.lstrip()
+
+#
+# Common view model
+#
 
 view_sql = """
 select * from {{ ref('model_1') }}
