@@ -7,13 +7,16 @@ from tests.functional.adapter.concurrent_transaction.fixtures import *
 
 
 class BaseConcurrentTransaction(SeedConfigBase):
+    def __init__(self):
+        self.query_state = None
+
     def reset(self):
         self.query_state = {
             'view_model': 'wait',
             'model_1': 'wait',
         }
 
-    @pytest.fixture(scope="class", autouse=True)
+    @pytest.fixture(scope="class")
     def setUp(self, project):
         self.reset()
 
@@ -36,9 +39,12 @@ class BaseConcurrentTransaction(SeedConfigBase):
                 else:
                     self.query_state[rel] = 'bad'
 
-        except Exception as e:
-            print("Exception here: {}".format(e))
-            self.query_state[rel] = 'error: {}'.format(e)
+        except Exception as ex:
+            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+            message = template.format(type(ex).__name__, ex.args)
+            print(message)
+
+            self.query_state[rel] = 'error: {}'.format(ex)
 
     def async_select(self, rel, project, sleep=10):
         # Run the select statement in a thread. When the query returns, the global
