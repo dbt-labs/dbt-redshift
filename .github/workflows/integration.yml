@@ -169,7 +169,7 @@ jobs:
         if: inputs.dbt-core-branch != ''
         run: |
           pip install bumpversion
-          ./.github/scripts/update_dev_requirements.sh ${{ inputs.dbt-core-branch }}
+          ./.github/scripts/update_dbt_core_branch.sh ${{ inputs.dbt-core-branch }}
 
       - name: Run tox (redshift)
         if: matrix.adapter == 'redshift'
