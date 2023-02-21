@@ -12,9 +12,9 @@ if [[ "$OSTYPE" == darwin* ]]; then
  sed -i "" "$postgres_req_sed_pattern" $target_req_file
  sed -i "" "$tests_req_sed_pattern" $target_req_file
 else
- sed -i "$core_req_sed_pattern" $target_req_file
- sed -i "$postgres_req_sed_pattern" $target_req_file
- sed -i "$tests_req_sed_pattern" $target_req_file
+ sed -i "$core_req_sed_pattern" $target_req_file --debug
+ sed -i "$postgres_req_sed_pattern" $target_req_file --debug
+ sed -i "$tests_req_sed_pattern" $target_req_file --debug
 fi
 core_version=$(curl "https://raw.githubusercontent.com/dbt-labs/dbt-core/${git_branch}/core/dbt/version.py" | grep "__version__ = *"|cut -d'=' -f2)
 bumpversion --allow-dirty --new-version "$core_version" major
