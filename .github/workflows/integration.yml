@@ -168,6 +168,7 @@ jobs:
       - name: Update dev_requirements.txt
         if: inputs.dbt-core-branch != ''
         run: |
+          pip install bumpversion
           sh ./.github/scripts/update_dev_requirements.sh ${{ inputs.dbt-core-branch }}
 
       - name: Run tox (redshift)
