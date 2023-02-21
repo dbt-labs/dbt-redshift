@@ -33,12 +33,12 @@ on:
   pull_request_target:
   # manual trigger
   workflow_dispatch:
-  # run this once per night to ensure no regressions from latest dbt-core changes
     inputs:
       dbt-core-branch:
         description: "branch of dbt-core to use in dev-requirements.txt"
         required: false
         type: string
+  # run this once per night to ensure no regressions from latest dbt-core changes
   schedule:
     - cron: '0 5 * * *' # 5 UTC
 
