@@ -16,5 +16,5 @@ else
  sed -i "$postgres_req_sed_pattern" $target_req_file
  sed -i "$tests_req_sed_pattern" $target_req_file
 fi
-#core_version=$(curl "https://raw.githubusercontent.com/dbt-labs/dbt-core/${git_branch}/core/dbt/version.py" | grep "__version__ = *"|cut -d'=' -f2)
-#bumpversion --allow-dirty --new-version "$core_version" major
+core_version=$(curl "https://raw.githubusercontent.com/dbt-labs/dbt-core/${git_branch}/core/dbt/version.py" | grep "__version__ = *"|cut -d'=' -f2)
+bumpversion --allow-dirty --new-version "$core_version" major
