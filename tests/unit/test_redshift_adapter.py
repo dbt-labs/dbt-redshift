@@ -75,6 +75,7 @@ class TestRedshiftAdapter(unittest.TestCase):
             auto_create=False,
             db_groups=[],
             timeout=30,
+            application_name="dbt",
             region="us-east-1",
         )
 
@@ -93,6 +94,7 @@ class TestRedshiftAdapter(unittest.TestCase):
             auto_create=False,
             db_groups=[],
             region="us-east-1",
+            application_name="dbt",
             timeout=30,
         )
 
@@ -118,6 +120,7 @@ class TestRedshiftAdapter(unittest.TestCase):
             db_groups=[],
             profile=None,
             timeout=30,
+            application_name="dbt",
             port=5439,
         )
 
@@ -145,6 +148,7 @@ class TestRedshiftAdapter(unittest.TestCase):
             password="",
             user="",
             profile="test",
+            application_name="dbt",
             timeout=30,
             port=5439,
         )
@@ -171,6 +175,7 @@ class TestRedshiftAdapter(unittest.TestCase):
             password="",
             user="",
             profile="test",
+            application_name="dbt",
             timeout=30,
             port=5439,
         )
@@ -197,11 +202,11 @@ class TestRedshiftAdapter(unittest.TestCase):
             credentials_provider='AzureCredentialsProvider',
             user='someuser@myazure.org',
             password='somepassword',
-            idp_tenant='my_idp_tenant',
-            client_id='my_client_id',
-            client_secret='my_client_secret',
+            azure_idp_tenant='my_idp_tenant',
+            azure_client_id='my_client_id',
+            azure_client_secret='my_client_secret',
             region='us-east-1',
-            preferred_role='arn:aws:iam:123:role/MyFirstDinnerRoll'
+            azure_preferred_role='arn:aws:iam:123:role/MyFirstDinnerRoll'
         )
         connection = self.adapter.acquire_connection("dummy")
         connection.handle
@@ -229,10 +234,10 @@ class TestRedshiftAdapter(unittest.TestCase):
             credentials_provider='AzureCredentialsProvider',
             user='someuser@myazure.org',
             password='somepassword',
-            idp_tenant='my_idp_tenant',
-            client_id='my_client_id',
-            client_secret='my_client_secret',
-            preferred_role='arn:aws:iam:123:role/MyFirstDinnerRoll'
+            azure_idp_tenant='my_idp_tenant',
+            azure_client_id='my_client_id',
+            azure_client_secret='my_client_secret',
+            azure_preferred_role='arn:aws:iam:123:role/MyFirstDinnerRoll'
         )
         with self.assertRaises(FailedToConnectError) as context:
             connect_method_factory = RedshiftConnectMethodFactory(
@@ -277,9 +282,9 @@ class TestRedshiftAdapter(unittest.TestCase):
             credentials_provider='OktaCredentialsProvider',
             user='someuser@myazure.org',
             password='somepassword',
-            okta_idp_host='my_idp_host',
-            okta_app_id='my_first_appetizer',
-            okta_app_name='dinner_party',
+            idp_host='my_idp_host',
+            app_id='my_first_appetizer',
+            app_name='dinner_party',
             region='us-east-1'
         )
 
@@ -315,6 +320,7 @@ class TestRedshiftAdapter(unittest.TestCase):
             db_groups=[],
             database="",
             region="us-east-1",
+            application_name="dbt",
             host="",
             timeout=30,
         )

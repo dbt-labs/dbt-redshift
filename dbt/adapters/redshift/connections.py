@@ -67,10 +67,10 @@ class RedshiftCredentials(Credentials):
     auth_profile: Optional[str] = None
     # Azure identity provider plugin
     credentials_provider: Optional[str] = None
-    idp_tenant: Optional[str] = None
-    client_id: Optional[str] = None
-    client_secret: Optional[str] = None
-    preferred_role: Optional[str] = None
+    azure_idp_tenant: Optional[str] = None
+    azure_client_id: Optional[str] = None
+    azure_client_secret: Optional[str] = None
+    azure_preferred_role: Optional[str] = None
     # Okta identity provider plugin
     okta_idp_host: Optional[str] = None
     okta_app_id: Optional[str] = None
@@ -115,7 +115,7 @@ class RedshiftConnectMethodFactory:
             "auto_create": self.credentials.autocreate,
             "db_groups": self.credentials.db_groups,
             "timeout": self.credentials.connect_timeout,
-            "application_name": str("dbt"),
+            "application_name": "dbt",
         }
         if method == RedshiftConnectionMethod.IAM or method == RedshiftConnectionMethod.DATABASE:
             kwargs["host"] = self.credentials.host
@@ -189,14 +189,14 @@ class RedshiftConnectMethodFactory:
 
             if self.credentials.credentials_provider == "AzureCredentialsProvider":
                 if (
-                    not self.credentials.idp_tenant
-                    or not self.credentials.client_id
-                    or not self.credentials.client_secret
-                    or not self.credentials.preferred_role
+                    not self.credentials.azure_idp_tenant
+                    or not self.credentials.azure_client_id
+                    or not self.credentials.azure_client_secret
+                    or not self.credentials.azure_preferred_role
                 ):
                     raise dbt.exceptions.FailedToConnectError(
-                        "Failed to use Azure credential. 'idp_tenant', 'client_id', 'client_secret', "
-                        "and 'preferred_role' must be provided"
+                        "Failed to use Azure credential. 'azure_idp_tenant', 'azure_client_id', 'azure_client_secret', "
+                        "and 'azure_preferred_role' must be provided"
                     )
 
                 def connect():
@@ -209,10 +209,10 @@ class RedshiftConnectMethodFactory:
                         credentials_provider="AzureCredentialsProvider",
                         user=self.credentials.user,
                         password=self.credentials.password,
-                        idp_tenant=self.credentials.idp_tenant,
-                        client_id=self.credentials.client_id,
-                        client_secret=self.credentials.client_secret,
-                        preferred_role=self.credentials.preferred_role,
+                        idp_tenant=self.credentials.azure_idp_tenant,
+                        client_id=self.credentials.azure_client_id,
+                        client_secret=self.credentials.azure_client_secret,
+                        preferred_role=self.credentials.azure_preferred_role,
                     )
                     return c
 
