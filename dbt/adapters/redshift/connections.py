@@ -63,7 +63,6 @@ class RedshiftCredentials(Credentials):
     connect_timeout: int = 30
     role: Optional[str] = None
     sslmode: Optional[str] = None
-    application_name: Optional[str] = "dbt"
     retries: int = 1
     auth_profile: Optional[str] = None
     # Azure identity provider plugin
@@ -73,9 +72,9 @@ class RedshiftCredentials(Credentials):
     client_secret: Optional[str] = None
     preferred_role: Optional[str] = None
     # Okta identity provider plugin
-    idp_host: Optional[str] = None
-    app_id: Optional[str] = None
-    app_name: Optional[str] = None
+    okta_idp_host: Optional[str] = None
+    okta_app_id: Optional[str] = None
+    okta_app_name: Optional[str] = None
 
     _ALIASES = {"dbname": "database", "pass": "password"}
 
@@ -116,7 +115,7 @@ class RedshiftConnectMethodFactory:
             "auto_create": self.credentials.autocreate,
             "db_groups": self.credentials.db_groups,
             "timeout": self.credentials.connect_timeout,
-            "application_name": self.credentials.application_name,
+            "application_name": str("dbt"),
         }
         if method == RedshiftConnectionMethod.IAM or method == RedshiftConnectionMethod.DATABASE:
             kwargs["host"] = self.credentials.host
@@ -220,12 +219,12 @@ class RedshiftConnectMethodFactory:
                 return connect
             elif self.credentials.credentials_provider == "OktaCredentialsProvider":
                 if (
-                    not self.credentials.idp_host
-                    or not self.credentials.app_id
-                    or not self.credentials.app_name
+                    not self.credentials.okta_idp_host
+                    or not self.credentials.okta_app_id
+                    or not self.credentials.okta_app_name
                 ):
                     raise dbt.exceptions.FailedToConnectError(
-                        "Failed to use Okta credential. 'idp_host', 'app_id', 'app_name' must be provided."
+                        "Failed to use Okta credential. 'okta_idp_host', 'okta_app_id', 'okta_app_name' must be provided."
                     )
 
                 def connect():
@@ -238,9 +237,9 @@ class RedshiftConnectMethodFactory:
                         credentials_provider="OktaCredentialsProvider",
                         user=self.credentials.user,
                         password=self.credentials.password,
-                        idp_host=self.credentials.idp_host,
-                        app_id=self.credentials.app_id,
-                        app_name=self.credentials.app_name,
+                        idp_host=self.credentials.okta_idp_host,
+                        app_id=self.credentials.okta_app_id,
+                        app_name=self.credentials.okta_app_name,
                     )
                     return c
 

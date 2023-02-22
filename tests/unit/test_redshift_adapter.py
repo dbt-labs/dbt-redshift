@@ -74,7 +74,6 @@ class TestRedshiftAdapter(unittest.TestCase):
             port=5439,
             auto_create=False,
             db_groups=[],
-            application_name="dbt",
             timeout=30,
             region="us-east-1",
         )
@@ -94,7 +93,6 @@ class TestRedshiftAdapter(unittest.TestCase):
             auto_create=False,
             db_groups=[],
             region="us-east-1",
-            application_name="dbt",
             timeout=30,
         )
 
@@ -119,7 +117,6 @@ class TestRedshiftAdapter(unittest.TestCase):
             auto_create=False,
             db_groups=[],
             profile=None,
-            application_name="dbt",
             timeout=30,
             port=5439,
         )
@@ -148,7 +145,6 @@ class TestRedshiftAdapter(unittest.TestCase):
             password="",
             user="",
             profile="test",
-            application_name="dbt",
             timeout=30,
             port=5439,
         )
@@ -175,7 +171,6 @@ class TestRedshiftAdapter(unittest.TestCase):
             password="",
             user="",
             profile="test",
-            application_name="dbt",
             timeout=30,
             port=5439,
         )
@@ -205,7 +200,7 @@ class TestRedshiftAdapter(unittest.TestCase):
             idp_tenant='my_idp_tenant',
             client_id='my_client_id',
             client_secret='my_client_secret',
-            region = 'us-east-1',
+            region='us-east-1',
             preferred_role='arn:aws:iam:123:role/MyFirstDinnerRoll'
         )
         connection = self.adapter.acquire_connection("dummy")
@@ -246,7 +241,6 @@ class TestRedshiftAdapter(unittest.TestCase):
             connect_method_factory.get_connect_method()
         self.assertTrue("'region' must be provided" in context.exception.msg)
 
-
     @mock.patch("redshift_connector.connect", Mock())
     def test_idp_identity_no_provider(self):
         self.config.credentials = self.config.credentials.replace(
@@ -269,9 +263,9 @@ class TestRedshiftAdapter(unittest.TestCase):
             credentials_provider='OktaCredentialsProvider',
             user='someuser@myazure.org',
             password='somepassword',
-            idp_host='my_idp_host',
-            app_id='my_first_appetizer',
-            app_name='dinner_party',
+            okta_idp_host='my_idp_host',
+            okta_app_id='my_first_appetizer',
+            okta_app_name='dinner_party',
             region='us-east-1'
         )
         connection = self.adapter.acquire_connection("dummy")
@@ -283,9 +277,9 @@ class TestRedshiftAdapter(unittest.TestCase):
             credentials_provider='OktaCredentialsProvider',
             user='someuser@myazure.org',
             password='somepassword',
-            idp_host='my_idp_host',
-            app_id='my_first_appetizer',
-            app_name='dinner_party',
+            okta_idp_host='my_idp_host',
+            okta_app_id='my_first_appetizer',
+            okta_app_name='dinner_party',
             region='us-east-1'
         )
 
@@ -319,7 +313,6 @@ class TestRedshiftAdapter(unittest.TestCase):
             port=5439,
             auto_create=False,
             db_groups=[],
-            application_name="dbt",
             database="",
             region="us-east-1",
             host="",
@@ -340,7 +333,6 @@ class TestRedshiftAdapter(unittest.TestCase):
         self.assertTrue("'auth_profile' must be provided" in context.exception.msg)
 
     def test_iam_conn_optionals(self):
-
         profile_cfg = {
             "outputs": {
                 "test": {
@@ -458,11 +450,11 @@ class TestRedshiftAdapter(unittest.TestCase):
                 cursor,
             )  # when mock_add_query is called, it will always return None, cursor
             with mock.patch.object(
-                self.adapter.connections, "get_response"
+                    self.adapter.connections, "get_response"
             ) as mock_get_response:
                 mock_get_response.return_value = None
                 with mock.patch.object(
-                    self.adapter.connections, "get_result_from_cursor"
+                        self.adapter.connections, "get_result_from_cursor"
                 ) as mock_get_result_from_cursor:
                     mock_get_result_from_cursor.return_value = table
                     self.adapter.connections.execute(
@@ -480,11 +472,11 @@ class TestRedshiftAdapter(unittest.TestCase):
                 cursor,
             )  # when mock_add_query is called, it will always return None, cursor
             with mock.patch.object(
-                self.adapter.connections, "get_response"
+                    self.adapter.connections, "get_response"
             ) as mock_get_response:
                 mock_get_response.return_value = None
                 with mock.patch.object(
-                    self.adapter.connections, "get_result_from_cursor"
+                        self.adapter.connections, "get_result_from_cursor"
                 ) as mock_get_result_from_cursor:
                     self.adapter.connections.execute(
                         sql="select * from test2", fetch=False
@@ -495,11 +487,11 @@ class TestRedshiftAdapter(unittest.TestCase):
 
     def test_add_query_with_no_cursor(self):
         with mock.patch.object(
-            self.adapter.connections, "get_thread_connection"
+                self.adapter.connections, "get_thread_connection"
         ) as mock_get_thread_connection:
             mock_get_thread_connection.return_value = None
             with self.assertRaisesRegex(
-                dbt.exceptions.DbtRuntimeError, "Tried to run invalid SQL:  on <None>"
+                    dbt.exceptions.DbtRuntimeError, "Tried to run invalid SQL:  on <None>"
             ):
                 self.adapter.connections.add_query(sql="")
         mock_get_thread_connection.assert_called_once()
@@ -507,7 +499,7 @@ class TestRedshiftAdapter(unittest.TestCase):
     def test_add_query_success(self):
         cursor = mock.Mock()
         with mock.patch.object(
-            dbt.adapters.redshift.connections.SQLConnectionManager, "add_query"
+                dbt.adapters.redshift.connections.SQLConnectionManager, "add_query"
         ) as mock_add_query:
             mock_add_query.return_value = None, cursor
             self.adapter.connections.add_query("select * from test3")
