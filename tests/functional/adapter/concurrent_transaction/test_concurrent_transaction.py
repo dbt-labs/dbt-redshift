@@ -7,8 +7,7 @@ from tests.functional.adapter.concurrent_transaction.fixtures import *
 
 
 class BaseConcurrentTransaction(SeedConfigBase):
-    def __init__(self):
-        self.query_state = None
+    query_state = {}
 
     @pytest.fixture(scope="class")
     def setUp(self, project):
