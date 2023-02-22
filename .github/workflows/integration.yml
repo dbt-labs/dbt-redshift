@@ -33,6 +33,11 @@ on:
   pull_request_target:
   # manual trigger
   workflow_dispatch:
+    inputs:
+      dbt-core-branch:
+        description: "branch of dbt-core to use in dev-requirements.txt"
+        required: false
+        type: string
   # run this once per night to ensure no regressions from latest dbt-core changes
   schedule:
     - cron: '0 5 * * *' # 5 UTC
@@ -159,6 +164,12 @@ jobs:
           python -m pip install tox
           python -m pip --version
           tox --version
+
+      - name: Update dev_requirements.txt
+        if: inputs.dbt-core-branch != ''
+        run: |
+          pip install bumpversion
+          ./.github/scripts/update_dbt_core_branch.sh ${{ inputs.dbt-core-branch }}
 
       - name: Run tox (redshift)
         if: matrix.adapter == 'redshift'
