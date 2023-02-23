@@ -1,3 +1,5 @@
+import time
+
 import pytest
 import threading
 
@@ -6,7 +8,7 @@ from dbt.tests.adapter.simple_seed.test_seed import SeedConfigBase
 from tests.functional.adapter.concurrent_transaction.fixtures import *
 
 
-class BaseConcurrentTransaction(SeedConfigBase):
+class BaseConcurrentTransaction:
     @pytest.fixture(scope="function", autouse=True)
     def setUp(self, project):
         # Resetting the query_state
@@ -16,19 +18,31 @@ class BaseConcurrentTransaction(SeedConfigBase):
         }
 
     @pytest.fixture(scope="class")
+    def schema(self):
+        return "concurrent_transaction"
+
+    @pytest.fixture(scope="class")
     def macros(self):
         return {
             "udfs.sql": create_udfs_sql
+        }
+
+    @pytest.fixture(scope="class")
+    def project_config_update(self):
+        print("Running")
+        return {
+            "on-run-start": [
+                "{{ create_udfs() }}",
+            ],
         }
 
     def run_select_and_check(self, rel, sql, project):
         connection_name = f"__test_{id(threading.current_thread())}"
         try:
             with project.adapter.connection_named(connection_name):
-                client = project.adapter.connections \
-                    .get_thread_connection().handle
-                res = project.run_sql(sql, 'one', client)
+                res = project.run_sql(sql=sql, fetch='one')
 
+                # The result is the output of f_sleep(), which is True
                 if res[0]:
                     self.query_state[rel] = 'good'
                 else:
@@ -43,15 +57,16 @@ class BaseConcurrentTransaction(SeedConfigBase):
         # query_state will be updated with a state of good/bad/error, and the associated
         # error will be reported if one was raised.
 
-        schema = project.test_schema
+        schema = f"{project.test_schema}"
         query = f"""
-        -- async_select: {rel}
-        select {schema}.f_sleep({sleep}) from {schema}.{rel}
-        """
+                -- async_select: {rel}
+                select {schema}.f_sleep({sleep}) from {schema}.{rel}
+                """
 
         thread = threading.Thread(target=self.run_select_and_check,
                                   args=(rel, query, project))
         thread.start()
+
         return thread
 
     def test_concurrent_transaction(self, project):
@@ -86,8 +101,11 @@ class TestTableConcurrentTransaction(BaseConcurrentTransaction):
             "view_model.sql": view_sql
         }
 
-    def test_run(self, project):
-        self.test_concurrent_transaction(project)
+    @pytest.fixture(scope="class")
+    def macros(self):
+        return {
+            "create_udfs.sql": create_udfs_sql
+        }
 
 
 class TestViewConcurrentTransaction(BaseConcurrentTransaction):
