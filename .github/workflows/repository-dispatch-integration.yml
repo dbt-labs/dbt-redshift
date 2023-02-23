@@ -6,6 +6,7 @@ on:
 
 jobs:
   run-integration:
+    runs-on: ubuntu-latest
     if: ${{ github.event.client_payload.dbt_core_branch == '' }}
     steps:
       - uses: actions/checkout@v2
