@@ -31,7 +31,7 @@ class SnapshotBase:
     def models(self):
         """
         This will be the working base table. It will be altered by each test, hence will require setup and
-        teardown at the test case level.
+        teardown at the test case level. See `self._setup_method(self, project)`.
         """
         return {"fact.sql": MODEL_FACT_SQL}
 
@@ -85,15 +85,16 @@ class SnapshotBase:
             ids_with_closed_out_snapshot_records: Iterable
     ):
         """
-        All test cases are checked by considering whether a source record's id is end dated in `snapshot`. Each id
-        can fall into one of the following cases:
+        All test cases are checked by considering whether a source record's id has a value in `dbt_valid_to`
+        in `snapshot`. Each id can fall into one of the following cases:
 
-        - The id is end-dated
-            - the record was hard deleted
-        - The id is not end-dated
-            - attribution is currently applicable
-        - The id is end-dated on one record, but not on the other record
-            - there is out-dated attribution which was updated with current attribution
+        - The id has only one record in `snapshot`; it has a value in `dbt_valid_to`
+            - the record was hard deleted in the source
+        - The id has only one record in `snapshot`; it does not have a value in `dbt_valid_to`
+            - the record was not updated in the source
+            - the record was updated in the source, but not in a way that is tracked (e.g. via `strategy='check'`)
+        - The id has two records in `snapshot`; one has a value in `dbt_valid_to`, the other does not
+            - the record was altered in the source in a way that is tracked
             - the record was hard deleted and revived
 
         Note: Because of the third scenario, ids may show up in both arguments of this method.
@@ -140,7 +141,7 @@ class TestSnapshot(SnapshotBase):
 
     def test_deletes_are_captured_by_snapshot(self, project):
         """
-        Hard delete the last five records. Show that there are now only 15 current records and 5 end-dated records.
+        Hard delete the last five records. Show that there are now only 15 current records and 5 expired records.
         """
         self.delete_fact_records("id between 16 and 20")
         run_dbt(["snapshot"])
@@ -152,7 +153,7 @@ class TestSnapshot(SnapshotBase):
     def test_revives_are_captured_by_snapshot(self, project):
         """
         Delete the last five records and run snapshot to collect that information, then revive 3 of those records.
-        Show that there are now 18 current records and 5 end-dated records.
+        Show that there are now 18 current records and 5 expired records.
         """
         self.delete_fact_records("id between 16 and 20")
         run_dbt(["snapshot"])
