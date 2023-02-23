@@ -101,12 +101,6 @@ class TestTableConcurrentTransaction(BaseConcurrentTransaction):
             "view_model.sql": view_sql
         }
 
-    @pytest.fixture(scope="class")
-    def macros(self):
-        return {
-            "create_udfs.sql": create_udfs_sql
-        }
-
 
 class TestViewConcurrentTransaction(BaseConcurrentTransaction):
     @pytest.fixture(scope="class")
@@ -116,9 +110,6 @@ class TestViewConcurrentTransaction(BaseConcurrentTransaction):
             "view_model.sql": view_sql
         }
 
-    def test_run(self, project):
-        self.test_concurrent_transaction(project)
-
 
 class TestIncrementalConcurrentTransaction(BaseConcurrentTransaction):
     @pytest.fixture(scope="class")
@@ -127,6 +118,3 @@ class TestIncrementalConcurrentTransaction(BaseConcurrentTransaction):
             "model_1.sql": incremental_model_sql,
             "view_model.sql": view_sql
         }
-
-    def test_run(self, project):
-        self.test_concurrent_transaction(project)
