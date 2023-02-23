@@ -31,6 +31,14 @@ on:
   # all PRs, important to note that `pull_request_target` workflows
   # will run in the context of the target branch of a PR
   pull_request_target:
+
+  workflow_call:
+    inputs:
+      dbt-core-branch:
+        description: "branch of dbt-core to use in dev-requirements.txt"
+        required: false
+        type: string
+
   # manual trigger
   workflow_dispatch:
     inputs:

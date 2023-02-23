@@ -1,0 +1,15 @@
+name: Remote DAdapter Integration Tests
+
+on:
+  repository_dispatch:
+    types: [run-integration-test]
+
+jobs:
+  run-integration:
+    if: ${{ github.event.client_payload.dbt_core_branch == '' }}
+    steps:
+      - uses: actions/checkout@v2
+      - name: Run Integration Tests
+        uses: ./.github/workflows/integration.yml
+        with:
+          dbt-core-branch: ${{ github.event.client_payload.dbt_core_branch }}
