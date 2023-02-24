@@ -1,4 +1,4 @@
-name: Remote DAdapter Integration Tests
+name: Remote Adapter Integration Tests
 
 on:
   repository_dispatch:
