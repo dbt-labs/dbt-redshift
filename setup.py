@@ -62,7 +62,8 @@ def _core_version(plugin_version: str = _plugin_version()) -> str:
         plugin_version: the version of this plugin, this is an argument in case we ever want to unit test this
     """
     try:
-        major, minor, plugin_patch = plugin_version.split(".")
+        # *_ may indicate a dev release which won't affect the core version needed
+        major, minor, plugin_patch, *_ = plugin_version.split(".", maxsplit=3)
     except ValueError:
         raise ValueError(f"Invalid version: {plugin_version}")
 
@@ -84,6 +85,7 @@ setup(
         f"dbt-core~={_core_version()}",
         f"dbt-postgres~={_core_version()}",
         "boto3~=1.26.26",
+        "redshift-connector~=2.0.910",
     ],
     zip_safe=False,
     classifiers=[

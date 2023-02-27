@@ -43,6 +43,25 @@
 
   {{ sql_header if sql_header is not none }}
 
+  {%- if config.get('contract', False) %}
+
+  create {% if temporary -%}temporary{%- endif %} table
+    {{ relation.include(database=(not temporary), schema=(not temporary)) }}
+    {{ get_columns_spec_ddl() }}
+    {{ get_assert_columns_equivalent(sql) }}
+    {% if backup == false -%}backup no{%- endif %}
+    {{ dist(_dist) }}
+    {{ sort(_sort_type, _sort) }}
+  ;
+
+  insert into {{ relation.include(database=(not temporary), schema=(not temporary)) }}
+    (
+      {{ sql }}
+    )
+  ;
+
+  {%- else %}
+
   create {% if temporary -%}temporary{%- endif %} table
     {{ relation.include(database=(not temporary), schema=(not temporary)) }}
     {% if backup == false -%}backup no{%- endif %}
@@ -51,6 +70,8 @@
   as (
     {{ sql }}
   );
+
+  {%- endif %}
 {%- endmacro %}
 
 
