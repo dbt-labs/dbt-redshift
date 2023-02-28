@@ -1,21 +1,21 @@
-import time
-
 import pytest
 import threading
 
 from dbt.tests.util import run_dbt
-from dbt.tests.adapter.simple_seed.test_seed import SeedConfigBase
 from tests.functional.adapter.concurrent_transaction.fixtures import *
 
 
 class BaseConcurrentTransaction:
-    @pytest.fixture(scope="function", autouse=True)
-    def setUp(self, project):
-        # Resetting the query_state
+    def reset(self):
         self.query_state = {
             'view_model': 'wait',
             'model_1': 'wait',
         }
+
+    @pytest.fixture(scope="function", autouse=True)
+    def setUp(self, project):
+        # Resetting the query_state
+        self.reset()
 
     @pytest.fixture(scope="class")
     def schema(self):
