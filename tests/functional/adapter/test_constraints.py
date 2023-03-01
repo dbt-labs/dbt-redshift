@@ -23,8 +23,13 @@ insert into {0}
 """
 
 class TestRedshiftConstraintsColumnsEqual(BaseConstraintsColumnsEqual):
-    pass
+    @pytest.fixture
+    def int_array_type(self):
+        return "INTEGER_ARRAY"
 
+    @pytest.fixture
+    def string_array_type(self):
+        return "TEXT_ARRAY"
 
 class TestRedshiftConstraintsRuntimeEnforcement(BaseConstraintsRuntimeEnforcement):
     @pytest.fixture(scope="class")

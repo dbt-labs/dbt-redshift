@@ -18,6 +18,7 @@ from typing import Optional, List
 
 from dbt.helper_types import Port
 from redshift_connector import OperationalError, DatabaseError, DataError
+from redshift_connector.utils.oids import get_datatype_name
 
 logger = AdapterLogger("Redshift")
 
@@ -279,3 +280,7 @@ class RedshiftConnectionManager(SQLConnectionManager):
     @classmethod
     def get_credentials(cls, credentials):
         return credentials
+
+    @classmethod
+    def data_type_code_to_name(cls, type_code: int) -> str:
+        return get_datatype_name(type_code)
