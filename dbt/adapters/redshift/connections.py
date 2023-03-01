@@ -248,7 +248,6 @@ class RedshiftConnectionManager(SQLConnectionManager):
         return response, table
 
     def add_query(self, sql, auto_begin=True, bindings=None, abridge_sql_log=False):
-
         connection = None
         cursor = None
 
