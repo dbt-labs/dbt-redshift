@@ -82,8 +82,8 @@ setup(
     packages=find_namespace_packages(include=["dbt", "dbt.*"]),
     include_package_data=True,
     install_requires=[
-        f"dbt-core~={_core_version()}",
-        f"dbt-postgres~={_core_version()}",
+        "dbt-core~=1.5.0a1",
+        "dbt-postgres~=1.5.0a1",
         "boto3~=1.26.26",
         "redshift-connector~=2.0.910",
     ],
