@@ -43,7 +43,7 @@
 
   {{ sql_header if sql_header is not none }}
 
-  {%- if config.get('constraints_enabled', False) %}
+  {%- if config.get('contract', False) %}
 
   create {% if temporary -%}temporary{%- endif %} table
     {{ relation.include(database=(not temporary), schema=(not temporary)) }}
