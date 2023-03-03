@@ -42,7 +42,7 @@ class TestRedshiftConstraintsColumnsEqual(BaseTableConstraintsColumnsEqual):
         ]
 
 
-class TestRedshiftConstraintsColumnsEqual(BaseViewConstraintsColumnsEqual):
+class TestRedshiftViewConstraintsColumnsEqual(BaseViewConstraintsColumnsEqual):
     pass
 
 class TestRedshiftConstraintsRuntimeEnforcement(BaseConstraintsRuntimeEnforcement):
