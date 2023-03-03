@@ -22,8 +22,23 @@ insert into {0}
 ;
 """
 
+
 class TestRedshiftConstraintsColumnsEqual(BaseConstraintsColumnsEqual):
-    pass
+    @pytest.fixture
+    def data_types(self, schema_int_type, int_type, string_type):
+        # NOTE: Unlike some other adapters, we don't test array or JSON types here, because
+        # Redshift does not support them as materialized table column types.
+
+        # sql_column_value, schema_data_type, error_data_type
+        return [
+            ["1", schema_int_type, int_type],
+            ["'1'", string_type, string_type],
+            ["cast('2019-01-01' as date)", "date", "DATE"],
+            ["true", "bool", "BOOL"],
+            ["'2013-11-03 00:00:00-07'::timestamptz", "timestamptz", "TIMESTAMPTZ"],
+            ["'2013-11-03 00:00:00-07'::timestamp", "timestamp", "TIMESTAMP"],
+            ["'1'::numeric", "numeric", "NUMERIC"]
+        ]
 
 
 class TestRedshiftConstraintsRuntimeEnforcement(BaseConstraintsRuntimeEnforcement):
