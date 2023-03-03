@@ -1,7 +1,8 @@
 import pytest
 from dbt.tests.util import relation_from_name
 from dbt.tests.adapter.constraints.test_constraints import (
-    BaseConstraintsColumnsEqual,
+    BaseTableConstraintsColumnsEqual,
+    BaseViewConstraintsColumnsEqual,
     BaseConstraintsRuntimeEnforcement
 )
 
@@ -23,7 +24,7 @@ insert into {0}
 """
 
 
-class TestRedshiftConstraintsColumnsEqual(BaseConstraintsColumnsEqual):
+class TestRedshiftConstraintsColumnsEqual(BaseTableConstraintsColumnsEqual):
     @pytest.fixture
     def data_types(self, schema_int_type, int_type, string_type):
         # NOTE: Unlike some other adapters, we don't test array or JSON types here, because
@@ -40,6 +41,9 @@ class TestRedshiftConstraintsColumnsEqual(BaseConstraintsColumnsEqual):
             ["'1'::numeric", "numeric", "NUMERIC"]
         ]
 
+
+class TestRedshiftConstraintsColumnsEqual(BaseViewConstraintsColumnsEqual):
+    pass
 
 class TestRedshiftConstraintsRuntimeEnforcement(BaseConstraintsRuntimeEnforcement):
     @pytest.fixture(scope="class")
