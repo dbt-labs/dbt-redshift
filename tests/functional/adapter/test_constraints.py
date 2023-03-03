@@ -22,15 +22,8 @@ insert into {0}
 ;
 """
 
+
 class TestRedshiftConstraintsColumnsEqual(BaseConstraintsColumnsEqual):
-    @pytest.fixture
-    def int_array_type(self):
-        return "INTEGER_ARRAY"
-
-    @pytest.fixture
-    def string_array_type(self):
-        return "TEXT_ARRAY"
-
     @pytest.fixture
     def data_types(self, schema_int_type, int_type, string_type):
         # NOTE: Unlike some other adapters, we don't test array or JSON types here, because
@@ -46,6 +39,7 @@ class TestRedshiftConstraintsColumnsEqual(BaseConstraintsColumnsEqual):
             ["'2013-11-03 00:00:00-07'::timestamp", "timestamp", "TIMESTAMP"],
             ["'1'::numeric", "numeric", "NUMERIC"]
         ]
+
 
 class TestRedshiftConstraintsRuntimeEnforcement(BaseConstraintsRuntimeEnforcement):
     @pytest.fixture(scope="class")
