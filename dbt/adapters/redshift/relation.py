@@ -1,4 +1,3 @@
-from dbt.adapters.base import Column
 from dataclasses import dataclass
 from dbt.adapters.postgres.relation import PostgresRelation
 
@@ -12,7 +11,3 @@ class RedshiftRelation(PostgresRelation):
     # see: https://docs.aws.amazon.com/redshift/latest/dg/r_names.html
     def relation_max_name_length(self):
         return 127
-
-
-class RedshiftColumn(Column):
-    pass  # redshift does not inherit from postgres here

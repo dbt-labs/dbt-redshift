@@ -1,0 +1,6 @@
+kind: Features
+body: Stand-alone Python module for RedshiftColumn
+time: 2023-01-27T15:53:17.999882-08:00
+custom:
+  Author: nssalian
+  Issue: "290"

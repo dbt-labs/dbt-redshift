@@ -3,9 +3,8 @@ from typing import Optional
 from dbt.adapters.base.impl import AdapterConfig
 from dbt.adapters.sql import SQLAdapter
 from dbt.adapters.base.meta import available
-from dbt.adapters.postgres import PostgresAdapter
 from dbt.adapters.redshift import RedshiftConnectionManager
-from dbt.adapters.redshift import RedshiftColumn
+from dbt.adapters.redshift.column import RedshiftColumn
 from dbt.adapters.redshift import RedshiftRelation
 from dbt.events import AdapterLogger
 import dbt.exceptions
@@ -22,7 +21,7 @@ class RedshiftConfig(AdapterConfig):
     backup: Optional[bool] = True
 
 
-class RedshiftAdapter(PostgresAdapter, SQLAdapter):
+class RedshiftAdapter(SQLAdapter):
     Relation = RedshiftRelation
     ConnectionManager = RedshiftConnectionManager
     Column = RedshiftColumn  # type: ignore
@@ -72,7 +71,7 @@ class RedshiftAdapter(PostgresAdapter, SQLAdapter):
         ra3_node = self.config.credentials.ra3_node
 
         if database.lower() != expected.lower() and not ra3_node:
-            raise dbt.exceptions.NotImplementedException(
+            raise dbt.exceptions.NotImplementedError(
                 "Cross-db references allowed only in RA3.* node. ({} vs {})".format(
                     database, expected
                 )
@@ -85,9 +84,18 @@ class RedshiftAdapter(PostgresAdapter, SQLAdapter):
         schemas = super(SQLAdapter, self)._get_catalog_schemas(manifest)
         try:
             return schemas.flatten(allow_multiple_databases=self.config.credentials.ra3_node)
-        except dbt.exceptions.RuntimeException as exc:
-            dbt.exceptions.raise_compiler_error(
+        except dbt.exceptions.DbtRuntimeError as exc:
+            raise dbt.exceptions.CompilationError(
                 "Cross-db references allowed only in {} RA3.* node. Got {}".format(
                     self.type(), exc.msg
                 )
             )
+
+    def valid_incremental_strategies(self):
+        """The set of standard builtin strategies which this adapter supports out-of-the-box.
+        Not used to validate custom strategies defined by end users.
+        """
+        return ["append", "delete+insert"]
+
+    def timestamp_add_sql(self, add_to: str, number: int = 1, interval: str = "hour") -> str:
+        return f"{add_to} + interval '{number} {interval}'"
