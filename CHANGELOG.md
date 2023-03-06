@@ -11,8 +11,6 @@
 
 - Rename constraints_enabled to contract ([#330](https://github.com/dbt-labs/dbt-redshift/issues/330))
 
-
-
 ## dbt-redshift 1.5.0-b1 - February 22, 2023
 
 ### Features
@@ -37,3 +35,4 @@ For information on prior major and minor releases, see their changelogs:
 - [1.2](https://github.com/dbt-labs/dbt-redshift/blob/1.2.latest/CHANGELOG.md)
 - [1.1](https://github.com/dbt-labs/dbt-redshift/blob/1.1.latest/CHANGELOG.md)
 - [1.0](https://github.com/dbt-labs/dbt-redshift/blob/1.0.latest/CHANGELOG.md)
+
