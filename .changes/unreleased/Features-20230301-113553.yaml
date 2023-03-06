@@ -1,6 +1,6 @@
 kind: Features
-body: Implemented data_type_code_to_name for redshift
+body: Enforce contracts on models materialized as tables and views
 time: 2023-03-01T11:35:53.98885-05:00
 custom:
-  Author: peterallenwebb
-  Issue: "319"
+  Author: peterallenwebb emmyoop
+  Issue: 319 340

@@ -24,7 +24,7 @@ insert into {0}
 """
 
 
-class TestRedshiftConstraintsColumnsEqual(BaseTableConstraintsColumnsEqual):
+class RedshiftSetup:
     @pytest.fixture
     def data_types(self, schema_int_type, int_type, string_type):
         # NOTE: Unlike some other adapters, we don't test array or JSON types here, because
@@ -42,7 +42,11 @@ class TestRedshiftConstraintsColumnsEqual(BaseTableConstraintsColumnsEqual):
         ]
 
 
-class TestRedshiftViewConstraintsColumnsEqual(BaseViewConstraintsColumnsEqual):
+class TestRedshiftTableConstraintsColumnsEqual(RedshiftSetup, BaseTableConstraintsColumnsEqual):
+    pass
+
+
+class TestRedshiftViewConstraintsColumnsEqual(RedshiftSetup, BaseViewConstraintsColumnsEqual):
     pass
 
 class TestRedshiftConstraintsRuntimeEnforcement(BaseConstraintsRuntimeEnforcement):
