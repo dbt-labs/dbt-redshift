@@ -83,7 +83,7 @@
 
   {{ sql_header if sql_header is not none }}
 
-  create view {{ relation }} 
+  create view {{ relation }}
   {% if config.get('contract', False) -%}
     {{ get_assert_columns_equivalent(sql) }}
   {%- endif %} as (
