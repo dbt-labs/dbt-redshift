@@ -1,0 +1,6 @@
+kind: Features
+body: Use contracted column order in create_table_as
+time: 2023-03-14T12:43:14.104667-04:00
+custom:
+  Author: gshank
+  Issue: "356"

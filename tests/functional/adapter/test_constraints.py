@@ -16,9 +16,15 @@ create table {0} (
 insert into {0}
 (
     select
-        1 as id,
-        'blue' as color,
-        cast('2019-01-01' as date) as date_day
+        id,
+        color,
+        date_day from
+    (
+        select
+            1 as id,
+            'blue' as color,
+            cast('2019-01-01' as date) as date_day
+    ) as model_subq
 )
 ;
 """
