@@ -7,21 +7,22 @@
   {%- for i in user_provided_columns -%}
     {%- set col = user_provided_columns[i] -%}
     {%- set constraints = col['constraints'] -%}
-    {%- set ns = namespace(not_null_line = '') -%}
+    {%- set ns = namespace(not_null_line='', has_check_constraints=False) -%}
 
     {%- for constraint in constraints -%}
-      {%- if constraint == 'primary key' -%}
+      {%- if constraint.type == 'primary_key' -%}
         {%- do primary_keys.append(col['name']) -%}
-      {%- elif constraint == 'not null' %}
+      {%- elif constraint.type == 'not_null' %}
         {%- set ns.not_null_line = " not null" -%}
+      {%- elif constraint.type == 'check' %}
+        {%- set ns.has_check_constraints = True -%}
       {%- endif -%}
     {%- endfor -%}
 
     {%- set not_null_line = " not null" if not_null_col else "" -%}
 
-    {%- set check = col['constraints_check'] -%}
-    {%- if check -%}
-      {{ exceptions.warn("We noticed you have `constraints_check` in your configs, these are NOT compatible with Redshift and will be ignored. See column `" ~ col['name'] ~ "`") }}
+    {%- if ns.has_check_constraints -%}
+      {{ exceptions.warn("There are check constraints in your configs, which Redshift does not support. They will be ignored. See column `" ~ col['name'] ~ "`") }}
     {%- endif -%}
 
     {%- set col_line = col['name'] ~ " " ~ col['data_type'] ~ ns.not_null_line -%}
