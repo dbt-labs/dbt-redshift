@@ -12,10 +12,17 @@ from dbt.tests.adapter.basic.test_snapshot_check_cols import BaseSnapshotCheckCo
 from dbt.tests.adapter.basic.test_snapshot_timestamp import BaseSnapshotTimestamp
 from dbt.tests.adapter.basic.test_adapter_methods import BaseAdapterMethod
 from dbt.tests.adapter.basic.test_docs_generate import BaseDocsGenerate, BaseDocsGenReferences
-from dbt.tests.adapter.basic.expected_catalog import base_expected_catalog, no_stats, expected_references_catalog
+from dbt.tests.adapter.basic.expected_catalog import (
+    base_expected_catalog,
+    no_stats,
+    expected_references_catalog,
+)
 from dbt.tests.adapter.basic.files import seeds_base_csv, seeds_added_csv, seeds_newcolumns_csv
 
-from tests.functional.adapter.expected_stats import redshift_stats, redshift_ephemeral_summary_stats
+from tests.functional.adapter.expected_stats import (
+    redshift_stats,
+    redshift_ephemeral_summary_stats,
+)
 
 
 # set the datatype of the name column in the 'added' seed so that it can hold the '_update' that's added
@@ -86,19 +93,19 @@ class TestBaseAdapterMethod(BaseAdapterMethod):
 
 
 class TestDocsGenerateRedshift(BaseDocsGenerate):
-    @pytest.fixture(scope="class")                               
+    @pytest.fixture(scope="class")
     def expected_catalog(self, project, profile_user):
         return base_expected_catalog(
-            project,                               
-            role=profile_user,                    
-            id_type="integer",                      
+            project,
+            role=profile_user,
+            id_type="integer",
             text_type=AnyStringWith("character varying"),
             time_type="timestamp without time zone",
-            view_type="VIEW",                
-            table_type="BASE TABLE",                 
+            view_type="VIEW",
+            table_type="BASE TABLE",
             model_stats=no_stats(),
             seed_stats=redshift_stats(),
-        )             
+        )
 
 
 # TODO: update this or delete it
