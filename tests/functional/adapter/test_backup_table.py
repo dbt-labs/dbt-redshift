@@ -59,14 +59,12 @@ select 1 as my_col
 
 
 class BackupTableBase:
-
     @pytest.fixture(scope="class", autouse=True)
     def _run_dbt(self, project):
         run_dbt(["run"])
 
 
 class TestBackupTableOption(BackupTableBase):
-
     @pytest.fixture(scope="class")
     def models(self):
         return {
@@ -84,7 +82,7 @@ class TestBackupTableOption(BackupTableBase):
             ("backup_is_undefined", True),
             ("backup_is_true_view", True),
         ],
-        indirect=["model_ddl"]
+        indirect=["model_ddl"],
     )
     def test_setting_reflects_config_option(self, model_ddl: str, backup_expected: bool):
         """
@@ -102,7 +100,6 @@ class TestBackupTableOption(BackupTableBase):
 
 
 class TestBackupTableSyntax(BackupTableBase):
-
     @pytest.fixture(scope="class")
     def models(self):
         return {
@@ -116,7 +113,7 @@ class TestBackupTableSyntax(BackupTableBase):
             ("syntax_with_distkey", "diststyle key distkey"),
             ("syntax_with_sortkey", "compound sortkey"),
         ],
-        indirect=["model_ddl"]
+        indirect=["model_ddl"],
     )
     def test_backup_predicate_precedes_secondary_predicates(self, model_ddl, search_phrase):
         """
@@ -133,7 +130,6 @@ class TestBackupTableSyntax(BackupTableBase):
 
 
 class TestBackupTableProjectDefault(BackupTableBase):
-
     @pytest.fixture(scope="class")
     def project_config_update(self):
         return {"models": {"backup": False}}
@@ -147,11 +143,8 @@ class TestBackupTableProjectDefault(BackupTableBase):
 
     @pytest.mark.parametrize(
         "model_ddl,backup_expected",
-        [
-            ("backup_is_true", True),
-            ("backup_is_undefined", False)
-        ],
-        indirect=["model_ddl"]
+        [("backup_is_true", True), ("backup_is_undefined", False)],
+        indirect=["model_ddl"],
     )
     def test_setting_defaults_to_project_option(self, model_ddl: str, backup_expected: bool):
         """
