@@ -21,5 +21,5 @@ def model_ddl(request) -> str:
     In this example, the fixture returns the contents of the backup_is_false DDL file as a string.
     This string is then referenced in the test as model_ddl.
     """
-    with open(f"target/run/test/models/{request.param}.sql", 'r') as ddl_file:
-        yield '\n'.join(ddl_file.readlines())
+    with open(f"target/run/test/models/{request.param}.sql", "r") as ddl_file:
+        yield "\n".join(ddl_file.readlines())

@@ -1,16 +1,16 @@
 from unittest import mock
 from contextlib import contextmanager
 
-from dbt.adapters.base import BaseAdapter, PythonJobHelper
+from dbt.adapters.base import BaseAdapter
 
 
 def adapter_factory():
     class MockAdapter(BaseAdapter):
-        ConnectionManager = mock.MagicMock(TYPE='mock')
+        ConnectionManager = mock.MagicMock(TYPE="mock")
         responder = mock.MagicMock()
         # some convenient defaults
         responder.quote.side_effect = lambda identifier: '"{}"'.format(identifier)
-        responder.date_function.side_effect = lambda: 'unitdate()'
+        responder.date_function.side_effect = lambda: "unitdate()"
         responder.is_cancelable.side_effect = lambda: False
 
         @contextmanager
