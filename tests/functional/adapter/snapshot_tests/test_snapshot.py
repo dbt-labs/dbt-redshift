@@ -16,7 +16,6 @@ where id between 1 and 20
 
 
 class SnapshotBase:
-
     @pytest.fixture(scope="class")
     def seeds(self):
         """
@@ -80,9 +79,9 @@ class SnapshotBase:
         common.delete_records(self.project, "snapshot")
 
     def _assert_results(
-            self,
-            ids_with_current_snapshot_records: Iterable,
-            ids_with_closed_out_snapshot_records: Iterable
+        self,
+        ids_with_current_snapshot_records: Iterable,
+        ids_with_closed_out_snapshot_records: Iterable,
     ):
         """
         All test cases are checked by considering whether a source record's id has a value in `dbt_valid_to`
@@ -106,13 +105,12 @@ class SnapshotBase:
         records = set(self.get_snapshot_records("id, dbt_valid_to is null as is_current"))
         expected_records = set().union(
             {(i, True) for i in ids_with_current_snapshot_records},
-            {(i, False) for i in ids_with_closed_out_snapshot_records}
+            {(i, False) for i in ids_with_closed_out_snapshot_records},
         )
         assert records == expected_records
 
 
 class TestSnapshot(SnapshotBase):
-
     @pytest.fixture(scope="class")
     def snapshots(self):
         return {"snapshot.sql": snapshots.SNAPSHOT_TIMESTAMP_SQL}
@@ -121,11 +119,13 @@ class TestSnapshot(SnapshotBase):
         """
         Update the last 5 records. Show that all ids are current, but the last 5 reflect updates.
         """
-        self.update_fact_records({"updated_at": "updated_at + interval '1 day'"}, "id between 16 and 20")
+        self.update_fact_records(
+            {"updated_at": "updated_at + interval '1 day'"}, "id between 16 and 20"
+        )
         run_dbt(["snapshot"])
         self._assert_results(
             ids_with_current_snapshot_records=range(1, 21),
-            ids_with_closed_out_snapshot_records=range(16, 21)
+            ids_with_closed_out_snapshot_records=range(16, 21),
         )
 
     def test_inserts_are_captured_by_snapshot(self, project):
@@ -135,8 +135,7 @@ class TestSnapshot(SnapshotBase):
         self.insert_fact_records("id between 21 and 30")
         run_dbt(["snapshot"])
         self._assert_results(
-            ids_with_current_snapshot_records=range(1, 31),
-            ids_with_closed_out_snapshot_records=[]
+            ids_with_current_snapshot_records=range(1, 31), ids_with_closed_out_snapshot_records=[]
         )
 
     def test_deletes_are_captured_by_snapshot(self, project):
@@ -147,7 +146,7 @@ class TestSnapshot(SnapshotBase):
         run_dbt(["snapshot"])
         self._assert_results(
             ids_with_current_snapshot_records=range(1, 16),
-            ids_with_closed_out_snapshot_records=range(16, 21)
+            ids_with_closed_out_snapshot_records=range(16, 21),
         )
 
     def test_revives_are_captured_by_snapshot(self, project):
@@ -161,7 +160,7 @@ class TestSnapshot(SnapshotBase):
         run_dbt(["snapshot"])
         self._assert_results(
             ids_with_current_snapshot_records=range(1, 19),
-            ids_with_closed_out_snapshot_records=range(16, 21)
+            ids_with_closed_out_snapshot_records=range(16, 21),
         )
 
     def test_new_column_captured_by_snapshot(self, project):
@@ -176,17 +175,16 @@ class TestSnapshot(SnapshotBase):
                 "full_name": "first_name || ' ' || last_name",
                 "updated_at": "updated_at + interval '1 day'",
             },
-            "id between 11 and 20"
+            "id between 11 and 20",
         )
         run_dbt(["snapshot"])
         self._assert_results(
             ids_with_current_snapshot_records=range(1, 21),
-            ids_with_closed_out_snapshot_records=range(11, 21)
+            ids_with_closed_out_snapshot_records=range(11, 21),
         )
 
 
 class TestSnapshotCheck(SnapshotBase):
-
     @pytest.fixture(scope="class")
     def snapshots(self):
         return {"snapshot.sql": snapshots.SNAPSHOT_CHECK_SQL}
@@ -197,10 +195,12 @@ class TestSnapshotCheck(SnapshotBase):
         Update the middle 10 records on a tracked column. (hence records 6-10 are updated on both)
         Show that all ids are current, and only the tracked column updates are reflected in `snapshot`.
         """
-        self.update_fact_records({"last_name": "left(last_name, 3)"}, "id between 1 and 10")  # not tracked
-        self.update_fact_records({"email": "left(email, 3)"}, "id between 6 and 15")          # tracked
+        self.update_fact_records(
+            {"last_name": "left(last_name, 3)"}, "id between 1 and 10"
+        )  # not tracked
+        self.update_fact_records({"email": "left(email, 3)"}, "id between 6 and 15")  # tracked
         run_dbt(["snapshot"])
         self._assert_results(
             ids_with_current_snapshot_records=range(1, 21),
-            ids_with_closed_out_snapshot_records=range(6, 16)
+            ids_with_closed_out_snapshot_records=range(6, 16),
         )

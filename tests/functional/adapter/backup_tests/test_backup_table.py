@@ -2,78 +2,23 @@ import pytest
 
 from dbt.tests.util import run_dbt
 
-
-_MODEL_BACKUP_IS_FALSE = """
-{{ config(
-    materialized='table',
-    backup=False
-) }}
-select 1 as my_col
-"""
-
-
-_MODEL_BACKUP_IS_TRUE = """
-{{ config(
-    materialized='table',
-    backup=True
-) }}
-select 1 as my_col
-"""
-
-
-_MODEL_IS_UNDEFINED = """
-{{ config(
-    materialized='table'
-) }}
-select 1 as my_col
-"""
-
-
-_MODEL_IS_TRUE_VIEW = """
-{{ config(
-    materialized='view',
-    backup=True
-) }}
-select 1 as my_col
-"""
-
-
-_MODEL_SYNTAX_WITH_DISTKEY = """
-{{ config(
-    materialized='table',
-    backup=False,
-    dist='my_col'
-) }}
-select 1 as my_col
-"""
-
-
-_MODEL_SYNTAX_WITH_SORTKEY = """
-{{ config(
-    materialized='table',
-    backup=False,
-    sort='my_col'
-) }}
-select 1 as my_col
-"""
+from tests.functional.adapter.backup_tests import models
 
 
 class BackupTableBase:
-
     @pytest.fixture(scope="class", autouse=True)
     def _run_dbt(self, project):
         run_dbt(["run"])
 
 
 class TestBackupTableOption(BackupTableBase):
-
     @pytest.fixture(scope="class")
     def models(self):
         return {
-            "backup_is_false.sql": _MODEL_BACKUP_IS_FALSE,
-            "backup_is_true.sql": _MODEL_BACKUP_IS_TRUE,
-            "backup_is_undefined.sql": _MODEL_IS_UNDEFINED,
-            "backup_is_true_view.sql": _MODEL_IS_TRUE_VIEW,
+            "backup_is_false.sql": models.BACKUP_IS_FALSE,
+            "backup_is_true.sql": models.BACKUP_IS_TRUE,
+            "backup_is_undefined.sql": models.BACKUP_IS_UNDEFINED,
+            "backup_is_true_view.sql": models.BACKUP_IS_TRUE_VIEW,
         }
 
     @pytest.mark.parametrize(
@@ -84,7 +29,7 @@ class TestBackupTableOption(BackupTableBase):
             ("backup_is_undefined", True),
             ("backup_is_true_view", True),
         ],
-        indirect=["model_ddl"]
+        indirect=["model_ddl"],
     )
     def test_setting_reflects_config_option(self, model_ddl: str, backup_expected: bool):
         """
@@ -102,12 +47,11 @@ class TestBackupTableOption(BackupTableBase):
 
 
 class TestBackupTableSyntax(BackupTableBase):
-
     @pytest.fixture(scope="class")
     def models(self):
         return {
-            "syntax_with_distkey.sql": _MODEL_SYNTAX_WITH_DISTKEY,
-            "syntax_with_sortkey.sql": _MODEL_SYNTAX_WITH_SORTKEY,
+            "syntax_with_distkey.sql": models.SYNTAX_WITH_DISTKEY,
+            "syntax_with_sortkey.sql": models.SYNTAX_WITH_SORTKEY,
         }
 
     @pytest.mark.parametrize(
@@ -116,7 +60,7 @@ class TestBackupTableSyntax(BackupTableBase):
             ("syntax_with_distkey", "diststyle key distkey"),
             ("syntax_with_sortkey", "compound sortkey"),
         ],
-        indirect=["model_ddl"]
+        indirect=["model_ddl"],
     )
     def test_backup_predicate_precedes_secondary_predicates(self, model_ddl, search_phrase):
         """
@@ -133,7 +77,6 @@ class TestBackupTableSyntax(BackupTableBase):
 
 
 class TestBackupTableProjectDefault(BackupTableBase):
-
     @pytest.fixture(scope="class")
     def project_config_update(self):
         return {"models": {"backup": False}}
@@ -141,17 +84,14 @@ class TestBackupTableProjectDefault(BackupTableBase):
     @pytest.fixture(scope="class")
     def models(self):
         return {
-            "backup_is_true.sql": _MODEL_BACKUP_IS_TRUE,
-            "backup_is_undefined.sql": _MODEL_IS_UNDEFINED,
+            "backup_is_true.sql": models.BACKUP_IS_TRUE,
+            "backup_is_undefined.sql": models.BACKUP_IS_UNDEFINED,
         }
 
     @pytest.mark.parametrize(
         "model_ddl,backup_expected",
-        [
-            ("backup_is_true", True),
-            ("backup_is_undefined", False)
-        ],
-        indirect=["model_ddl"]
+        [("backup_is_true", True), ("backup_is_undefined", False)],
+        indirect=["model_ddl"],
     )
     def test_setting_defaults_to_project_option(self, model_ddl: str, backup_expected: bool):
         """

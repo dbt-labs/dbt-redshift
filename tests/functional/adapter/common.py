@@ -4,7 +4,9 @@ from dbt.tests.util import relation_from_name
 from dbt.tests.fixtures.project import TestProjInfo
 
 
-def get_records(project: TestProjInfo, table: str, select: str = None, where: str = None) -> List[tuple]:
+def get_records(
+    project: TestProjInfo, table: str, select: str = None, where: str = None
+) -> List[tuple]:
     """
     Gets records from a single table in a dbt project
 
@@ -39,7 +41,9 @@ def update_records(project: TestProjInfo, table: str, updates: Dict[str, str], w
         where: the where clause to apply, if any; defaults to all records
     """
     table_name = relation_from_name(project.adapter, table)
-    set_clause = ', '.join([' = '.join([field, expression]) for field, expression in updates.items()])
+    set_clause = ", ".join(
+        [" = ".join([field, expression]) for field, expression in updates.items()]
+    )
     where_clause = where or "1 = 1"
     sql = f"""
         update {table_name}
@@ -49,7 +53,9 @@ def update_records(project: TestProjInfo, table: str, updates: Dict[str, str], w
     project.run_sql(sql)
 
 
-def insert_records(project: TestProjInfo, to_table: str, from_table: str, select: str, where: str = None):
+def insert_records(
+    project: TestProjInfo, to_table: str, from_table: str, select: str, where: str = None
+):
     """
     Inserts records from one table into another table in a dbt project
 
@@ -91,7 +97,9 @@ def delete_records(project: TestProjInfo, table: str, where: str = None):
     project.run_sql(sql)
 
 
-def clone_table(project: TestProjInfo, to_table: str, from_table: str, select: str, where: str = None):
+def clone_table(
+    project: TestProjInfo, to_table: str, from_table: str, select: str, where: str = None
+):
     """
     Creates a new table based on another table in a dbt project
 
