@@ -68,9 +68,7 @@ class TestAdapterDDLBase(object):
 
     @pytest.fixture(scope="class")
     def seeds(self):
-        return {
-            "seed.csv": seeds__seed
-        }
+        return {"seed.csv": seeds__seed}
 
     @pytest.fixture(scope="class")
     def project_config_update(self):
@@ -84,12 +82,8 @@ class TestAdapterDDLBase(object):
 class TestAdapterDDL(TestAdapterDDLBase):
     @pytest.fixture(scope="class")
     def models(self):
-        relname_51_chars_long = (
-            "incremental_table_whose_name_is_51_characters_abcde.sql"
-        )
-        relname_52_chars_long = (
-            "relation_whose_name_is_52_chars_long_abcdefghijklmno.sql"
-        )
+        relname_51_chars_long = "incremental_table_whose_name_is_51_characters_abcde.sql"
+        relname_52_chars_long = "relation_whose_name_is_52_chars_long_abcdefghijklmno.sql"
         relname_63_chars_long = (
             "relation_whose_name_is_63_chars_long_abcdefghijklmnopqrstuvwxyz.sql"
         )
@@ -110,7 +104,7 @@ class TestAdapterDDL(TestAdapterDDLBase):
             relname_63_chars_long: models__relationname_63_chars_long,
             relname_63_chars_long_b: models__relationname_63_chars_long,
             relname_64_chars_long: models__relationname_64_chars_long,
-            relname_127_chars_long: models__relationname_127_chars_long
+            relname_127_chars_long: models__relationname_127_chars_long,
         }
 
     def test_long_name_succeeds(self, project):
@@ -127,9 +121,7 @@ class TestAdapterDDLExceptions(TestAdapterDDLBase):
             "relation_whose_name_is_127_characters89012345678901234567890123456"
             "78901234567890123456789012345678901234567890123456789012345678.sql"
         )
-        return {
-            relname_128_chars_long: models__relationname_127_chars_long
-        }
+        return {relname_128_chars_long: models__relationname_127_chars_long}
 
     def test_too_long_of_name_fails(self, project):
         results = run_dbt(["run"], expect_pass=False)

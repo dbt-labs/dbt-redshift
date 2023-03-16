@@ -3,7 +3,7 @@ from dbt.tests.util import relation_from_name
 from dbt.tests.adapter.constraints.test_constraints import (
     BaseTableConstraintsColumnsEqual,
     BaseViewConstraintsColumnsEqual,
-    BaseConstraintsRuntimeEnforcement
+    BaseConstraintsRuntimeEnforcement,
 )
 
 _expected_sql_redshift = """
@@ -44,26 +44,29 @@ class RedshiftColumnEqualSetup:
             ["true", "bool", "BOOL"],
             ["'2013-11-03 00:00:00-07'::timestamptz", "timestamptz", "TIMESTAMPTZ"],
             ["'2013-11-03 00:00:00-07'::timestamp", "timestamp", "TIMESTAMP"],
-            ["'1'::numeric", "numeric", "NUMERIC"]
+            ["'1'::numeric", "numeric", "NUMERIC"],
         ]
 
 
-class TestRedshiftTableConstraintsColumnsEqual(RedshiftColumnEqualSetup, BaseTableConstraintsColumnsEqual):
+class TestRedshiftTableConstraintsColumnsEqual(
+    RedshiftColumnEqualSetup, BaseTableConstraintsColumnsEqual
+):
     pass
 
 
-class TestRedshiftViewConstraintsColumnsEqual(RedshiftColumnEqualSetup, BaseViewConstraintsColumnsEqual):
+class TestRedshiftViewConstraintsColumnsEqual(
+    RedshiftColumnEqualSetup, BaseViewConstraintsColumnsEqual
+):
     pass
+
 
 class TestRedshiftConstraintsRuntimeEnforcement(BaseConstraintsRuntimeEnforcement):
     @pytest.fixture(scope="class")
     def expected_sql(self, project):
         relation = relation_from_name(project.adapter, "my_model")
-        tmp_relation = relation.incorporate(
-            path={"identifier": relation.identifier + "__dbt_tmp"}
-        )
+        tmp_relation = relation.incorporate(path={"identifier": relation.identifier + "__dbt_tmp"})
         return _expected_sql_redshift.format(tmp_relation)
-    
+
     @pytest.fixture(scope="class")
     def expected_error_messages(self):
-        return ['Cannot insert a NULL value into column id']
+        return ["Cannot insert a NULL value into column id"]

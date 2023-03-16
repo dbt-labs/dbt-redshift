@@ -18,7 +18,6 @@ id,first_name,email,ip_address,updated_at
 
 
 class TestLateBindingView:
-
     @pytest.fixture(scope="class")
     def models(self):
         return {
@@ -27,20 +26,18 @@ class TestLateBindingView:
 
     @pytest.fixture(scope="class")
     def seeds(self):
-        return {
-            "seed.csv": _SEED_CSV
-        }
+        return {"seed.csv": _SEED_CSV}
 
     @pytest.fixture(scope="class")
     def project_config_update(self):
         return {
-            'seeds': {
-                'quote_columns': False,
+            "seeds": {
+                "quote_columns": False,
             }
         }
 
     def test_late_binding_view_query(self, project):
-        seed_run_result = run_dbt(['seed'])
+        seed_run_result = run_dbt(["seed"])
         assert len(seed_run_result) == 1
         run_result = run_dbt()
         assert len(run_result) == 1
