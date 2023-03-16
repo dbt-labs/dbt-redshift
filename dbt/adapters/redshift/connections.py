@@ -188,13 +188,7 @@ class RedshiftConnectionManager(SQLConnectionManager):
             yield
         except redshift_connector.DatabaseError as e:
             logger.debug(f"Redshift error: {str(e)}")
-
-            try:
-                self.rollback_if_open()
-            except Exception:
-                logger.debug("Failed to release connection!")
-                pass
-
+            self.rollback_if_open()
             raise dbt.exceptions.DbtDatabaseError(str(e).strip()) from e
 
         except Exception as e:
