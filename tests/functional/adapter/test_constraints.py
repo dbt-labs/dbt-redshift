@@ -1,19 +1,22 @@
 import pytest
-from dbt.tests.util import relation_from_name
 from dbt.tests.adapter.constraints.test_constraints import (
     BaseTableConstraintsColumnsEqual,
     BaseViewConstraintsColumnsEqual,
-    BaseConstraintsRuntimeEnforcement,
+    BaseIncrementalConstraintsColumnsEqual,
+    BaseConstraintsRuntimeDdlEnforcement,
+    BaseConstraintsRollback,
+    BaseIncrementalConstraintsRuntimeDdlEnforcement,
+    BaseIncrementalConstraintsRollback,
 )
 
 _expected_sql_redshift = """
-create table {0} (
+create table <model_identifier> (
     id integer not null,
     color text,
     date_day text,
     primary key(id)
 ) ;
-insert into {0}
+insert into <model_identifier>
 (
     select
         id,
@@ -60,13 +63,33 @@ class TestRedshiftViewConstraintsColumnsEqual(
     pass
 
 
-class TestRedshiftConstraintsRuntimeEnforcement(BaseConstraintsRuntimeEnforcement):
-    @pytest.fixture(scope="class")
-    def expected_sql(self, project):
-        relation = relation_from_name(project.adapter, "my_model")
-        tmp_relation = relation.incorporate(path={"identifier": relation.identifier + "__dbt_tmp"})
-        return _expected_sql_redshift.format(tmp_relation)
+class TestRedshiftIncrementalConstraintsColumnsEqual(
+    RedshiftColumnEqualSetup, BaseIncrementalConstraintsColumnsEqual
+):
+    pass
 
+
+class TestRedshiftTableConstraintsRuntimeDdlEnforcement(BaseConstraintsRuntimeDdlEnforcement):
+    @pytest.fixture(scope="class")
+    def expected_sql(self):
+        return _expected_sql_redshift
+
+
+class TestRedshiftTableConstraintsRollback(BaseConstraintsRollback):
+    @pytest.fixture(scope="class")
+    def expected_error_messages(self):
+        return ["Cannot insert a NULL value into column id"]
+
+
+class TestRedshiftIncrementalConstraintsRuntimeDdlEnforcement(
+    BaseIncrementalConstraintsRuntimeDdlEnforcement
+):
+    @pytest.fixture(scope="class")
+    def expected_sql(self):
+        return _expected_sql_redshift
+
+
+class TestRedshiftIncrementalConstraintsRollback(BaseIncrementalConstraintsRollback):
     @pytest.fixture(scope="class")
     def expected_error_messages(self):
         return ["Cannot insert a NULL value into column id"]
