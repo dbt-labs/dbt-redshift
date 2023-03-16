@@ -2,7 +2,7 @@ import pytest
 
 from dbt.tests.util import run_dbt
 
-from functional.adapter.backup_tests import models
+from tests.functional.adapter.backup_tests import models
 
 
 class BackupTableBase:
