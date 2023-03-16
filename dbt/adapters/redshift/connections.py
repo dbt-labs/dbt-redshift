@@ -1,26 +1,25 @@
 import re
 from multiprocessing import Lock
 from contextlib import contextmanager
-from typing import NewType, Tuple, Union
+from typing import NewType, Tuple, Union, Optional, List
+from dataclasses import dataclass, field
 
 import agate
 import sqlparse
+import redshift_connector
+from redshift_connector.utils.oids import get_datatype_name
+
 from dbt.adapters.sql import SQLConnectionManager
 from dbt.contracts.connection import AdapterResponse, Connection, Credentials
 from dbt.events import AdapterLogger
 import dbt.exceptions
 import dbt.flags
-import redshift_connector
 from dbt.dataclass_schema import FieldEncoder, dbtClassMixin, StrEnum
-
-from dataclasses import dataclass, field
-from typing import Optional, List
-
 from dbt.helper_types import Port
-from redshift_connector import OperationalError, DatabaseError, DataError
-from redshift_connector.utils.oids import get_datatype_name
+
 
 logger = AdapterLogger("Redshift")
+
 
 drop_lock: Lock = dbt.flags.MP_CONTEXT.Lock()  # type: ignore
 
@@ -69,7 +68,17 @@ class RedshiftCredentials(Credentials):
         return "redshift"
 
     def _connection_keys(self):
-        return "host", "port", "user", "database", "schema", "method", "cluster_id", "iam_profile"
+        return (
+            "host",
+            "port",
+            "user",
+            "database",
+            "schema",
+            "method",
+            "cluster_id",
+            "iam_profile",
+            "sslmode",
+        )
 
     @property
     def unique_field(self) -> str:
@@ -114,8 +123,6 @@ class RedshiftConnectMethodFactory:
                     c.cursor().execute("set role {}".format(self.credentials.role))
                 return c
 
-            return connect
-
         elif method == RedshiftConnectionMethod.IAM:
             if not self.credentials.cluster_id and "serverless" not in self.credentials.host:
                 raise dbt.exceptions.FailedToConnectError(
@@ -138,11 +145,12 @@ class RedshiftConnectMethodFactory:
                     c.cursor().execute("set role {}".format(self.credentials.role))
                 return c
 
-            return connect
         else:
             raise dbt.exceptions.FailedToConnectError(
                 "Invalid 'method' in profile: '{}'".format(method)
             )
+
+        return connect
 
 
 class RedshiftConnectionManager(SQLConnectionManager):
@@ -155,18 +163,18 @@ class RedshiftConnectionManager(SQLConnectionManager):
         return res
 
     def cancel(self, connection: Connection):
-        connection_name = connection.name
         try:
             pid = self._get_backend_pid()
-            sql = "select pg_terminate_backend({})".format(pid)
-            _, cursor = self.add_query(sql)
-            res = cursor.fetchone()
-            logger.debug("Cancel query '{}': {}".format(connection_name, res))
-        except redshift_connector.error.InterfaceError as e:
+        except redshift_connector.InterfaceError as e:
             if "is closed" in str(e):
-                logger.debug(f"Connection {connection_name} was already closed")
+                logger.debug(f"Connection {connection.name} was already closed")
                 return
             raise
+
+        sql = f"select pg_terminate_backend({pid})"
+        _, cursor = self.add_query(sql)
+        res = cursor.fetchone()
+        logger.debug(f"Cancel query '{connection.name}': {res}")
 
     @classmethod
     def get_response(cls, cursor: redshift_connector.Cursor) -> AdapterResponse:
@@ -178,29 +186,33 @@ class RedshiftConnectionManager(SQLConnectionManager):
     def exception_handler(self, sql):
         try:
             yield
-        except redshift_connector.error.DatabaseError as e:
+        except redshift_connector.DatabaseError as e:
             logger.debug(f"Redshift error: {str(e)}")
-            self.rollback_if_open()
-            raise dbt.exceptions.DbtDatabaseError(str(e))
+
+            try:
+                self.rollback_if_open()
+            except Exception:
+                logger.debug("Failed to release connection!")
+                pass
+
+            raise dbt.exceptions.DbtDatabaseError(str(e).strip()) from e
+
         except Exception as e:
             logger.debug("Error running SQL: {}", sql)
             logger.debug("Rolling back transaction.")
             self.rollback_if_open()
             # Raise DBT native exceptions as is.
-            if isinstance(e, dbt.exceptions.Exception):
+            if isinstance(e, dbt.exceptions.DbtRuntimeError):
                 raise
             raise dbt.exceptions.DbtRuntimeError(str(e)) from e
 
     @contextmanager
-    def fresh_transaction(self, name=None):
+    def fresh_transaction(self):
         """On entrance to this context manager, hold an exclusive lock and
         create a fresh transaction for redshift, then commit and begin a new
         one before releasing the lock on exit.
 
         See drop_relation in RedshiftAdapter for more information.
-
-        :param Optional[str] name: The name of the connection to use, or None
-            to use the default.
         """
         with drop_lock:
             connection = self.get_thread_connection()
@@ -210,8 +222,8 @@ class RedshiftConnectionManager(SQLConnectionManager):
 
             self.begin()
             yield
-
             self.commit()
+
             self.begin()
 
     @classmethod
@@ -226,7 +238,11 @@ class RedshiftConnectionManager(SQLConnectionManager):
         def exponential_backoff(attempt: int):
             return attempt * attempt
 
-        retryable_exceptions = [OperationalError, DatabaseError, DataError]
+        retryable_exceptions = [
+            redshift_connector.OperationalError,
+            redshift_connector.DatabaseError,
+            redshift_connector.DataError,
+        ]
 
         return cls.retry_connection(
             connection,
