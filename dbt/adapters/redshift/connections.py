@@ -1,21 +1,25 @@
+import re
 from multiprocessing import Lock
 from contextlib import contextmanager
-from typing import NewType
+from typing import NewType, Tuple, Union, Optional, List
+from dataclasses import dataclass, field
 
-from dbt.adapters.postgres import PostgresConnectionManager
-from dbt.adapters.postgres import PostgresCredentials
+import agate
+import sqlparse
+import redshift_connector
+from redshift_connector.utils.oids import get_datatype_name
+
+from dbt.adapters.sql import SQLConnectionManager
+from dbt.contracts.connection import AdapterResponse, Connection, Credentials
 from dbt.events import AdapterLogger
 import dbt.exceptions
 import dbt.flags
-
-import boto3
-
 from dbt.dataclass_schema import FieldEncoder, dbtClassMixin, StrEnum
+from dbt.helper_types import Port
 
-from dataclasses import dataclass, field
-from typing import Optional, List
 
 logger = AdapterLogger("Redshift")
+
 
 drop_lock: Lock = dbt.flags.MP_CONTEXT.Lock()  # type: ignore
 
@@ -38,7 +42,10 @@ class RedshiftConnectionMethod(StrEnum):
 
 
 @dataclass
-class RedshiftCredentials(PostgresCredentials):
+class RedshiftCredentials(Credentials):
+    host: str
+    user: str
+    port: Port
     method: str = RedshiftConnectionMethod.DATABASE  # type: ignore
     password: Optional[str] = None  # type: ignore
     cluster_id: Optional[str] = field(
@@ -46,35 +53,160 @@ class RedshiftCredentials(PostgresCredentials):
         metadata={"description": "If using IAM auth, the name of the cluster"},
     )
     iam_profile: Optional[str] = None
-    iam_duration_seconds: int = 900
-    search_path: Optional[str] = None
-    keepalives_idle: int = 4
     autocreate: bool = False
     db_groups: List[str] = field(default_factory=list)
     ra3_node: Optional[bool] = False
+    connect_timeout: int = 30
+    role: Optional[str] = None
+    sslmode: Optional[str] = None
+    retries: int = 1
+
+    _ALIASES = {"dbname": "database", "pass": "password"}
 
     @property
     def type(self):
         return "redshift"
 
     def _connection_keys(self):
-        keys = super()._connection_keys()
-        return keys + ("method", "cluster_id", "iam_profile", "iam_duration_seconds")
+        return (
+            "host",
+            "port",
+            "user",
+            "database",
+            "schema",
+            "method",
+            "cluster_id",
+            "iam_profile",
+            "sslmode",
+        )
+
+    @property
+    def unique_field(self) -> str:
+        return self.host
 
 
-class RedshiftConnectionManager(PostgresConnectionManager):
+class RedshiftConnectMethodFactory:
+    credentials: RedshiftCredentials
+
+    def __init__(self, credentials):
+        self.credentials = credentials
+
+    def get_connect_method(self):
+        method = self.credentials.method
+        kwargs = {
+            "host": self.credentials.host,
+            "database": self.credentials.database,
+            "port": self.credentials.port if self.credentials.port else 5439,
+            "auto_create": self.credentials.autocreate,
+            "db_groups": self.credentials.db_groups,
+            "region": self.credentials.host.split(".")[2],
+            "timeout": self.credentials.connect_timeout,
+        }
+        if self.credentials.sslmode:
+            kwargs["sslmode"] = self.credentials.sslmode
+
+        # Support missing 'method' for backwards compatibility
+        if method == RedshiftConnectionMethod.DATABASE or method is None:
+            # this requirement is really annoying to encode into json schema,
+            # so validate it here
+            if self.credentials.password is None:
+                raise dbt.exceptions.FailedToConnectError(
+                    "'password' field is required for 'database' credentials"
+                )
+
+            def connect():
+                logger.debug("Connecting to redshift with username/password based auth...")
+                c = redshift_connector.connect(
+                    user=self.credentials.user, password=self.credentials.password, **kwargs
+                )
+                if self.credentials.role:
+                    c.cursor().execute("set role {}".format(self.credentials.role))
+                return c
+
+        elif method == RedshiftConnectionMethod.IAM:
+            if not self.credentials.cluster_id and "serverless" not in self.credentials.host:
+                raise dbt.exceptions.FailedToConnectError(
+                    "Failed to use IAM method. 'cluster_id' must be provided for provisioned cluster. "
+                    "'host' must be provided for serverless endpoint."
+                )
+
+            def connect():
+                logger.debug("Connecting to redshift with IAM based auth...")
+                c = redshift_connector.connect(
+                    iam=True,
+                    db_user=self.credentials.user,
+                    password="",
+                    user="",
+                    cluster_identifier=self.credentials.cluster_id,
+                    profile=self.credentials.iam_profile,
+                    **kwargs,
+                )
+                if self.credentials.role:
+                    c.cursor().execute("set role {}".format(self.credentials.role))
+                return c
+
+        else:
+            raise dbt.exceptions.FailedToConnectError(
+                "Invalid 'method' in profile: '{}'".format(method)
+            )
+
+        return connect
+
+
+class RedshiftConnectionManager(SQLConnectionManager):
     TYPE = "redshift"
 
+    def _get_backend_pid(self):
+        sql = "select pg_backend_pid()"
+        _, cursor = self.add_query(sql)
+        res = cursor.fetchone()
+        return res
+
+    def cancel(self, connection: Connection):
+        try:
+            pid = self._get_backend_pid()
+        except redshift_connector.InterfaceError as e:
+            if "is closed" in str(e):
+                logger.debug(f"Connection {connection.name} was already closed")
+                return
+            raise
+
+        sql = f"select pg_terminate_backend({pid})"
+        _, cursor = self.add_query(sql)
+        res = cursor.fetchone()
+        logger.debug(f"Cancel query '{connection.name}': {res}")
+
+    @classmethod
+    def get_response(cls, cursor: redshift_connector.Cursor) -> AdapterResponse:
+        rows = cursor.rowcount
+        message = f"cursor.rowcount = {rows}"
+        return AdapterResponse(_message=message, rows_affected=rows)
+
     @contextmanager
-    def fresh_transaction(self, name=None):
+    def exception_handler(self, sql):
+        try:
+            yield
+        except redshift_connector.DatabaseError as e:
+            logger.debug(f"Redshift error: {str(e)}")
+            self.rollback_if_open()
+            raise dbt.exceptions.DbtDatabaseError(str(e).strip()) from e
+
+        except Exception as e:
+            logger.debug("Error running SQL: {}", sql)
+            logger.debug("Rolling back transaction.")
+            self.rollback_if_open()
+            # Raise DBT native exceptions as is.
+            if isinstance(e, dbt.exceptions.DbtRuntimeError):
+                raise
+            raise dbt.exceptions.DbtRuntimeError(str(e)) from e
+
+    @contextmanager
+    def fresh_transaction(self):
         """On entrance to this context manager, hold an exclusive lock and
         create a fresh transaction for redshift, then commit and begin a new
         one before releasing the lock on exit.
 
         See drop_relation in RedshiftAdapter for more information.
-
-        :param Optional[str] name: The name of the connection to use, or None
-            to use the default.
         """
         with drop_lock:
             connection = self.get_thread_connection()
@@ -84,88 +216,80 @@ class RedshiftConnectionManager(PostgresConnectionManager):
 
             self.begin()
             yield
-
             self.commit()
+
             self.begin()
 
     @classmethod
-    def fetch_cluster_credentials(
-        cls, db_user, db_name, cluster_id, iam_profile, duration_s, autocreate, db_groups
-    ):
-        """Fetches temporary login credentials from AWS. The specified user
-        must already exist in the database, or else an error will occur"""
+    def open(cls, connection):
+        if connection.state == "open":
+            logger.debug("Connection is already open, skipping open.")
+            return connection
 
-        if iam_profile is None:
-            session = boto3.Session()
-            boto_client = session.client("redshift")
+        credentials = connection.credentials
+        connect_method_factory = RedshiftConnectMethodFactory(credentials)
+
+        def exponential_backoff(attempt: int):
+            return attempt * attempt
+
+        retryable_exceptions = [
+            redshift_connector.OperationalError,
+            redshift_connector.DatabaseError,
+            redshift_connector.DataError,
+        ]
+
+        return cls.retry_connection(
+            connection,
+            connect=connect_method_factory.get_connect_method(),
+            logger=logger,
+            retry_limit=credentials.retries,
+            retry_timeout=exponential_backoff,
+            retryable_exceptions=retryable_exceptions,
+        )
+
+    def execute(
+        self, sql: str, auto_begin: bool = False, fetch: bool = False
+    ) -> Tuple[AdapterResponse, agate.Table]:
+        _, cursor = self.add_query(sql, auto_begin)
+        response = self.get_response(cursor)
+        if fetch:
+            table = self.get_result_from_cursor(cursor)
         else:
-            logger.debug("Connecting to Redshift using 'IAM'" + f"with profile {iam_profile}")
-            boto_session = boto3.Session(profile_name=iam_profile)
-            boto_client = boto_session.client("redshift")
+            table = dbt.clients.agate_helper.empty_table()
+        return response, table
 
-        try:
-            return boto_client.get_cluster_credentials(
-                DbUser=db_user,
-                DbName=db_name,
-                ClusterIdentifier=cluster_id,
-                DurationSeconds=duration_s,
-                AutoCreate=autocreate,
-                DbGroups=db_groups,
+    def add_query(self, sql, auto_begin=True, bindings=None, abridge_sql_log=False):
+        connection = None
+        cursor = None
+
+        queries = sqlparse.split(sql)
+
+        for query in queries:
+            # Strip off comments from the current query
+            without_comments = re.sub(
+                re.compile(r"(\".*?\"|\'.*?\')|(/\*.*?\*/|--[^\r\n]*$)", re.MULTILINE),
+                "",
+                query,
+            ).strip()
+
+            if without_comments == "":
+                continue
+
+            connection, cursor = super().add_query(
+                query, auto_begin, bindings=bindings, abridge_sql_log=abridge_sql_log
             )
 
-        except boto_client.exceptions.ClientError as e:
-            raise dbt.exceptions.FailedToConnectError(
-                "Unable to get temporary Redshift cluster credentials: {}".format(e)
-            )
+        if cursor is None:
+            conn = self.get_thread_connection()
+            conn_name = conn.name if conn and conn.name else "<None>"
+            raise dbt.exceptions.DbtRuntimeError(f"Tried to run invalid SQL: {sql} on {conn_name}")
 
-    @classmethod
-    def get_tmp_iam_cluster_credentials(cls, credentials):
-        cluster_id = credentials.cluster_id
-
-        # default via:
-        # boto3.readthedocs.io/en/latest/reference/services/redshift.html
-        iam_duration_s = credentials.iam_duration_seconds
-
-        if not cluster_id:
-            raise dbt.exceptions.FailedToConnectError(
-                "'cluster_id' must be provided in profile if IAM " "authentication method selected"
-            )
-
-        cluster_creds = cls.fetch_cluster_credentials(
-            credentials.user,
-            credentials.database,
-            credentials.cluster_id,
-            credentials.iam_profile,
-            iam_duration_s,
-            credentials.autocreate,
-            credentials.db_groups,
-        )
-
-        # replace username and password with temporary redshift credentials
-        return credentials.replace(
-            user=cluster_creds.get("DbUser"), password=cluster_creds.get("DbPassword")
-        )
+        return connection, cursor
 
     @classmethod
     def get_credentials(cls, credentials):
-        method = credentials.method
+        return credentials
 
-        # Support missing 'method' for backwards compatibility
-        if method == "database" or method is None:
-            logger.debug("Connecting to Redshift using 'database' credentials")
-            # this requirement is really annoying to encode into json schema,
-            # so validate it here
-            if credentials.password is None:
-                raise dbt.exceptions.FailedToConnectError(
-                    "'password' field is required for 'database' credentials"
-                )
-            return credentials
-
-        elif method == "iam":
-            logger.debug("Connecting to Redshift using 'IAM' credentials")
-            return cls.get_tmp_iam_cluster_credentials(credentials)
-
-        else:
-            raise dbt.exceptions.FailedToConnectError(
-                "Invalid 'method' in profile: '{}'".format(method)
-            )
+    @classmethod
+    def data_type_code_to_name(cls, type_code: Union[int, str]) -> str:
+        return get_datatype_name(type_code)
