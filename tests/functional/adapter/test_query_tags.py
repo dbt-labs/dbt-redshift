@@ -13,7 +13,7 @@ snapshots__snapshot_query_tag_sql = """
             check_cols=['color'],
         )
     }}
-    select 1 as id, 'blue' as color
+    select 1 as id, 'blue'::varchar(4) as color
 {% endsnapshot %}
 
 """
@@ -130,11 +130,11 @@ class TestQueryTag:
     def build_all_with_query_tags(self, project, prefix):
         run_dbt(['build', '--vars', '{{"check_tag": "{}"}}'.format(prefix)])
 
-    def test_snowflake_query_tag(self, project, prefix):
+    def test_redshift_query_tag(self, project, prefix):
         self.build_all_with_query_tags(project, prefix)
         self.build_all_with_query_tags(project, prefix)
 
-class TestSnowflakeProfileQueryTag:
+class TestRedshiftProfileQueryTag:
     @pytest.fixture(scope="class")
     def models(self):
         return {
@@ -153,6 +153,6 @@ class TestSnowflakeProfileQueryTag:
     def build_all_with_query_tags(self, project, prefix):
         run_dbt(['build', '--vars', '{{"check_tag": "{}"}}'.format(prefix)])
 
-    def test_snowflake_query_tag(self, project, prefix):
+    def test_redshift_query_tag(self, project, prefix):
         self.build_all_with_query_tags(project, prefix)
         self.build_all_with_query_tags(project, prefix)
