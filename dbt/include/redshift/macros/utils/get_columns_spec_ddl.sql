@@ -19,8 +19,6 @@
       {%- endif -%}
     {%- endfor -%}
 
-    {%- set not_null_line = " not null" if not_null_col else "" -%}
-
     {%- if ns.has_check_constraints -%}
       {{ exceptions.warn("There are check constraints in your configs, which Redshift does not support. They will be ignored. See column `" ~ col['name'] ~ "`") }}
     {%- endif -%}
