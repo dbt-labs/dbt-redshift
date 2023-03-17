@@ -1,6 +1,6 @@
 import pytest
 
-from dbt.tests.util import AnyStringWith
+from dbt.tests.util import AnyStringWith, run_dbt
 from dbt.tests.adapter.basic.test_base import BaseSimpleMaterializations
 from dbt.tests.adapter.basic.test_singular_tests import BaseSingularTests
 from dbt.tests.adapter.basic.test_singular_tests_ephemeral import BaseSingularTestsEphemeral
@@ -127,3 +127,41 @@ class TestDocsGenReferencesRedshift(BaseDocsGenReferences):
             view_summary_stats=no_stats(),
             ephemeral_summary_stats=redshift_ephemeral_summary_stats(),
         )
+
+
+class TestViewRerun:
+    """
+    This test addresses: https://github.com/dbt-labs/dbt-redshift/issues/365
+    """
+
+    @pytest.fixture(scope="class")
+    def models(self):
+        return {
+            "base_table.sql": "{{ config(materialized='table') }} select 1 as id",
+            "base_view.sql": "{{ config(bind=True) }} select * from {{ ref('base_table') }}",
+        }
+
+    def test_rerunning_dependent_view_refreshes(self, project):
+        """
+        Assert that subsequent runs of `dbt run` will correctly recreate a view.
+        """
+
+        def db_objects():
+            check_objects_exist_sql = f"""
+                select tablename
+                from pg_tables
+                where schemaname ilike '{project.test_schema}'
+                union all
+                select viewname
+                from pg_views
+                where schemaname ilike '{project.test_schema}'
+                order by 1
+            """
+            return project.run_sql(check_objects_exist_sql, fetch="all")
+
+        results = run_dbt(["run"])
+        assert len(results) == 2
+        assert db_objects() == (["base_table"], ["base_view"])
+        results = run_dbt(["run"])
+        assert len(results) == 2
+        assert db_objects() == (["base_table"], ["base_view"])
