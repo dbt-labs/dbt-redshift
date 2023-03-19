@@ -10,15 +10,21 @@ _expected_sql_redshift = """
 create table {0} (
     id integer not null,
     color text,
-    date_day date,
+    date_day text,
     primary key(id)
 ) ;
 insert into {0}
 (
     select
-        1 as id,
-        'blue' as color,
-        cast('2019-01-01' as date) as date_day
+        id,
+        color,
+        date_day from
+    (
+        select
+            'blue' as color,
+            1 as id,
+            '2019-01-01' as date_day
+    ) as model_subq
 )
 ;
 """
