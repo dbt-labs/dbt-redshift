@@ -1,15 +1,22 @@
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, Set, Any, Dict, Type
+from collections import namedtuple
+
+from dbt.adapters.base import PythonJobHelper
 from dbt.adapters.base.impl import AdapterConfig
 from dbt.adapters.sql import SQLAdapter
 from dbt.adapters.base.meta import available
-from dbt.adapters.redshift import RedshiftConnectionManager
-from dbt.adapters.redshift.column import RedshiftColumn
-from dbt.adapters.redshift import RedshiftRelation
+from dbt.contracts.connection import AdapterResponse
 from dbt.events import AdapterLogger
 import dbt.exceptions
 
+from dbt.adapters.redshift import RedshiftConnectionManager, RedshiftRelation, RedshiftColumn
+
+
 logger = AdapterLogger("Redshift")
+
+
+GET_RELATIONS_MACRO_NAME = "redshift__get_relations"
 
 
 @dataclass
@@ -24,6 +31,7 @@ class RedshiftConfig(AdapterConfig):
 class RedshiftAdapter(SQLAdapter):
     Relation = RedshiftRelation
     ConnectionManager = RedshiftConnectionManager
+    connections: RedshiftConnectionManager
     Column = RedshiftColumn  # type: ignore
 
     AdapterSpecificConfigs = RedshiftConfig  # type: ignore
@@ -85,11 +93,8 @@ class RedshiftAdapter(SQLAdapter):
         try:
             return schemas.flatten(allow_multiple_databases=self.config.credentials.ra3_node)
         except dbt.exceptions.DbtRuntimeError as exc:
-            raise dbt.exceptions.CompilationError(
-                "Cross-db references allowed only in {} RA3.* node. Got {}".format(
-                    self.type(), exc.msg
-                )
-            )
+            msg = f"Cross-db references allowed only in {self.type()} RA3.* node. Got {exc.msg}"
+            raise dbt.exceptions.CompilationError(msg)
 
     def valid_incremental_strategies(self):
         """The set of standard builtin strategies which this adapter supports out-of-the-box.
@@ -99,3 +104,53 @@ class RedshiftAdapter(SQLAdapter):
 
     def timestamp_add_sql(self, add_to: str, number: int = 1, interval: str = "hour") -> str:
         return f"{add_to} + interval '{number} {interval}'"
+
+    def _link_cached_database_relations(self, schemas: Set[str]):
+        """
+        :param schemas: The set of schemas that should have links added.
+        """
+        database = self.config.credentials.database
+        _Relation = namedtuple("_Relation", "database schema identifier")
+        links = [
+            (
+                _Relation(database, dep_schema, dep_identifier),
+                _Relation(database, ref_schema, ref_identifier),
+            )
+            for dep_schema, dep_identifier, ref_schema, ref_identifier in self.execute_macro(
+                GET_RELATIONS_MACRO_NAME
+            )
+            # don't record in cache if this relation isn't in a relevant schema
+            if ref_schema in schemas
+        ]
+
+        for dependent, referenced in links:
+            self.cache.add_link(
+                referenced=self.Relation.create(**referenced._asdict()),
+                dependent=self.Relation.create(**dependent._asdict()),
+            )
+
+    def _link_cached_relations(self, manifest):
+        schemas = set(
+            relation.schema.lower()
+            for relation in self._get_cache_schemas(manifest)
+            if self.verify_database(relation.database) == ""
+        )
+        self._link_cached_database_relations(schemas)
+
+    def _relations_cache_for_schemas(self, manifest, cache_schemas=None):
+        super()._relations_cache_for_schemas(manifest, cache_schemas)
+        self._link_cached_relations(manifest)
+
+    # avoid non-implemented abstract methods warning
+    # make it clear what needs to be implemented while still raising the error in super()
+    # we can update these with Redshift-specific messages if needed
+    @property
+    def python_submission_helpers(self) -> Dict[str, Type[PythonJobHelper]]:
+        return super().python_submission_helpers
+
+    @property
+    def default_python_submission_method(self) -> str:
+        return super().default_python_submission_method
+
+    def generate_python_submission_response(self, submission_result: Any) -> AdapterResponse:
+        return super().generate_python_submission_response(submission_result)
