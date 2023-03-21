@@ -80,6 +80,19 @@ class TestRedshiftAdapter(unittest.TestCase):
         )
 
     @mock.patch("redshift_connector.connect", Mock())
+    def test_region_not_match(self):
+        self.config.credentials = self.config.credentials.replace(
+            method="iam",
+            region="someregion",
+        )
+        with self.assertRaises(dbt.exceptions.FailedToConnectError) as context:
+            connect_method_factory = RedshiftConnectMethodFactory(
+                self.config.credentials
+            )
+            connect_method_factory.get_connect_method()
+        self.assertTrue("does not match with region" in context.exception.msg)
+
+    @mock.patch("redshift_connector.connect", Mock())
     def test_explicit_database_conn(self):
         self.config.method = "database"
 
@@ -206,7 +219,8 @@ class TestRedshiftAdapter(unittest.TestCase):
             azure_client_id='my_client_id',
             azure_client_secret='my_client_secret',
             region='us-east-1',
-            azure_preferred_role='arn:aws:iam:123:role/MyFirstDinnerRoll'
+            azure_preferred_role='arn:aws:iam:123:role/MyFirstDinnerRoll',
+            host=None
         )
         connection = self.adapter.acquire_connection("dummy")
         connection.handle
@@ -271,7 +285,8 @@ class TestRedshiftAdapter(unittest.TestCase):
             okta_idp_host='my_idp_host',
             okta_app_id='my_first_appetizer',
             okta_app_name='dinner_party',
-            region='us-east-1'
+            region='us-east-1',
+            host=None
         )
         connection = self.adapter.acquire_connection("dummy")
         connection.handle
@@ -287,6 +302,61 @@ class TestRedshiftAdapter(unittest.TestCase):
             app_name='dinner_party',
             region='us-east-1'
         )
+
+    @mock.patch("redshift_connector.connect", Mock())
+    @mock.patch("boto3.Session", Mock())
+    def test_idp_spelling_error(self):
+        self.config.credentials = self.config.credentials.replace(
+            method="IdP",
+            database='dev',
+            cluster_id='my-testing-cluster',
+            credentials_provider='oktaar',
+            user='someuser@myazure.org',
+            password='somepassword',
+            okta_idp_host='my_idp_host',
+            okta_app_id='my_first_appetizer',
+            okta_app_name='dinner_party',
+            region='us-east-1',
+            host=None
+        )
+        with self.assertRaises(FailedToConnectError) as context:
+            connect_method_factory = RedshiftConnectMethodFactory(
+                self.config.credentials
+            )
+            connect_method_factory.get_connect_method()
+        self.assertTrue("Unrecognized" in context.exception.msg)
+
+    @mock.patch("redshift_connector.connect", Mock())
+    @mock.patch("boto3.Session", Mock())
+    def test_okta_case_sensitivity(self):
+        self.config.credentials = self.config.credentials.replace(
+            method="IdP",
+            database='dev',
+            cluster_id='my-testing-cluster',
+            credentials_provider='oKtA',
+            user='someuser@myazure.org',
+            password='somepassword',
+            okta_idp_host='my_idp_host',
+            okta_app_id='my_first_appetizer',
+            okta_app_name='dinner_party',
+            region='us-east-1',
+            host=None
+        )
+        connection = self.adapter.acquire_connection("dummy")
+        connection.handle
+        redshift_connector.connect.assert_called_once_with(
+            iam=True,
+            database='dev',
+            cluster_identifier='my-testing-cluster',
+            credentials_provider='OktaCredentialsProvider',
+            user='someuser@myazure.org',
+            password='somepassword',
+            idp_host='my_idp_host',
+            app_id='my_first_appetizer',
+            app_name='dinner_party',
+            region='us-east-1'
+        )
+
 
     @mock.patch("redshift_connector.connect", Mock())
     @mock.patch.dict(
@@ -305,6 +375,7 @@ class TestRedshiftAdapter(unittest.TestCase):
             database="",
             user="",
             region="us-east-1",
+            host=None
         )
         connection = self.adapter.acquire_connection("dummy")
         connection.handle
@@ -321,7 +392,7 @@ class TestRedshiftAdapter(unittest.TestCase):
             database="",
             region="us-east-1",
             application_name="dbt",
-            host="",
+            host=None,
             timeout=30,
         )
 

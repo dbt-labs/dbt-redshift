@@ -2,7 +2,7 @@ import os
 import re
 from multiprocessing import Lock
 from contextlib import contextmanager
-from typing import NewType, Tuple, Union
+from typing import NewType, Tuple
 
 import agate
 import sqlparse
@@ -19,7 +19,6 @@ from typing import Optional, List
 
 from dbt.helper_types import Port
 from redshift_connector import OperationalError, DatabaseError, DataError
-from redshift_connector.utils.oids import get_datatype_name
 
 logger = AdapterLogger("Redshift")
 
@@ -109,7 +108,7 @@ class RedshiftConnectMethodFactory:
     def get_connect_method(self):
         method = self.credentials.method
         kwargs = {
-            "host": "",
+            "host": None,
             "region": self.credentials.region,
             "database": self.credentials.database,
             "port": self.credentials.port if self.credentials.port else 5439,
@@ -123,6 +122,11 @@ class RedshiftConnectMethodFactory:
             kwargs["region"] = self.credentials.host.split(".")[2]
         if self.credentials.sslmode:
             kwargs["sslmode"] = self.credentials.sslmode
+        if self.credentials.host and self.credentials.region:
+            if self.credentials.host.split(".")[2] != self.credentials.region:
+                raise dbt.exceptions.FailedToConnectError(
+                    "'region' provided in profiles.yml does not match with region of 'host'."
+                )
 
         # Support missing 'method' for backwards compatibility
         if method == RedshiftConnectionMethod.DATABASE or method is None:
@@ -188,7 +192,19 @@ class RedshiftConnectMethodFactory:
                     "Failed to use IdP credentials. 'password' and 'user' must be provided."
                 )
 
-            if self.credentials.credentials_provider == "AzureCredentialsProvider":
+            if (
+                (self.credentials.credentials_provider.lower() != "azurecredentialsprovider")
+                and (self.credentials.credentials_provider.lower() != "azure")
+                and (self.credentials.credentials_provider.lower() != "okta")
+                and (self.credentials.credentials_provider.lower() != "oktacredentialsprovider")
+            ):
+                raise dbt.exceptions.FailedToConnectError(
+                    "Unrecognized credentials provider. Enter 'azure' or 'okta' for 'credentials_provider'."
+                )
+
+            if (self.credentials.credentials_provider.lower() == "azurecredentialsprovider") or (
+                self.credentials.credentials_provider.lower() == "azure"
+            ):
                 if (
                     not self.credentials.azure_idp_tenant
                     or not self.credentials.azure_client_id
@@ -218,15 +234,16 @@ class RedshiftConnectMethodFactory:
                     return c
 
                 return connect
-            elif self.credentials.credentials_provider == "OktaCredentialsProvider":
+            elif (self.credentials.credentials_provider.lower() == "oktacredentialsprovider") or (
+                self.credentials.credentials_provider.lower() == "okta"
+            ):
                 if (
                     not self.credentials.okta_idp_host
                     or not self.credentials.okta_app_id
                     or not self.credentials.okta_app_name
                 ):
                     raise dbt.exceptions.FailedToConnectError(
-                        "Failed to use Okta credential. 'okta_idp_host', 'okta_app_id', and "
-                        "'okta_app_name' must be provided."
+                        "Failed to use Okta credential. 'okta_idp_host', 'okta_app_id', 'okta_app_name' must be provided."
                     )
 
                 def connect():
@@ -410,7 +427,3 @@ class RedshiftConnectionManager(SQLConnectionManager):
     @classmethod
     def get_credentials(cls, credentials):
         return credentials
-
-    @classmethod
-    def data_type_code_to_name(cls, type_code: Union[int, str]) -> str:
-        return get_datatype_name(type_code)
