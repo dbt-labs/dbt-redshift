@@ -225,7 +225,8 @@ class RedshiftConnectMethodFactory:
                     or not self.credentials.okta_app_name
                 ):
                     raise dbt.exceptions.FailedToConnectError(
-                        "Failed to use Okta credential. 'okta_idp_host', 'okta_app_id', 'okta_app_name' must be provided."
+                        "Failed to use Okta credential. 'okta_idp_host', 'okta_app_id', and "
+                        "'okta_app_name' must be provided."
                     )
 
                 def connect():
