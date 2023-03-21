@@ -49,6 +49,7 @@
     {{ relation.include(database=(not temporary), schema=(not temporary)) }}
     {{ get_columns_spec_ddl() }}
     {{ get_assert_columns_equivalent(sql) }}
+    {%- set sql = get_select_subquery(sql) %}
     {% if backup == false -%}backup no{%- endif %}
     {{ dist(_dist) }}
     {{ sort(_sort_type, _sort) }}
