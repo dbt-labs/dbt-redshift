@@ -362,8 +362,10 @@ class TestRedshiftAdapter(unittest.TestCase):
     def test_query_tagging(self):
         self.config.credentials = self.config.credentials.replace(query_tag="test_query_tag")
 
-        expected_connection_info = [(k,v) for (k, v) in self.config.credentials.connection_info() if k == "query_tag"]
-        self.assertEqual([("query_tag", "test_query_tag")], expected_connection_info)        
+        expected_connection_info = [
+            (k, v) for (k, v) in self.config.credentials.connection_info() if k == "query_tag"
+        ]
+        self.assertEqual([("query_tag", "test_query_tag")], expected_connection_info)
 
 
 class TestRedshiftAdapterConversions(TestAdapterConversions):

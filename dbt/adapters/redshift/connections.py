@@ -124,7 +124,9 @@ class RedshiftConnectMethodFactory:
                 if self.credentials.role:
                     c.cursor().execute("set role {}".format(self.credentials.role))
                 if self.credentials.query_tag:
-                    c.cursor().execute("set query_group to '{}'".format(self.credentials.query_tag))
+                    c.cursor().execute(
+                        "set query_group to '{}'".format(self.credentials.query_tag)
+                    )
                 return c
 
         elif method == RedshiftConnectionMethod.IAM:
@@ -148,7 +150,9 @@ class RedshiftConnectMethodFactory:
                 if self.credentials.role:
                     c.cursor().execute("set role {}".format(self.credentials.role))
                 if self.credentials.query_tag:
-                    c.cursor().execute("set query_group to '{}'".format(self.credentials.query_tag))                    
+                    c.cursor().execute(
+                        "set query_group to '{}'".format(self.credentials.query_tag)
+                    )
                 return c
 
         else:
