@@ -1,0 +1,6 @@
+kind: Features
+body: Query tagging enabled via yaml and sql configs
+time: 2023-03-21T18:12:32.4933313-05:00
+custom:
+  Author: trouze
+  Issue: "376"

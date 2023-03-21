@@ -265,6 +265,47 @@
 {% endmacro %}
 
 
+{% macro get_current_query_tag() -%}
+  {{ return(run_query("show query_group").rows[0]['query_group']) }}
+{% endmacro %}
+
+
+{% macro set_query_tag() -%}
+    {{ return(adapter.dispatch('set_query_tag', 'dbt')()) }}
+{% endmacro %}
+
+
+{% macro redshift__set_query_tag() -%}
+  {% set new_query_tag = config.get('query_tag') %}
+  {% if new_query_tag %}
+    {% set original_query_tag = get_current_query_tag() %}
+    {{ log("Setting query_tag to '" ~ new_query_tag ~ "'. Will reset to '" ~ original_query_tag ~ "' after materialization.") }}
+    {% do run_query("set query_group to '{}'".format(new_query_tag)) %}
+    {{ return(original_query_tag)}}
+  {% endif %}
+  {{ return(none)}}
+{% endmacro %}
+
+
+{% macro unset_query_tag(original_query_tag) -%}
+    {{ return(adapter.dispatch('unset_query_tag', 'dbt')(original_query_tag)) }}
+{% endmacro %}
+
+
+{% macro redshift__unset_query_tag(original_query_tag) -%}
+  {% set new_query_tag = config.get('query_tag') %}
+  {% if new_query_tag %}
+    {% if original_query_tag %}
+      {{ log("Resetting query_tag to '" ~ original_query_tag ~ "'.") }}
+      {% do run_query("set query_group to '{}'".format(original_query_tag)) %}
+    {% else %}
+      {{ log("No original query_tag, unsetting parameter.") }}
+      {% do run_query("reset query_group") %}
+    {% endif %}
+  {% endif %}
+{% endmacro %}
+
+
 {% macro redshift__alter_relation_add_remove_columns(relation, add_columns, remove_columns) %}
 
   {% if add_columns %}

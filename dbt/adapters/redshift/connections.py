@@ -60,6 +60,7 @@ class RedshiftCredentials(Credentials):
     role: Optional[str] = None
     sslmode: Optional[str] = None
     retries: int = 1
+    query_tag: Optional[str] = None
 
     _ALIASES = {"dbname": "database", "pass": "password"}
 
@@ -78,6 +79,7 @@ class RedshiftCredentials(Credentials):
             "cluster_id",
             "iam_profile",
             "sslmode",
+            "query_tag",
         )
 
     @property
@@ -121,6 +123,10 @@ class RedshiftConnectMethodFactory:
                 )
                 if self.credentials.role:
                     c.cursor().execute("set role {}".format(self.credentials.role))
+                if self.credentials.query_tag:
+                    c.cursor().execute(
+                        "set query_group to '{}'".format(self.credentials.query_tag)
+                    )
                 return c
 
         elif method == RedshiftConnectionMethod.IAM:
@@ -143,6 +149,10 @@ class RedshiftConnectMethodFactory:
                 )
                 if self.credentials.role:
                     c.cursor().execute("set role {}".format(self.credentials.role))
+                if self.credentials.query_tag:
+                    c.cursor().execute(
+                        "set query_group to '{}'".format(self.credentials.query_tag)
+                    )
                 return c
 
         else:

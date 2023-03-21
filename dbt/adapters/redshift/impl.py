@@ -26,6 +26,7 @@ class RedshiftConfig(AdapterConfig):
     sort: Optional[str] = None
     bind: Optional[bool] = None
     backup: Optional[bool] = True
+    query_tag: Optional[str] = None
 
 
 class RedshiftAdapter(SQLAdapter):
