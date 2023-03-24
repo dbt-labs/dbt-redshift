@@ -1,0 +1,6 @@
+kind: Features
+body: Modify adapter to work with unified constraint fields
+time: 2023-03-14T15:46:21.963751-04:00
+custom:
+  Author: peterallenwebb
+  Issue: "341"
