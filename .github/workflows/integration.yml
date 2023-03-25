@@ -98,6 +98,7 @@ jobs:
             redshift:
               - 'dbt/**'
               - 'tests/**'
+              - 'dev-requirements.txt'
 
       - name: Generate integration test matrix
         id: generate-matrix
