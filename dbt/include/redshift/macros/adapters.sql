@@ -43,8 +43,8 @@
 
   {{ sql_header if sql_header is not none }}
 
-  {%- set contract_config = config.get('contract', {}) -%}
-  {%- if contract_config.get('enforced', False) -%}
+  {%- set contract_config = config.get('contract') -%}
+  {%- if contract_config.get.enforced -%}
 
   create {% if temporary -%}temporary{%- endif %} table
     {{ relation.include(database=(not temporary), schema=(not temporary)) }}
@@ -86,8 +86,8 @@
   {{ sql_header if sql_header is not none }}
 
   create view {{ relation }}
-  {%- set contract_config = config.get('contract', {}) -%}
-  {%- if contract_config.get('enforced', False) -%}
+  {%- set contract_config = config.get('contract') -%}
+  {%- if contract_config.enforced -%}
     {{ get_assert_columns_equivalent(sql) }}
   {%- endif %} as (
     {{ sql }}
