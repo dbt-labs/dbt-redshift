@@ -32,7 +32,8 @@
     insert into {{ table_name }}
     (
         {{ get_select_subquery(sql) }}
-    );
+    )
+    ;
 
 {% endmacro %}
 
