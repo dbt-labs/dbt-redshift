@@ -32,16 +32,6 @@
 
 
 
-{% macro redshift__create_schema(relation) -%}
-  {{ postgres__create_schema(relation) }}
-{% endmacro %}
-
-
-{% macro redshift__drop_schema(relation) -%}
-  {{ postgres__drop_schema(relation) }}
-{% endmacro %}
-
-
 {% macro redshift__get_columns_in_relation(relation) -%}
   {% call statement('get_columns_in_relation', fetch_result=True) %}
       with bound_views as (
