@@ -1,37 +1,3 @@
-
-{% macro dist(dist) %}
-  {%- if dist is not none -%}
-      {%- set dist = dist.strip().lower() -%}
-
-      {%- if dist in ['all', 'even'] -%}
-        diststyle {{ dist }}
-      {%- elif dist == "auto" -%}
-      {%- else -%}
-        diststyle key distkey ({{ dist }})
-      {%- endif -%}
-
-  {%- endif -%}
-{%- endmacro -%}
-
-
-{% macro sort(sort_type, sort) %}
-  {%- if sort is not none %}
-      {{ sort_type | default('compound', boolean=true) }} sortkey(
-      {%- if sort is string -%}
-        {%- set sort = [sort] -%}
-      {%- endif -%}
-      {%- for item in sort -%}
-        {{ item }}
-        {%- if not loop.last -%},{%- endif -%}
-      {%- endfor -%}
-      )
-  {%- endif %}
-{%- endmacro -%}
-
-
-
-
-
 {% macro redshift__get_columns_in_relation(relation) -%}
   {% call statement('get_columns_in_relation', fetch_result=True) %}
       with bound_views as (
