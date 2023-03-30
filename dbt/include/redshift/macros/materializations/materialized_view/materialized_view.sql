@@ -1,4 +1,4 @@
-{%- materialization view, default -%}
+{%- materialization materialized_view, adapter='redshift' -%}
   -- copy/paste of view materialization in dbt-core
 
 
