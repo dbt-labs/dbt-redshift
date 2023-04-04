@@ -1,13 +1,20 @@
 from dataclasses import dataclass
-from typing import Optional, Set, Any, Dict, Type
+from typing import Optional, Set, Any, Dict, List, Type
 from collections import namedtuple
 
 from dbt.adapters.base import PythonJobHelper
-from dbt.adapters.base.impl import AdapterConfig
+from dbt.adapters.base.impl import AdapterConfig, ConstraintSupport
 from dbt.adapters.sql import SQLAdapter
 from dbt.adapters.base.meta import available
 from dbt.contracts.connection import AdapterResponse
+from dbt.contracts.graph.nodes import ColumnLevelConstraint, ConstraintType
 from dbt.events import AdapterLogger
+from dbt.events.types import (
+    ConstraintNotSupported,
+    ConstraintNotEnforced,
+)
+from dbt.events.functions import warn_or_error
+
 import dbt.exceptions
 
 from dbt.adapters.redshift import RedshiftConnectionManager, RedshiftRelation, RedshiftColumn
@@ -35,6 +42,14 @@ class RedshiftAdapter(SQLAdapter):
     Column = RedshiftColumn  # type: ignore
 
     AdapterSpecificConfigs = RedshiftConfig  # type: ignore
+
+    CONSTRAINT_SUPPORT = {
+        ConstraintType.check: ConstraintSupport.NOT_SUPPORTED,
+        ConstraintType.not_null: ConstraintSupport.ENFORCED,
+        ConstraintType.unique: ConstraintSupport.NOT_ENFORCED,
+        ConstraintType.primary_key: ConstraintSupport.NOT_ENFORCED,
+        ConstraintType.foreign_key: ConstraintSupport.NOT_ENFORCED,
+    }
 
     @classmethod
     def date_function(cls):
@@ -154,17 +169,3 @@ class RedshiftAdapter(SQLAdapter):
 
     def generate_python_submission_response(self, submission_result: Any) -> AdapterResponse:
         return super().generate_python_submission_response(submission_result)
-
-    @classmethod
-    def render_column_constraint(cls, constraint: ColumnLevelConstraint) -> str:
-        if constraint.type == ConstraintType.check:
-            return ""  # check not supported by redshift
-        else:
-            return super().render_column_constraint(constraint)
-
-    @classmethod
-    def render_model_constraint(cls, constraint: ModelLevelConstraint) -> Optional[str]:
-        if constraint.type == ConstraintType.check:
-            return None  # check not supported by redshift
-        else:
-            return super().render_model_constraint(constraint)
