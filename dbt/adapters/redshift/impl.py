@@ -7,7 +7,7 @@ from dbt.adapters.base.impl import AdapterConfig, ConstraintSupport
 from dbt.adapters.sql import SQLAdapter
 from dbt.adapters.base.meta import available
 from dbt.contracts.connection import AdapterResponse
-from dbt.contracts.graph.nodes import ColumnLevelConstraint, ConstraintType
+from dbt.contracts.graph.nodes import ConstraintType
 from dbt.events import AdapterLogger
 from dbt.events.types import (
     ConstraintNotSupported,
