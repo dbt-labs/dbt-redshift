@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Optional, Set, Any, Dict, List, Type
+from typing import Optional, Set, Any, Dict, Type
 from collections import namedtuple
 
 from dbt.adapters.base import PythonJobHelper
@@ -9,11 +9,6 @@ from dbt.adapters.base.meta import available
 from dbt.contracts.connection import AdapterResponse
 from dbt.contracts.graph.nodes import ConstraintType
 from dbt.events import AdapterLogger
-from dbt.events.types import (
-    ConstraintNotSupported,
-    ConstraintNotEnforced,
-)
-from dbt.events.functions import warn_or_error
 
 import dbt.exceptions
 
