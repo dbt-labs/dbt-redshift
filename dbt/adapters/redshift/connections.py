@@ -178,15 +178,10 @@ class RedshiftConnectionManager(SQLConnectionManager):
 
     @classmethod
     def get_response(cls, cursor: redshift_connector.Cursor) -> AdapterResponse:
+        # redshift_connector.Cursor doesn't have a status message attribute but
+        # this function is only used for successful run, so we can just return a dummy
         rows = cursor.rowcount
-        # breakpoint()
-        print("--------------------")
-        try:
-            print(len(cursor.fetchall()))
-        except Exception as e:
-            print(e)
-        print("--------------------")
-        message = f"cursor.rowcount = aoeuau{rows}"
+        message = "SUCCESS"
         return AdapterResponse(_message=message, rows_affected=rows)
 
     @contextmanager
@@ -195,7 +190,7 @@ class RedshiftConnectionManager(SQLConnectionManager):
             yield
         except redshift_connector.DatabaseError as e:
             try:
-                err_msg = e.args[0]["M"]  # this is a type redshift sets
+                err_msg = e.args[0]["M"]  # this is a type redshift sets, so we must use these keys
             except Exception:
                 err_msg = str(e).strip()
             logger.debug(f"Redshift error: {err_msg}")
