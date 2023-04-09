@@ -1,26 +1,19 @@
-{% macro redshift__db_api__materialized_view__create(materialized_view_name, sql, kwargs) %}
+{% macro redshift__db_api__materialized_view__create(
+    materialized_view_name,
+    sql,
+    backup,
+    auto_refresh,
+    dist_style,
+    dist_key,
+    sort_type,
+    sort_key
+) %}
 
     {% set %}
-        {% if 'backup' in kwargs %}
-            backup_clause = {% redshift__db_api__utils__backup_clause(kwargs.get('backup')) %}
-        {% else %}
-            backup_clause = ''
-        {% endif %}
-        {% if 'auto_refresh' in kwargs %}
-            auto_refresh_clause = {% redshift__db_api__utils__auto_refresh_clause(kwargs.get('auto_refresh')) %}
-        {% else %}
-            auto_refresh_clause = ''
-        {% endif %}
-        {% if 'dist_style' in kwargs %}
-            dist_clause = {% redshift__db_api__utils__dist_clause(kwargs.get('dist_style'), kwargs.get('dist_key', '')) %}
-        {% else %}
-            dist_clause = ''
-        {% endif %}
-        {% if 'sort_type' in kwargs %}
-            sort_clause = {% redshift__db_api__utils__sort_clause(kwargs.get('sort_type'), kwargs.get('sort_key', '')) %}
-        {% else %}
-            sort_clause = ''
-        {% endif %}
+        backup_clause = {% if backup is false %}backup no{% else %}{% endif %}
+        auto_refresh_clause = {% if auto_refresh is true %}auto refresh yes{% else %}{% endif %}
+        dist_clause = {% redshift__db_api__utils__dist_clause(dist_style, dist_key) %}
+        sort_clause = {% redshift__db_api__utils__sort_clause(sort_type, sort_key) %}
     {% endset %}
 
     create materialized view {{ materialized_view_name }}
