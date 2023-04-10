@@ -13,7 +13,6 @@ from dbt.events import AdapterLogger
 import dbt.exceptions
 
 from dbt.adapters.redshift import RedshiftConnectionManager, RedshiftRelation, RedshiftColumn
-from dbt.contracts.graph.nodes import ColumnLevelConstraint, ConstraintType, ModelLevelConstraint
 
 logger = AdapterLogger("Redshift")
 
