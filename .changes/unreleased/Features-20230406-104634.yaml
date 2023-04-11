@@ -1,0 +1,6 @@
+kind: Features
+body: Add support for model-level constraints
+time: 2023-04-06T10:46:34.699722-04:00
+custom:
+  Author: peterallenwebb
+  Issue: "343"
