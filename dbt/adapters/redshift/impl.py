@@ -11,7 +11,7 @@ from dbt.events import AdapterLogger
 import dbt.exceptions
 
 from dbt.adapters.redshift import RedshiftConnectionManager, RedshiftRelation, RedshiftColumn
-
+from dbt.contracts.graph.nodes import ColumnLevelConstraint, ConstraintType, ModelLevelConstraint
 
 logger = AdapterLogger("Redshift")
 
@@ -154,3 +154,17 @@ class RedshiftAdapter(SQLAdapter):
 
     def generate_python_submission_response(self, submission_result: Any) -> AdapterResponse:
         return super().generate_python_submission_response(submission_result)
+
+    @classmethod
+    def render_column_constraint(cls, constraint: ColumnLevelConstraint) -> str:
+        if constraint.type == ConstraintType.check:
+            return ""  # check not supported by redshift
+        else:
+            return super().render_column_constraint(constraint)
+
+    @classmethod
+    def render_model_constraint(cls, constraint: ModelLevelConstraint) -> Optional[str]:
+        if constraint.type == ConstraintType.check:
+            return None  # check not supported by redshift
+        else:
+            return super().render_model_constraint(constraint)
