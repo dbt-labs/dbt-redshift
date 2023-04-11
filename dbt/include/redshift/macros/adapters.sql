@@ -292,3 +292,22 @@
   {% endif %}
 
 {% endmacro %}
+
+
+{% macro redshift__create_materialized_view_as(relation, sql) %}
+
+    {% set dist_clause = dist(config.get('dist', none)) %}
+
+    {% set _sort_key = config.get('sort', validator=validation.any[list, basestring]) %}
+    {% set _sort_type = config.get('sort_type',validator=validation.any['compound', 'interleaved']) %}
+    {% set sort_clause = sort(_sort_type, _sort_key) %}
+
+    {% set proxy_view = redshift__create_view_as(relation, sql) %}
+    {{ return(proxy_view) }}
+
+{% endmacro %}
+
+
+{% macro redshift__refresh_materialized_view_data(relation) %}
+    {{ return({'relations': [relation]}) }}
+{% endmacro %}
