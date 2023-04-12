@@ -1,7 +1,6 @@
 kind: Features
-body: dbt-constraints for redshift
+body: 'Support for data types constraints in Redshift'
 time: 2022-12-09T10:56:40.808781-06:00
 custom:
-  Author: dave-connors-3
-  Issue: "227"
-  PR: "229"
+  Author: dave-connors-3 emmyoop
+  Issue: 227 342

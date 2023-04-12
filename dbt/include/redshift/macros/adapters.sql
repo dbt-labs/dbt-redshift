@@ -48,7 +48,7 @@
 
   create {% if temporary -%}temporary{%- endif %} table
     {{ relation.include(database=(not temporary), schema=(not temporary)) }}
-    {{ get_columns_spec_ddl() }}
+    {{ get_table_columns_and_constraints() }}
     {{ get_assert_columns_equivalent(sql) }}
     {%- set sql = get_select_subquery(sql) %}
     {% if backup == false -%}backup no{%- endif %}
