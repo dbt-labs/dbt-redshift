@@ -30,7 +30,7 @@
 {% endmacro %}
 
 
-{% macro default__get_replace_materialized_view_as_sql(relation, sql, existing_relation, backup_relation, intermediate_relation) %}
+{% macro redshift__get_replace_materialized_view_as_sql(relation, sql, existing_relation, backup_relation, intermediate_relation) %}
 
     {% if existing_relation is not none %}
         drop materialized view {{ existing_relation }};
@@ -41,8 +41,18 @@
 {% endmacro %}
 
 
-{% macro alter_materialized_view_auto_refresh(relation, auto_refresh) -%}
-    alter materialized view {{ relation }}
-        auto refresh {% if auto_refresh is true %}yes{% else %}no{% endif %}
-    ;
+{% macro redshift__get_alter_materialized_view_sql(relation, updates, sql) %}
+
+    {% if 'sort' in updates.keys() or 'dist' in updates.keys() %}
+
+        {{ get_replace_materialized_view_as_sql(relation, sql) }}
+
+    {% elif 'auto_refresh' in updates.keys() %}
+
+        alter materialized view {{ relation }}
+            auto refresh {% if auto_refresh is true %}yes{% else %}no{% endif %}
+        ;
+
+    {% endif %}
+
 {% endmacro %}
