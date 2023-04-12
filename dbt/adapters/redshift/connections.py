@@ -178,8 +178,10 @@ class RedshiftConnectionManager(SQLConnectionManager):
 
     @classmethod
     def get_response(cls, cursor: redshift_connector.Cursor) -> AdapterResponse:
+        # redshift_connector.Cursor doesn't have a status message attribute but
+        # this function is only used for successful run, so we can just return a dummy
         rows = cursor.rowcount
-        message = f"cursor.rowcount = {rows}"
+        message = "SUCCESS"
         return AdapterResponse(_message=message, rows_affected=rows)
 
     @contextmanager
@@ -187,9 +189,13 @@ class RedshiftConnectionManager(SQLConnectionManager):
         try:
             yield
         except redshift_connector.DatabaseError as e:
-            logger.debug(f"Redshift error: {str(e)}")
+            try:
+                err_msg = e.args[0]["M"]  # this is a type redshift sets, so we must use these keys
+            except Exception:
+                err_msg = str(e).strip()
+            logger.debug(f"Redshift error: {err_msg}")
             self.rollback_if_open()
-            raise dbt.exceptions.DbtDatabaseError(str(e).strip()) from e
+            raise dbt.exceptions.DbtDatabaseError(err_msg) from e
 
         except Exception as e:
             logger.debug("Error running SQL: {}", sql)
