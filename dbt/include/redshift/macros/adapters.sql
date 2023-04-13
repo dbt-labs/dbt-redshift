@@ -276,21 +276,11 @@
       database_name as database,
       table_name as name,
       schema_name as schema,
-      'table' as type
+      LOWER(table_type) as type
     from SVV_REDSHIFT_TABLES
     where schema_name ilike '{{ schema_relation.schema }}'
     and database_name ilike '{{ schema_relation.database }}'
-    and table_type = 'TABLE'
-    union all
-    select
-      database_name as database,
-      table_name as name,
-      schema_name as schema,
-      'view' as type
-    from SVV_REDSHIFT_TABLES
-    where schema_name ilike '{{ schema_relation.schema }}'
-    and database_name ilike '{{ schema_relation.database }}'
-    and table_type = 'VIEW'
+    and table_type IN ('TABLE','VIEW')
     union all
     select
       '{{ schema_relation.database }}' as database,
