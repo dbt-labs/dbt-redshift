@@ -198,47 +198,48 @@
 
     ),
 
-    data_share as (
-      select
-        a.ordinal_position as columnnum,
-        a.schema_name as schemaname,
-        a.column_name as columnname,
-        case
-          when a.data_type ilike 'character varying%' then
-            'character varying'
-          when a.data_type ilike 'numeric%' then 'numeric'
-          else a.data_type
-        end as col_type,
-        case
-          when a.data_type like 'character%'
-          then nullif(REGEXP_SUBSTR(a.character_maximum_length, '[0-9]+'), '')::int
-          else null
-        end as character_maximum_length,
-        case
-          when a.data_type like 'numeric%' or a.data_type ilike 'integer%'
-          then nullif(
-            SPLIT_PART(REGEXP_SUBSTR(a.numeric_precision, '[0-9,]+'), ',', 1),
-            '')::int
-        end as numeric_precision,
-        case
-          when a.data_type like 'numeric%' or a.data_type ilike 'integer%'
-          then nullif(
-            SPLIT_PART(REGEXP_SUBSTR(a.numeric_scale, '[0-9,]+'), ',', 2),
-            '')::int
-          else null
-        end as numeric_scale
-      from svv_all_columns a
-      inner join (
-        select object_name
+    inbound_datashare as (
+      select object_name
         from svv_datashare_objects
         where share_type = 'INBOUND'
         and   object_type in ('table', 'view', 'materialized view', 'late binding view')
         and   object_name = '{{ relation.schema }}' || '.' || '{{ relation.identifier }}'
-      ) b on a.schema_name || '.' || a.table_name  = b.object_name
-      inner join (
-        select consumer_database from SVV_DATASHARES
-        where share_type = 'INBOUND'
-      ) c on c.consumer_database = a.database_name
+    ),
+
+    data_share_columns as (
+      select
+        ordinal_position as columnnum,
+        schema_name as schemaname,
+        column_name as columnname,
+        case
+          when data_type ilike 'character varying%' then
+            'character varying'
+          when data_type ilike 'numeric%' then 'numeric'
+          else data_type
+        end as col_type,
+        case
+          when data_type like 'character%'
+          then nullif(REGEXP_SUBSTR(character_maximum_length, '[0-9]+'), '')::int
+          else null
+        end as character_maximum_length,
+        case
+          when data_type like 'numeric%' or data_type ilike 'integer%'
+          then nullif(
+            SPLIT_PART(REGEXP_SUBSTR(numeric_precision, '[0-9,]+'), ',', 1),
+            '')::int
+        end as numeric_precision,
+        case
+          when data_type like 'numeric%' or data_type ilike 'integer%'
+          then nullif(
+            SPLIT_PART(REGEXP_SUBSTR(numeric_scale, '[0-9,]+'), ',', 2),
+            '')::int
+          else null
+        end as numeric_scale
+      from svv_all_columns
+      inner join inbound_datashare on
+        inbound_datashare.object_name = svv_all_columns.schema_name || '.' || svv_all_columns.table_name
+      where svv_all_columns.table_name = '{{ relation.identifier }}'
+      and svv_all_columns.schema_name = '{{ relation.schema }}'
     ),
 
     unioned as (
@@ -248,7 +249,7 @@
       union all
       select * from external_views
       union all
-      select * from data_share
+      select * from data_share_columns
     )
 
     select
