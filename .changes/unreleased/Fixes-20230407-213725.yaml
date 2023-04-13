@@ -1,6 +1,0 @@
-kind: Fixes
-body: Fix two adapter logging bugs arising from using the redshift cursor object
-time: 2023-04-07T21:37:25.873248-07:00
-custom:
-  Author: versusfacit
-  Issue: "373"
