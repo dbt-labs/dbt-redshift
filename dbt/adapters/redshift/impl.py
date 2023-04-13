@@ -3,15 +3,16 @@ from typing import Optional, Set, Any, Dict, Type
 from collections import namedtuple
 
 from dbt.adapters.base import PythonJobHelper
-from dbt.adapters.base.impl import AdapterConfig
+from dbt.adapters.base.impl import AdapterConfig, ConstraintSupport
 from dbt.adapters.sql import SQLAdapter
 from dbt.adapters.base.meta import available
 from dbt.contracts.connection import AdapterResponse
+from dbt.contracts.graph.nodes import ConstraintType
 from dbt.events import AdapterLogger
+
 import dbt.exceptions
 
 from dbt.adapters.redshift import RedshiftConnectionManager, RedshiftRelation, RedshiftColumn
-
 
 logger = AdapterLogger("Redshift")
 
@@ -35,6 +36,14 @@ class RedshiftAdapter(SQLAdapter):
     Column = RedshiftColumn  # type: ignore
 
     AdapterSpecificConfigs = RedshiftConfig  # type: ignore
+
+    CONSTRAINT_SUPPORT = {
+        ConstraintType.check: ConstraintSupport.NOT_SUPPORTED,
+        ConstraintType.not_null: ConstraintSupport.ENFORCED,
+        ConstraintType.unique: ConstraintSupport.NOT_ENFORCED,
+        ConstraintType.primary_key: ConstraintSupport.NOT_ENFORCED,
+        ConstraintType.foreign_key: ConstraintSupport.NOT_ENFORCED,
+    }
 
     @classmethod
     def date_function(cls):
