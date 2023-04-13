@@ -206,6 +206,8 @@
         and   object_name = '{{ relation.schema }}' || '.' || '{{ relation.identifier }}'
     ),
 
+
+
     data_share_columns as (
       select
         ordinal_position as columnnum,
@@ -240,6 +242,7 @@
         inbound_datashare.object_name = svv_all_columns.schema_name || '.' || svv_all_columns.table_name
       where svv_all_columns.table_name = '{{ relation.identifier }}'
       and svv_all_columns.schema_name = '{{ relation.schema }}'
+      and svv_all_columns.database_name = '{{ relation.database }}'
     ),
 
     unioned as (
