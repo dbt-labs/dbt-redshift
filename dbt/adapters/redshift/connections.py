@@ -2,14 +2,13 @@ import os
 import re
 from multiprocessing import Lock
 from contextlib import contextmanager
-from typing import NewType, Tuple, Union, Optional, List
+from typing import NewType, Tuple, Optional, List
 from dataclasses import dataclass, field
 
 
 import agate
 import sqlparse
 import redshift_connector
-from redshift_connector.utils.oids import get_datatype_name
 
 from dbt.adapters.sql import SQLConnectionManager
 from dbt.contracts.connection import AdapterResponse, Connection, Credentials
@@ -18,8 +17,6 @@ import dbt.exceptions
 import dbt.flags
 from dbt.dataclass_schema import FieldEncoder, dbtClassMixin, StrEnum
 from dbt.helper_types import Port
-from redshift_connector import OperationalError, DatabaseError, DataError
-
 
 
 logger = AdapterLogger("Redshift")
@@ -283,6 +280,7 @@ class RedshiftConnectMethodFactory:
                 if self.credentials.role:
                     c.cursor().execute("set role {}".format(self.credentials.role))
                 return c
+
         else:
             raise dbt.exceptions.FailedToConnectError(
                 "Invalid 'method' in profile: '{}'".format(method)
