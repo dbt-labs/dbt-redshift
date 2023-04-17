@@ -85,9 +85,7 @@ class TestRedshiftAdapter(unittest.TestCase):
             region="someregion",
         )
         with self.assertRaises(dbt.exceptions.FailedToConnectError) as context:
-            connect_method_factory = RedshiftConnectMethodFactory(
-                self.config.credentials
-            )
+            connect_method_factory = RedshiftConnectMethodFactory(self.config.credentials)
             connect_method_factory.get_connect_method()
         self.assertTrue("does not match with region" in context.exception.msg)
 
@@ -207,31 +205,31 @@ class TestRedshiftAdapter(unittest.TestCase):
     def test_azure_identity_plugin(self):
         self.config.credentials = self.config.credentials.replace(
             method="IdP",
-            database='dev',
-            cluster_id='my-testing-cluster',
-            credentials_provider='AzureCredentialsProvider',
-            user='someuser@myazure.org',
-            password='somepassword',
-            azure_idp_tenant='my_idp_tenant',
-            azure_client_id='my_client_id',
-            azure_client_secret='my_client_secret',
-            region='us-east-1',
-            azure_preferred_role='arn:aws:iam:123:role/MyFirstDinnerRoll',
-            host=None
+            database="dev",
+            cluster_id="my-testing-cluster",
+            credentials_provider="AzureCredentialsProvider",
+            user="someuser@myazure.org",
+            password="somepassword",
+            azure_idp_tenant="my_idp_tenant",
+            azure_client_id="my_client_id",
+            azure_client_secret="my_client_secret",
+            region="us-east-1",
+            azure_preferred_role="arn:aws:iam:123:role/MyFirstDinnerRoll",
+            host=None,
         )
         connection = self.adapter.acquire_connection("dummy")
         connection.handle
         redshift_connector.connect.assert_called_once_with(
             iam=True,
-            database='dev',
-            cluster_identifier='my-testing-cluster',
-            credentials_provider='AzureCredentialsProvider',
-            user='someuser@myazure.org',
-            password='somepassword',
-            idp_tenant='my_idp_tenant',
-            client_id='my_client_id',
-            client_secret='my_client_secret',
-            preferred_role='arn:aws:iam:123:role/MyFirstDinnerRoll',
+            database="dev",
+            cluster_identifier="my-testing-cluster",
+            credentials_provider="AzureCredentialsProvider",
+            user="someuser@myazure.org",
+            password="somepassword",
+            idp_tenant="my_idp_tenant",
+            client_id="my_client_id",
+            client_secret="my_client_secret",
+            preferred_role="arn:aws:iam:123:role/MyFirstDinnerRoll",
             region="us-east-1",
         )
 
@@ -240,20 +238,18 @@ class TestRedshiftAdapter(unittest.TestCase):
     def test_azure_no_region(self):
         self.config.credentials = self.config.credentials.replace(
             method="IdP",
-            database='dev',
-            cluster_id='my-testing-cluster',
-            credentials_provider='AzureCredentialsProvider',
-            user='someuser@myazure.org',
-            password='somepassword',
-            azure_idp_tenant='my_idp_tenant',
-            azure_client_id='my_client_id',
-            azure_client_secret='my_client_secret',
-            azure_preferred_role='arn:aws:iam:123:role/MyFirstDinnerRoll'
+            database="dev",
+            cluster_id="my-testing-cluster",
+            credentials_provider="AzureCredentialsProvider",
+            user="someuser@myazure.org",
+            password="somepassword",
+            azure_idp_tenant="my_idp_tenant",
+            azure_client_id="my_client_id",
+            azure_client_secret="my_client_secret",
+            azure_preferred_role="arn:aws:iam:123:role/MyFirstDinnerRoll",
         )
         with self.assertRaises(FailedToConnectError) as context:
-            connect_method_factory = RedshiftConnectMethodFactory(
-                self.config.credentials
-            )
+            connect_method_factory = RedshiftConnectMethodFactory(self.config.credentials)
             connect_method_factory.get_connect_method()
         self.assertTrue("'region' must be provided" in context.exception.msg)
 
@@ -263,9 +259,7 @@ class TestRedshiftAdapter(unittest.TestCase):
             method="IdP",
         )
         with self.assertRaises(FailedToConnectError) as context:
-            connect_method_factory = RedshiftConnectMethodFactory(
-                self.config.credentials
-            )
+            connect_method_factory = RedshiftConnectMethodFactory(self.config.credentials)
             connect_method_factory.get_connect_method()
         self.assertTrue("credentials_provider" in context.exception.msg)
 
@@ -274,30 +268,30 @@ class TestRedshiftAdapter(unittest.TestCase):
     def test_okta_identity_plugin(self):
         self.config.credentials = self.config.credentials.replace(
             method="IdP",
-            database='dev',
-            cluster_id='my-testing-cluster',
-            credentials_provider='OktaCredentialsProvider',
-            user='someuser@myazure.org',
-            password='somepassword',
-            okta_idp_host='my_idp_host',
-            okta_app_id='my_first_appetizer',
-            okta_app_name='dinner_party',
-            region='us-east-1',
-            host=None
+            database="dev",
+            cluster_id="my-testing-cluster",
+            credentials_provider="OktaCredentialsProvider",
+            user="someuser@myazure.org",
+            password="somepassword",
+            okta_idp_host="my_idp_host",
+            okta_app_id="my_first_appetizer",
+            okta_app_name="dinner_party",
+            region="us-east-1",
+            host=None,
         )
         connection = self.adapter.acquire_connection("dummy")
         connection.handle
         redshift_connector.connect.assert_called_once_with(
             iam=True,
-            database='dev',
-            cluster_identifier='my-testing-cluster',
-            credentials_provider='OktaCredentialsProvider',
-            user='someuser@myazure.org',
-            password='somepassword',
-            idp_host='my_idp_host',
-            app_id='my_first_appetizer',
-            app_name='dinner_party',
-            region='us-east-1'
+            database="dev",
+            cluster_identifier="my-testing-cluster",
+            credentials_provider="OktaCredentialsProvider",
+            user="someuser@myazure.org",
+            password="somepassword",
+            idp_host="my_idp_host",
+            app_id="my_first_appetizer",
+            app_name="dinner_party",
+            region="us-east-1",
         )
 
     @mock.patch("redshift_connector.connect", Mock())
@@ -305,21 +299,19 @@ class TestRedshiftAdapter(unittest.TestCase):
     def test_idp_spelling_error(self):
         self.config.credentials = self.config.credentials.replace(
             method="IdP",
-            database='dev',
-            cluster_id='my-testing-cluster',
-            credentials_provider='oktaar',
-            user='someuser@myazure.org',
-            password='somepassword',
-            okta_idp_host='my_idp_host',
-            okta_app_id='my_first_appetizer',
-            okta_app_name='dinner_party',
-            region='us-east-1',
-            host=None
+            database="dev",
+            cluster_id="my-testing-cluster",
+            credentials_provider="oktaar",
+            user="someuser@myazure.org",
+            password="somepassword",
+            okta_idp_host="my_idp_host",
+            okta_app_id="my_first_appetizer",
+            okta_app_name="dinner_party",
+            region="us-east-1",
+            host=None,
         )
         with self.assertRaises(FailedToConnectError) as context:
-            connect_method_factory = RedshiftConnectMethodFactory(
-                self.config.credentials
-            )
+            connect_method_factory = RedshiftConnectMethodFactory(self.config.credentials)
             connect_method_factory.get_connect_method()
         self.assertTrue("Unrecognized" in context.exception.msg)
 
@@ -328,32 +320,31 @@ class TestRedshiftAdapter(unittest.TestCase):
     def test_okta_case_sensitivity(self):
         self.config.credentials = self.config.credentials.replace(
             method="IdP",
-            database='dev',
-            cluster_id='my-testing-cluster',
-            credentials_provider='oKtA',
-            user='someuser@myazure.org',
-            password='somepassword',
-            okta_idp_host='my_idp_host',
-            okta_app_id='my_first_appetizer',
-            okta_app_name='dinner_party',
-            region='us-east-1',
-            host=None
+            database="dev",
+            cluster_id="my-testing-cluster",
+            credentials_provider="oKtA",
+            user="someuser@myazure.org",
+            password="somepassword",
+            okta_idp_host="my_idp_host",
+            okta_app_id="my_first_appetizer",
+            okta_app_name="dinner_party",
+            region="us-east-1",
+            host=None,
         )
         connection = self.adapter.acquire_connection("dummy")
         connection.handle
         redshift_connector.connect.assert_called_once_with(
             iam=True,
-            database='dev',
-            cluster_identifier='my-testing-cluster',
-            credentials_provider='OktaCredentialsProvider',
-            user='someuser@myazure.org',
-            password='somepassword',
-            idp_host='my_idp_host',
-            app_id='my_first_appetizer',
-            app_name='dinner_party',
-            region='us-east-1'
+            database="dev",
+            cluster_identifier="my-testing-cluster",
+            credentials_provider="OktaCredentialsProvider",
+            user="someuser@myazure.org",
+            password="somepassword",
+            idp_host="my_idp_host",
+            app_id="my_first_appetizer",
+            app_name="dinner_party",
+            region="us-east-1",
         )
-
 
     @mock.patch("redshift_connector.connect", Mock())
     @mock.patch.dict(
@@ -372,7 +363,7 @@ class TestRedshiftAdapter(unittest.TestCase):
             database="",
             user="",
             region="us-east-1",
-            host=None
+            host=None,
         )
         connection = self.adapter.acquire_connection("dummy")
         connection.handle
@@ -400,12 +391,9 @@ class TestRedshiftAdapter(unittest.TestCase):
             auth_profile="",
         )
         with self.assertRaises(FailedToConnectError) as context:
-            connect_method_factory = RedshiftConnectMethodFactory(
-                self.config.credentials
-            )
+            connect_method_factory = RedshiftConnectMethodFactory(self.config.credentials)
             connect_method_factory.get_connect_method()
         self.assertTrue("'auth_profile' must be provided" in context.exception.msg)
-
 
     def test_iam_conn_optionals(self):
         profile_cfg = {
@@ -432,18 +420,14 @@ class TestRedshiftAdapter(unittest.TestCase):
         # we have to set method this way, otherwise it won't validate
         self.config.credentials.method = "badmethod"
         with self.assertRaises(FailedToConnectError) as context:
-            connect_method_factory = RedshiftConnectMethodFactory(
-                self.config.credentials
-            )
+            connect_method_factory = RedshiftConnectMethodFactory(self.config.credentials)
             connect_method_factory.get_connect_method()
         self.assertTrue("badmethod" in context.exception.msg)
 
     def test_invalid_iam_no_cluster_id(self):
         self.config.credentials = self.config.credentials.replace(method="iam")
         with self.assertRaises(FailedToConnectError) as context:
-            connect_method_factory = RedshiftConnectMethodFactory(
-                self.config.credentials
-            )
+            connect_method_factory = RedshiftConnectMethodFactory(self.config.credentials)
             connect_method_factory.get_connect_method()
 
         self.assertTrue("'cluster_id' must be provided" in context.exception.msg)
