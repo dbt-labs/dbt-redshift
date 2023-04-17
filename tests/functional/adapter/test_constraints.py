@@ -1,24 +1,33 @@
 import pytest
-from dbt.tests.util import relation_from_name
 from dbt.tests.adapter.constraints.test_constraints import (
     BaseTableConstraintsColumnsEqual,
     BaseViewConstraintsColumnsEqual,
-    BaseConstraintsRuntimeEnforcement
+    BaseIncrementalConstraintsColumnsEqual,
+    BaseConstraintsRuntimeDdlEnforcement,
+    BaseConstraintsRollback,
+    BaseIncrementalConstraintsRuntimeDdlEnforcement,
+    BaseIncrementalConstraintsRollback,
+    BaseModelConstraintsRuntimeEnforcement,
 )
 
 _expected_sql_redshift = """
-create table {0} (
-    id integer not null,
+create table <model_identifier> (
+    id integer not null primary key,
     color text,
-    date_day date,
-    primary key(id)
+    date_day text
 ) ;
-insert into {0}
+insert into <model_identifier>
 (
     select
-        1 as id,
-        'blue' as color,
-        cast('2019-01-01' as date) as date_day
+        id,
+        color,
+        date_day from
+    (
+        select
+            'blue' as color,
+            1 as id,
+            '2019-01-01' as date_day
+    ) as model_subq
 )
 ;
 """
@@ -38,26 +47,77 @@ class RedshiftColumnEqualSetup:
             ["true", "bool", "BOOL"],
             ["'2013-11-03 00:00:00-07'::timestamptz", "timestamptz", "TIMESTAMPTZ"],
             ["'2013-11-03 00:00:00-07'::timestamp", "timestamp", "TIMESTAMP"],
-            ["'1'::numeric", "numeric", "NUMERIC"]
+            ["'1'::numeric", "numeric", "NUMERIC"],
         ]
 
 
-class TestRedshiftTableConstraintsColumnsEqual(RedshiftColumnEqualSetup, BaseTableConstraintsColumnsEqual):
+class TestRedshiftTableConstraintsColumnsEqual(
+    RedshiftColumnEqualSetup, BaseTableConstraintsColumnsEqual
+):
     pass
 
 
-class TestRedshiftViewConstraintsColumnsEqual(RedshiftColumnEqualSetup, BaseViewConstraintsColumnsEqual):
+class TestRedshiftViewConstraintsColumnsEqual(
+    RedshiftColumnEqualSetup, BaseViewConstraintsColumnsEqual
+):
     pass
 
-class TestRedshiftConstraintsRuntimeEnforcement(BaseConstraintsRuntimeEnforcement):
+
+class TestRedshiftIncrementalConstraintsColumnsEqual(
+    RedshiftColumnEqualSetup, BaseIncrementalConstraintsColumnsEqual
+):
+    pass
+
+
+class TestRedshiftTableConstraintsRuntimeDdlEnforcement(BaseConstraintsRuntimeDdlEnforcement):
     @pytest.fixture(scope="class")
-    def expected_sql(self, project):
-        relation = relation_from_name(project.adapter, "my_model")
-        tmp_relation = relation.incorporate(
-            path={"identifier": relation.identifier + "__dbt_tmp"}
-        )
-        return _expected_sql_redshift.format(tmp_relation)
-    
+    def expected_sql(self):
+        return _expected_sql_redshift
+
+
+class TestRedshiftTableConstraintsRollback(BaseConstraintsRollback):
     @pytest.fixture(scope="class")
     def expected_error_messages(self):
-        return ['Cannot insert a NULL value into column id']
+        return ["Cannot insert a NULL value into column id"]
+
+
+class TestRedshiftIncrementalConstraintsRuntimeDdlEnforcement(
+    BaseIncrementalConstraintsRuntimeDdlEnforcement
+):
+    @pytest.fixture(scope="class")
+    def expected_sql(self):
+        return _expected_sql_redshift
+
+
+class TestRedshiftIncrementalConstraintsRollback(BaseIncrementalConstraintsRollback):
+    @pytest.fixture(scope="class")
+    def expected_error_messages(self):
+        return ["Cannot insert a NULL value into column id"]
+
+
+class TestRedshiftModelConstraintsRuntimeEnforcement(BaseModelConstraintsRuntimeEnforcement):
+    @pytest.fixture(scope="class")
+    def expected_sql(self):
+        return """
+create table <model_identifier> (
+    id integer not null,
+    color text,
+    date_day text,
+    primary key (id),
+    constraint strange_uniqueness_requirement unique (color, date_day)
+) ;
+insert into <model_identifier>
+(
+    select
+        id,
+        color,
+        date_day from
+    (
+        select
+            1 as id,
+            'blue' as color,
+            '2019-01-01' as date_day
+    ) as model_subq
+)
+;
+"""

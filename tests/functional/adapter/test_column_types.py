@@ -1,7 +1,7 @@
 import pytest
 from dbt.tests.adapter.column_types.test_column_types import BaseColumnTypes
 
-_MODEL_SQL =  """
+_MODEL_SQL = """
 select
     1::smallint as smallint_col,
     2::int as int_col,
@@ -46,14 +46,11 @@ models:
             text_col: ['string', 'not number']
 """
 
-class TestRedshiftColumnTypes(BaseColumnTypes):
 
+class TestRedshiftColumnTypes(BaseColumnTypes):
     @pytest.fixture(scope="class")
     def models(self):
-        return {
-            "model.sql": _MODEL_SQL,
-            "schema.yml": _SCHEMA_YML
-        }
+        return {"model.sql": _MODEL_SQL, "schema.yml": _SCHEMA_YML}
 
     def test_run_and_test(self, project):
         self.run_and_test()

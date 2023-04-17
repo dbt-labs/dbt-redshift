@@ -4,7 +4,6 @@ from unittest import mock
 from unittest.mock import Mock, call
 
 import agate
-import boto3
 import dbt
 import redshift_connector
 
@@ -114,9 +113,7 @@ class TestRedshiftAdapter(unittest.TestCase):
     @mock.patch("redshift_connector.connect", Mock())
     def test_explicit_iam_conn_without_profile(self):
         self.config.credentials = self.config.credentials.replace(
-            method="iam",
-            cluster_id="my_redshift",
-            host="thishostshouldnotexist.test.us-east-1",
+            method="iam", cluster_id="my_redshift", host="thishostshouldnotexist.test.us-east-1"
         )
         connection = self.adapter.acquire_connection("dummy")
         connection.handle
@@ -409,6 +406,7 @@ class TestRedshiftAdapter(unittest.TestCase):
             connect_method_factory.get_connect_method()
         self.assertTrue("'auth_profile' must be provided" in context.exception.msg)
 
+
     def test_iam_conn_optionals(self):
         profile_cfg = {
             "outputs": {
@@ -477,10 +475,7 @@ class TestRedshiftAdapter(unittest.TestCase):
 
             self.assertEqual(len(list(self.adapter.cancel_open_connections())), 1)
             add_query.assert_has_calls(
-                [
-                    call("select pg_backend_pid()"),
-                    call("select pg_terminate_backend(42)"),
-                ]
+                [call("select pg_backend_pid()"), call("select pg_terminate_backend(42)")]
             )
 
         master.handle.get_backend_pid.assert_not_called()
@@ -526,17 +521,13 @@ class TestRedshiftAdapter(unittest.TestCase):
                 None,
                 cursor,
             )  # when mock_add_query is called, it will always return None, cursor
-            with mock.patch.object(
-                    self.adapter.connections, "get_response"
-            ) as mock_get_response:
+            with mock.patch.object(self.adapter.connections, "get_response") as mock_get_response:
                 mock_get_response.return_value = None
                 with mock.patch.object(
-                        self.adapter.connections, "get_result_from_cursor"
+                    self.adapter.connections, "get_result_from_cursor"
                 ) as mock_get_result_from_cursor:
                     mock_get_result_from_cursor.return_value = table
-                    self.adapter.connections.execute(
-                        sql="select * from test", fetch=True
-                    )
+                    self.adapter.connections.execute(sql="select * from test", fetch=True)
         mock_add_query.assert_called_once_with("select * from test", False)
         mock_get_result_from_cursor.assert_called_once_with(cursor)
         mock_get_response.assert_called_once_with(cursor)
@@ -548,27 +539,23 @@ class TestRedshiftAdapter(unittest.TestCase):
                 None,
                 cursor,
             )  # when mock_add_query is called, it will always return None, cursor
-            with mock.patch.object(
-                    self.adapter.connections, "get_response"
-            ) as mock_get_response:
+            with mock.patch.object(self.adapter.connections, "get_response") as mock_get_response:
                 mock_get_response.return_value = None
                 with mock.patch.object(
-                        self.adapter.connections, "get_result_from_cursor"
+                    self.adapter.connections, "get_result_from_cursor"
                 ) as mock_get_result_from_cursor:
-                    self.adapter.connections.execute(
-                        sql="select * from test2", fetch=False
-                    )
+                    self.adapter.connections.execute(sql="select * from test2", fetch=False)
         mock_add_query.assert_called_once_with("select * from test2", False)
         mock_get_result_from_cursor.assert_not_called()
         mock_get_response.assert_called_once_with(cursor)
 
     def test_add_query_with_no_cursor(self):
         with mock.patch.object(
-                self.adapter.connections, "get_thread_connection"
+            self.adapter.connections, "get_thread_connection"
         ) as mock_get_thread_connection:
             mock_get_thread_connection.return_value = None
             with self.assertRaisesRegex(
-                    dbt.exceptions.DbtRuntimeError, "Tried to run invalid SQL:  on <None>"
+                dbt.exceptions.DbtRuntimeError, "Tried to run invalid SQL:  on <None>"
             ):
                 self.adapter.connections.add_query(sql="")
         mock_get_thread_connection.assert_called_once()
@@ -576,7 +563,7 @@ class TestRedshiftAdapter(unittest.TestCase):
     def test_add_query_success(self):
         cursor = mock.Mock()
         with mock.patch.object(
-                dbt.adapters.redshift.connections.SQLConnectionManager, "add_query"
+            dbt.adapters.redshift.connections.SQLConnectionManager, "add_query"
         ) as mock_add_query:
             mock_add_query.return_value = None, cursor
             self.adapter.connections.add_query("select * from test3")
