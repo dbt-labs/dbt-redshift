@@ -1,6 +1,0 @@
-kind: Features
-body: Enforce contracts on models materialized as tables and views
-time: 2023-03-01T11:35:53.98885-05:00
-custom:
-  Author: peterallenwebb emmyoop
-  Issue: 319 340
