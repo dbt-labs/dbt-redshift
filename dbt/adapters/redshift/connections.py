@@ -55,11 +55,12 @@ class RedshiftCredentials(Credentials):
     iam_profile: Optional[str] = None
     autocreate: bool = False
     db_groups: List[str] = field(default_factory=list)
-    ra3_node: Optional[bool] = False
     connect_timeout: int = 30
+    ra3_node: Optional[bool] = False
     role: Optional[str] = None
     sslmode: Optional[str] = None
     retries: int = 1
+    current_db_only: Optional[bool] = False
 
     _ALIASES = {"dbname": "database", "pass": "password"}
 
@@ -101,6 +102,7 @@ class RedshiftConnectMethodFactory:
             "db_groups": self.credentials.db_groups,
             "region": self.credentials.host.split(".")[2],
             "timeout": self.credentials.connect_timeout,
+            "database_metadata_current_db_only": self.credentials.current_db_only,
         }
         if self.credentials.sslmode:
             kwargs["sslmode"] = self.credentials.sslmode
