@@ -180,7 +180,7 @@ class TestRedshiftAdapter(unittest.TestCase):
             method="iam",
             iam_profile="test",
             host="doesnotexist.1233.redshift-serverless.amazonaws.com",
-            region="us-east-3",
+            region="us-east-2",
         )
         connection = self.adapter.acquire_connection("dummy")
         connection.handle
@@ -189,7 +189,7 @@ class TestRedshiftAdapter(unittest.TestCase):
             host="doesnotexist.1233.redshift-serverless.amazonaws.com",
             database="redshift",
             cluster_identifier=None,
-            region="us-east-3",
+            region="us-east-2",
             auto_create=False,
             db_groups=[],
             db_user="root",
