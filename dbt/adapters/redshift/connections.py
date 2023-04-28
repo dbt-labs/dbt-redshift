@@ -86,7 +86,6 @@ class RedshiftCredentials(Credentials):
         return self.host
 
 
-# TODO: Move this to the redshift connector
 def _get_aws_regions():
     url = "https://ip-ranges.amazonaws.com/ip-ranges.json"
     response = urllib.request.urlopen(url)
@@ -126,7 +125,8 @@ class RedshiftConnectMethodFactory:
                 region_value = self.credentials.host.split(".")[2]
             except IndexError:
                 raise dbt.exceptions.FailedToConnectError(
-                    "Unable to determine region from host: " "{}".format(self.credentials.host)
+                    "No region provided and unable to determine region from host: "
+                    "{}".format(self.credentials.host)
                 )
 
             kwargs["region"] = region_value
@@ -134,7 +134,7 @@ class RedshiftConnectMethodFactory:
         # Validate the set region
         if not kwargs["region"] in _AVAILABLE_AWS_REGIONS:
             raise dbt.exceptions.FailedToConnectError(
-                "Invalid region provided: " "{}".format(kwargs["region"])
+                "Invalid region provided: {}".format(kwargs["region"])
             )
 
         if self.credentials.sslmode:
