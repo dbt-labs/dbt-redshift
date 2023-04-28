@@ -102,6 +102,13 @@ def _get_aws_regions():
 _AVAILABLE_AWS_REGIONS = _get_aws_regions()
 
 
+def _is_valid_region(region):
+    if region is None or len(region) == 0:
+        logger.warning("Couldn't determine AWS regions. Skipping validation to avoid blocking.")
+        return True
+    return region in _AVAILABLE_AWS_REGIONS
+
+
 class RedshiftConnectMethodFactory:
     credentials: RedshiftCredentials
 
@@ -132,7 +139,7 @@ class RedshiftConnectMethodFactory:
             kwargs["region"] = region_value
 
         # Validate the set region
-        if not kwargs["region"] in _AVAILABLE_AWS_REGIONS:
+        if not _is_valid_region(kwargs["region"]):
             raise dbt.exceptions.FailedToConnectError(
                 "Invalid region provided: {}".format(kwargs["region"])
             )
