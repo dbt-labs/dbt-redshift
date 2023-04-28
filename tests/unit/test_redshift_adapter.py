@@ -176,6 +176,7 @@ class TestRedshiftAdapter(unittest.TestCase):
     @mock.patch("redshift_connector.connect", Mock())
     @mock.patch("boto3.Session", Mock())
     def test_explicit_region(self):
+        # Successful test
         self.config.credentials = self.config.credentials.replace(
             method="iam",
             iam_profile="test",
@@ -203,7 +204,7 @@ class TestRedshiftAdapter(unittest.TestCase):
     @mock.patch("redshift_connector.connect", Mock())
     @mock.patch("boto3.Session", Mock())
     def test_explicit_region_failure(self):
-        # Failure cases
+        # Failure test with no region
         self.config.credentials = self.config.credentials.replace(
             method="iam",
             iam_profile="test",
@@ -232,7 +233,7 @@ class TestRedshiftAdapter(unittest.TestCase):
     @mock.patch("redshift_connector.connect", Mock())
     @mock.patch("boto3.Session", Mock())
     def test_explicit_invalid_region(self):
-        # Failure cases
+        # Invalid region test
         self.config.credentials = self.config.credentials.replace(
             method="iam",
             iam_profile="test",
