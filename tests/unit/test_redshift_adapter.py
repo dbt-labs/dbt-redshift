@@ -97,7 +97,9 @@ class TestRedshiftAdapter(unittest.TestCase):
     @mock.patch("redshift_connector.connect", Mock())
     def test_explicit_iam_conn_without_profile(self):
         self.config.credentials = self.config.credentials.replace(
-            method="iam", cluster_id="my_redshift", host="thishostshouldnotexist.test.us-east-1"
+            method="iam",
+            cluster_id="my_redshift",
+            host="thishostshouldnotexist.test.us-east-1",
         )
         connection = self.adapter.acquire_connection("dummy")
         connection.handle
@@ -170,6 +172,91 @@ class TestRedshiftAdapter(unittest.TestCase):
             timeout=30,
             port=5439,
         )
+
+    @mock.patch("redshift_connector.connect", Mock())
+    @mock.patch("boto3.Session", Mock())
+    def test_explicit_region(self):
+        self.config.credentials = self.config.credentials.replace(
+            method="iam",
+            iam_profile="test",
+            host="doesnotexist.1233.redshift-serverless.amazonaws.com",
+            region="us-east-3",
+        )
+        connection = self.adapter.acquire_connection("dummy")
+        connection.handle
+        redshift_connector.connect.assert_called_once_with(
+            iam=True,
+            host="doesnotexist.1233.redshift-serverless.amazonaws.com",
+            database="redshift",
+            cluster_identifier=None,
+            region="us-east-3",
+            auto_create=False,
+            db_groups=[],
+            db_user="root",
+            password="",
+            user="",
+            profile="test",
+            timeout=30,
+            port=5439,
+        )
+
+    @mock.patch("redshift_connector.connect", Mock())
+    @mock.patch("boto3.Session", Mock())
+    def test_explicit_region_failure(self):
+        # Failure cases
+        self.config.credentials = self.config.credentials.replace(
+            method="iam",
+            iam_profile="test",
+            host="doesnotexist.1233_no_region",
+            region=None,
+        )
+
+        with self.assertRaises(dbt.exceptions.FailedToConnectError):
+            connection = self.adapter.acquire_connection("dummy")
+            connection.handle
+            redshift_connector.connect.assert_called_once_with(
+                iam=True,
+                host="doesnotexist.1233_no_region",
+                database="redshift",
+                cluster_identifier=None,
+                auto_create=False,
+                db_groups=[],
+                db_user="root",
+                password="",
+                user="",
+                profile="test",
+                timeout=30,
+                port=5439,
+            )
+
+    @mock.patch("redshift_connector.connect", Mock())
+    @mock.patch("boto3.Session", Mock())
+    def test_explicit_invalid_region(self):
+        # Failure cases
+        self.config.credentials = self.config.credentials.replace(
+            method="iam",
+            iam_profile="test",
+            host="doesnotexist.1233_no_region.us-not-a-region-1",
+            region=None,
+        )
+
+        with self.assertRaises(dbt.exceptions.FailedToConnectError):
+            connection = self.adapter.acquire_connection("dummy")
+            connection.handle
+            redshift_connector.connect.assert_called_once_with(
+                iam=True,
+                host="doesnotexist.1233_no_region",
+                database="redshift",
+                cluster_identifier=None,
+                auto_create=False,
+                db_groups=[],
+                db_user="root",
+                password="",
+                user="",
+                profile="test",
+                timeout=30,
+                port=5439,
+            )
 
     @mock.patch("redshift_connector.connect", Mock())
     @mock.patch("boto3.Session", Mock())
@@ -263,7 +350,10 @@ class TestRedshiftAdapter(unittest.TestCase):
 
             self.assertEqual(len(list(self.adapter.cancel_open_connections())), 1)
             add_query.assert_has_calls(
-                [call("select pg_backend_pid()"), call("select pg_terminate_backend(42)")]
+                [
+                    call("select pg_backend_pid()"),
+                    call("select pg_terminate_backend(42)"),
+                ]
             )
 
         master.handle.get_backend_pid.assert_not_called()
