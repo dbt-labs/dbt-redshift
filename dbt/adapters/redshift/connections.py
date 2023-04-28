@@ -35,6 +35,23 @@ class IAMDurationEncoder(FieldEncoder):
 dbtClassMixin.register_field_encoders({IAMDuration: IAMDurationEncoder()})
 
 
+def _get_aws_regions():
+    # Extract the prefixes from the AWS IP ranges JSON to determine the available regions
+    url = "https://ip-ranges.amazonaws.com/ip-ranges.json"
+    response = urllib.request.urlopen(url)
+    data = json.loads(response.read().decode())
+    regions = set()
+
+    for prefix in data["prefixes"]:
+        if prefix["service"] == "AMAZON":
+            regions.add(prefix["region"])
+
+    return regions
+
+
+_AVAILABLE_AWS_REGIONS = _get_aws_regions()
+
+
 class RedshiftConnectionMethod(StrEnum):
     DATABASE = "database"
     IAM = "iam"
@@ -84,22 +101,6 @@ class RedshiftCredentials(Credentials):
     @property
     def unique_field(self) -> str:
         return self.host
-
-
-def _get_aws_regions():
-    url = "https://ip-ranges.amazonaws.com/ip-ranges.json"
-    response = urllib.request.urlopen(url)
-    data = json.loads(response.read().decode())
-    regions = set()
-
-    for prefix in data["prefixes"]:
-        if prefix["service"] == "AMAZON":
-            regions.add(prefix["region"])
-
-    return regions
-
-
-_AVAILABLE_AWS_REGIONS = _get_aws_regions()
 
 
 def _is_valid_region(region):
