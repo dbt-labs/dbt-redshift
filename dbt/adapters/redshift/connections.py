@@ -100,15 +100,14 @@ def _get_aws_regions():
     return regions
 
 
+_AVAILABLE_AWS_REGIONS = _get_aws_regions()
+
+
 class RedshiftConnectMethodFactory:
     credentials: RedshiftCredentials
 
     def __init__(self, credentials):
         self.credentials = credentials
-        self.valid_aws_regions = _get_aws_regions()
-
-    def _is_valid_region(self, region_value):
-        return region_value in self.valid_aws_regions
 
     def get_connect_method(self):
         method = self.credentials.method
@@ -133,7 +132,7 @@ class RedshiftConnectMethodFactory:
             kwargs["region"] = region_value
 
         # Validate the set region
-        if not self._is_valid_region(region_value=kwargs["region"]):
+        if not kwargs["region"] in _AVAILABLE_AWS_REGIONS:
             raise dbt.exceptions.FailedToConnectError(
                 "Invalid region provided: " "{}".format(kwargs["region"])
             )
