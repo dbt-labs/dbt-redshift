@@ -7,6 +7,8 @@ from dataclasses import dataclass, field
 import agate
 import sqlparse
 import redshift_connector
+import urllib.request
+import json
 from redshift_connector.utils.oids import get_datatype_name
 
 from dbt.adapters.sql import SQLConnectionManager
@@ -36,6 +38,23 @@ class IAMDurationEncoder(FieldEncoder):
 dbtClassMixin.register_field_encoders({IAMDuration: IAMDurationEncoder()})
 
 
+def _get_aws_regions():
+    # Extract the prefixes from the AWS IP ranges JSON to determine the available regions
+    url = "https://ip-ranges.amazonaws.com/ip-ranges.json"
+    response = urllib.request.urlopen(url)
+    data = json.loads(response.read().decode())
+    regions = set()
+
+    for prefix in data["prefixes"]:
+        if prefix["service"] == "AMAZON":
+            regions.add(prefix["region"])
+
+    return regions
+
+
+_AVAILABLE_AWS_REGIONS = _get_aws_regions()
+
+
 class RedshiftConnectionMethod(StrEnum):
     DATABASE = "database"
     IAM = "iam"
@@ -55,11 +74,12 @@ class RedshiftCredentials(Credentials):
     iam_profile: Optional[str] = None
     autocreate: bool = False
     db_groups: List[str] = field(default_factory=list)
-    connect_timeout: int = 30
     ra3_node: Optional[bool] = False
+    connect_timeout: int = 30
     role: Optional[str] = None
     sslmode: Optional[str] = None
     retries: int = 1
+    region: Optional[str] = None  # if not provided, will be determined from host
     current_db_only: Optional[bool] = False
 
     _ALIASES = {"dbname": "database", "pass": "password"}
@@ -79,11 +99,19 @@ class RedshiftCredentials(Credentials):
             "cluster_id",
             "iam_profile",
             "sslmode",
+            "region",
         )
 
     @property
     def unique_field(self) -> str:
         return self.host
+
+
+def _is_valid_region(region):
+    if region is None or len(region) == 0:
+        logger.warning("Couldn't determine AWS regions. Skipping validation to avoid blocking.")
+        return True
+    return region in _AVAILABLE_AWS_REGIONS
 
 
 class RedshiftConnectMethodFactory:
@@ -100,10 +128,28 @@ class RedshiftConnectMethodFactory:
             "port": self.credentials.port if self.credentials.port else 5439,
             "auto_create": self.credentials.autocreate,
             "db_groups": self.credentials.db_groups,
-            "region": self.credentials.host.split(".")[2],
+            "region": self.credentials.region,
             "timeout": self.credentials.connect_timeout,
             "database_metadata_current_db_only": self.credentials.current_db_only,
         }
+        if kwargs["region"] is None:
+            logger.debug("No region provided, attempting to determine from host.")
+            try:
+                region_value = self.credentials.host.split(".")[2]
+            except IndexError:
+                raise dbt.exceptions.FailedToConnectError(
+                    "No region provided and unable to determine region from host: "
+                    "{}".format(self.credentials.host)
+                )
+
+            kwargs["region"] = region_value
+
+        # Validate the set region
+        if not _is_valid_region(kwargs["region"]):
+            raise dbt.exceptions.FailedToConnectError(
+                "Invalid region provided: {}".format(kwargs["region"])
+            )
+
         if self.credentials.sslmode:
             kwargs["sslmode"] = self.credentials.sslmode
 
@@ -119,7 +165,9 @@ class RedshiftConnectMethodFactory:
             def connect():
                 logger.debug("Connecting to redshift with username/password based auth...")
                 c = redshift_connector.connect(
-                    user=self.credentials.user, password=self.credentials.password, **kwargs
+                    user=self.credentials.user,
+                    password=self.credentials.password,
+                    **kwargs,
                 )
                 if self.credentials.role:
                     c.cursor().execute("set role {}".format(self.credentials.role))
