@@ -139,7 +139,7 @@ class RedshiftAdapter(SQLAdapter):
         quote_policy = {"database": True, "schema": True, "identifier": True}
         for _database, _schema, name, _type in results:
             try:
-                _type = self.Relation.get_relation_type(_type)
+                _type = self.Relation.get_relation_type(_type.lower())
             except ValueError:
                 _type = self.Relation.External
             relations.append(
