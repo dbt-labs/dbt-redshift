@@ -228,6 +228,7 @@
   {{ return(postgres__list_relations_without_caching(schema_relation)) }}
 {% endmacro %}
 
+
 {% macro redshift__information_schema_name(database) -%}
   {{ return(postgres__information_schema_name(database)) }}
 {%- endmacro %}
