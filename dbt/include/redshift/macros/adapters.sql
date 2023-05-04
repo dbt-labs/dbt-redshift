@@ -198,61 +198,12 @@
 
     ),
 
-    inbound_datashare as (
-      select object_name
-        from svv_datashare_objects
-        where share_type = 'INBOUND'
-        and   object_type in ('table', 'view', 'materialized view', 'late binding view')
-        and   object_name = '{{ relation.schema }}' || '.' || '{{ relation.identifier }}'
-    ),
-
-
-
-    data_share_columns as (
-      select
-        ordinal_position as columnnum,
-        schema_name as schemaname,
-        column_name as columnname,
-        case
-          when data_type ilike 'character varying%' then
-            'character varying'
-          when data_type ilike 'numeric%' then 'numeric'
-          else data_type
-        end as col_type,
-        case
-          when data_type like 'character%'
-          then nullif(REGEXP_SUBSTR(character_maximum_length, '[0-9]+'), '')::int
-          else null
-        end as character_maximum_length,
-        case
-          when data_type like 'numeric%' or data_type ilike 'integer%'
-          then nullif(
-            SPLIT_PART(REGEXP_SUBSTR(numeric_precision, '[0-9,]+'), ',', 1),
-            '')::int
-        end as numeric_precision,
-        case
-          when data_type like 'numeric%' or data_type ilike 'integer%'
-          then nullif(
-            SPLIT_PART(REGEXP_SUBSTR(numeric_scale, '[0-9,]+'), ',', 2),
-            '')::int
-          else null
-        end as numeric_scale
-      from svv_all_columns
-      inner join inbound_datashare on
-        inbound_datashare.object_name = svv_all_columns.schema_name || '.' || svv_all_columns.table_name
-      where svv_all_columns.table_name = '{{ relation.identifier }}'
-      and svv_all_columns.schema_name = '{{ relation.schema }}'
-      and svv_all_columns.database_name = '{{ relation.database }}'
-    ),
-
     unioned as (
       select * from bound_views
       union all
       select * from unbound_views
       union all
       select * from external_views
-      union all
-      select * from data_share_columns
     )
 
     select
@@ -274,28 +225,8 @@
 
 
 {% macro redshift__list_relations_without_caching(schema_relation) %}
-  {% call statement('list_relations_without_caching', fetch_result=True) -%}
-    select
-      database_name as database,
-      table_name as name,
-      schema_name as schema,
-      LOWER(table_type) as type
-    from SVV_REDSHIFT_TABLES
-    where schema_name ilike '{{ schema_relation.schema }}'
-    and database_name ilike '{{ schema_relation.database }}'
-    and table_type IN ('TABLE','VIEW')
-    union all
-    select
-      '{{ schema_relation.database }}' as database,
-      tablename as name,
-      schemaname as schema,
-      'external_tables' as type
-    from SVV_EXTERNAL_TABLES
-    where schemaname ilike '{{ schema_relation.schema }}'
-  {% endcall %}
-  {{ return(load_result('list_relations_without_caching').table) }}
+  {{ return(postgres__list_relations_without_caching(schema_relation)) }}
 {% endmacro %}
-
 
 {% macro redshift__information_schema_name(database) -%}
   {{ return(postgres__information_schema_name(database)) }}
