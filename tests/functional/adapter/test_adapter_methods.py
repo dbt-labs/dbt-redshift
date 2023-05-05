@@ -72,7 +72,7 @@ select 0 as valid_type
 class RedshiftAdapterMethod:
     @pytest.fixture(scope="class")
     def tests(self):
-        return {"get_relation_sql.sql": tests__get_relation_invalid}
+        return {"get_relation_invalid.sql": tests__get_relation_invalid}
 
     @pytest.fixture(scope="class")
     def models(self):
