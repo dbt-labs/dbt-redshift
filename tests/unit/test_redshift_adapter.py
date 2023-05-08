@@ -33,6 +33,7 @@ class TestRedshiftAdapter(unittest.TestCase):
                     "pass": "password",
                     "port": 5439,
                     "schema": "public",
+                    "connect_timeout": 30,
                 }
             },
             "target": "test",
