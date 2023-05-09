@@ -408,7 +408,7 @@ class TestRedshiftAdapter(unittest.TestCase):
                     mock_get_result_from_cursor.return_value = table
                     self.adapter.connections.execute(sql="select * from test", fetch=True)
         mock_add_query.assert_called_once_with("select * from test", False)
-        mock_get_result_from_cursor.assert_called_once_with(cursor)
+        mock_get_result_from_cursor.assert_called_once_with(cursor, None)
         mock_get_response.assert_called_once_with(cursor)
 
     def test_execute_without_fetch(self):
