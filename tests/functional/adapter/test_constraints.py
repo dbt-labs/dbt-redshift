@@ -8,6 +8,7 @@ from dbt.tests.adapter.constraints.test_constraints import (
     BaseIncrementalConstraintsRuntimeDdlEnforcement,
     BaseIncrementalConstraintsRollback,
     BaseModelConstraintsRuntimeEnforcement,
+    BaseConstraintQuotedColumn,
 )
 
 _expected_sql_redshift = """
@@ -121,3 +122,7 @@ insert into <model_identifier>
 )
 ;
 """
+
+
+class TestRedshiftConstraintQuotedColumn(BaseConstraintQuotedColumn):
+    pass
