@@ -146,7 +146,33 @@ class RedshiftConnectMethodFactory:
             )
 
         if self.credentials.sslmode:
-            kwargs["sslmode"] = self.credentials.sslmode
+            if self.credentials.sslmode.lower() == "disable":
+                kwargs["ssl"] = False
+                logger.debug("Establishing connection without ssl.")
+            elif (
+                self.credentials.sslmode.lower() == "allow"
+                or self.credentials.sslmode.lower() == "prefer"
+            ):
+                kwargs["sslmode"] = "verify-ca"
+                logger.warning(
+                    "Establishing connection using ssl with sslmode set to 'verify-ca'. "
+                    "To connect without ssl, set sslmode to 'disable'."
+                )
+            elif (
+                self.credentials.sslmode.lower() == "verify-ca"
+                or self.credentials.sslmode.lower() == "verify-full"
+                or self.credentials.sslmode.lower() == "require"
+            ):
+                kwargs["sslmode"] = self.credentials.sslmode
+            else:
+                kwargs["sslmode"] = "verify-ca"
+                logger.warning(
+                    "Invalid sslmode provided. Supported values are 'disable', "
+                    "'allow', 'prefer', 'require', 'verify-ca', 'verify-full'. Using 'verify-ca' to connect."
+                )
+
+        # if self.credentials.ssl:
+        #     kwargs["ssl"] = self.credentials.ssl
 
         # Support missing 'method' for backwards compatibility
         if method == RedshiftConnectionMethod.DATABASE or method is None:
