@@ -110,6 +110,36 @@ def _is_valid_region(region):
     return region in _AVAILABLE_AWS_REGIONS
 
 
+def _translate_sslmode(sslmode_input):
+    sslmode_input = sslmode_input.lower()
+    args = {"ssl": True}
+    warning_msg = None
+    if sslmode_input == "disable":
+        args["ssl"] = False
+        args["sslmode"] = None
+        warning_msg = "Establishing connection without ssl."
+    elif sslmode_input == "allow" or sslmode_input == "prefer":
+        args["sslmode"] = "verify-ca"
+        warning_msg = (
+            "Establishing connection using ssl with sslmode set to 'verify-ca'. "
+            "To connect without ssl, set sslmode to 'disable'."
+        )
+
+    elif (
+        sslmode_input == "verify-ca"
+        or sslmode_input == "verify-full"
+        or sslmode_input == "require"
+    ):
+        args["sslmode"] = sslmode_input
+    else:
+        args["sslmode"] = "verify-ca"
+        warning_msg = (
+            "Invalid sslmode provided. Establishing connection using ssl with sslmode set to 'verify-ca'."
+            " Supported values are 'disable', 'allow', 'prefer', 'require', 'verify-ca', 'verify-full'."
+        )
+    return args, warning_msg
+
+
 class RedshiftConnectMethodFactory:
     credentials: RedshiftCredentials
 
@@ -146,33 +176,11 @@ class RedshiftConnectMethodFactory:
             )
 
         if self.credentials.sslmode:
-            if self.credentials.sslmode.lower() == "disable":
-                kwargs["ssl"] = False
-                logger.debug("Establishing connection without ssl.")
-            elif (
-                self.credentials.sslmode.lower() == "allow"
-                or self.credentials.sslmode.lower() == "prefer"
-            ):
-                kwargs["sslmode"] = "verify-ca"
-                logger.warning(
-                    "Establishing connection using ssl with sslmode set to 'verify-ca'. "
-                    "To connect without ssl, set sslmode to 'disable'."
-                )
-            elif (
-                self.credentials.sslmode.lower() == "verify-ca"
-                or self.credentials.sslmode.lower() == "verify-full"
-                or self.credentials.sslmode.lower() == "require"
-            ):
-                kwargs["sslmode"] = self.credentials.sslmode
-            else:
-                kwargs["sslmode"] = "verify-ca"
-                logger.warning(
-                    "Invalid sslmode provided. Supported values are 'disable', "
-                    "'allow', 'prefer', 'require', 'verify-ca', 'verify-full'. Using 'verify-ca' to connect."
-                )
-
-        # if self.credentials.ssl:
-        #     kwargs["ssl"] = self.credentials.ssl
+            ssl_args, warning_msg = _translate_sslmode(self.credentials.sslmode)
+            if warning_msg is not None:
+                logger.warning(warning_msg)
+            kwargs["ssl"] = ssl_args["ssl"]
+            kwargs["sslmode"] = ssl_args["sslmode"]
 
         # Support missing 'method' for backwards compatibility
         if method == RedshiftConnectionMethod.DATABASE or method is None:
