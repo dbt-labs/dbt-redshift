@@ -74,6 +74,8 @@ class TestRedshiftAdapter(unittest.TestCase):
             db_groups=[],
             timeout=None,
             region="us-east-1",
+            ssl=True,
+            sslmode="verify-ca",
         )
 
     @mock.patch("redshift_connector.connect", Mock())
@@ -92,6 +94,8 @@ class TestRedshiftAdapter(unittest.TestCase):
             db_groups=[],
             region="us-east-1",
             timeout=None,
+            ssl=True,
+            sslmode="verify-ca",
         )
 
     @mock.patch("redshift_connector.connect", Mock())
@@ -134,6 +138,8 @@ class TestRedshiftAdapter(unittest.TestCase):
             db_groups=[],
             region="us-east-1",
             timeout=30,
+            ssl=True,
+            sslmode="verify-ca",
         )
 
     @mock.patch("redshift_connector.connect", Mock())
@@ -162,6 +168,8 @@ class TestRedshiftAdapter(unittest.TestCase):
             profile="test",
             timeout=None,
             port=5439,
+            ssl=True,
+            sslmode="verify-ca",
         )
 
     @mock.patch("redshift_connector.connect", Mock())
@@ -188,6 +196,8 @@ class TestRedshiftAdapter(unittest.TestCase):
             profile="test",
             timeout=None,
             port=5439,
+            ssl=True,
+            sslmode="verify-ca",
         )
 
     @mock.patch("redshift_connector.connect", Mock())
@@ -216,6 +226,8 @@ class TestRedshiftAdapter(unittest.TestCase):
             profile="test",
             timeout=None,
             port=5439,
+            ssl=True,
+            sslmode="verify-ca",
         )
 
     @mock.patch("redshift_connector.connect", Mock())
@@ -245,6 +257,8 @@ class TestRedshiftAdapter(unittest.TestCase):
                 profile="test",
                 timeout=None,
                 port=5439,
+                ssl=True,
+                sslmode="verify-ca",
             )
 
     @mock.patch("redshift_connector.connect", Mock())
@@ -274,6 +288,8 @@ class TestRedshiftAdapter(unittest.TestCase):
                 profile="test",
                 timeout=None,
                 port=5439,
+                ssl=True,
+                sslmode="verify-ca",
             )
 
     @mock.patch("redshift_connector.connect", Mock())
@@ -396,6 +412,8 @@ class TestRedshiftAdapter(unittest.TestCase):
                 profile="test",
                 port=5439,
                 timeout=None,
+                ssl=True,
+                sslmode="verify-ca",
             )
         self.assertTrue("'host' must be provided" in context.exception.msg)
 
