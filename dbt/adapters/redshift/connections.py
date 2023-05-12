@@ -113,31 +113,32 @@ def _is_valid_region(region):
 
 def _translate_sslmode(sslmode_input):
     sslmode_input = sslmode_input.lower()
-    args = {"ssl": True}
-    warning_msg = None
+    args = {"ssl": True, "sslmode": "verify-ca"}
+    warning_msg = (
+        "Establishing connection using ssl with sslmode set to 'verify-ca'."
+        "To connect without ssl, set sslmode to 'disable'."
+    )
     if sslmode_input == "disable":
         args["ssl"] = False
         args["sslmode"] = None
         warning_msg = "Establishing connection without ssl."
-    elif sslmode_input == "allow" or sslmode_input == "prefer":
-        args["sslmode"] = "verify-ca"
-        warning_msg = (
-            "Establishing connection using ssl with sslmode set to 'verify-ca'. "
-            "To connect without ssl, set sslmode to 'disable'."
-        )
-
     elif (
         sslmode_input == "verify-ca"
         or sslmode_input == "verify-full"
         or sslmode_input == "require"
     ):
         args["sslmode"] = sslmode_input
-    else:
+        warning_msg = None
+    elif sslmode_input == "none":
+        args["sslmode"] = "verify-ca"
+    elif sslmode_input != "allow" and sslmode_input != "prefer":
         args["sslmode"] = "verify-ca"
         warning_msg = (
-            "Invalid sslmode provided. Establishing connection using ssl with sslmode set to 'verify-ca'."
-            " Supported values are 'disable', 'allow', 'prefer', 'require', 'verify-ca', 'verify-full'."
+            "Redshift adapter: Invalid sslmode provided. Establishing connection using ssl with "
+            "sslmode set to 'verify-ca'. Supported values are 'disable', 'allow', 'prefer', 'require', "
+            "'verify-ca', 'verify-full'."
         )
+
     return args, warning_msg
 
 
@@ -178,10 +179,16 @@ class RedshiftConnectMethodFactory:
 
         if self.credentials.sslmode:
             ssl_args, warning_msg = _translate_sslmode(self.credentials.sslmode)
+            logger.warning((self.credentials.sslmode).lower())
             if warning_msg is not None:
                 logger.warning(warning_msg)
             kwargs["ssl"] = ssl_args["ssl"]
             kwargs["sslmode"] = ssl_args["sslmode"]
+        elif self.credentials.sslmode is None:
+            logger.warning(
+                "Establishing connection using ssl with sslmode set to 'verify-ca'. "
+                "To connect without ssl, set sslmode to 'disable'."
+            )
 
         # Support missing 'method' for backwards compatibility
         if method == RedshiftConnectionMethod.DATABASE or method is None:
