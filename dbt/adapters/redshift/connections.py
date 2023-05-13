@@ -10,6 +10,10 @@ import agate
 import sqlparse
 import redshift_connector
 
+import urllib.request
+import json
+from redshift_connector.utils.oids import get_datatype_name
+
 from dbt.adapters.sql import SQLConnectionManager
 from dbt.contracts.connection import AdapterResponse, Connection, Credentials
 from dbt.events import AdapterLogger
@@ -18,12 +22,9 @@ import dbt.flags
 from dbt.dataclass_schema import FieldEncoder, dbtClassMixin, StrEnum
 from dbt.helper_types import Port
 
-
 logger = AdapterLogger("Redshift")
 
-
 drop_lock: Lock = dbt.flags.MP_CONTEXT.Lock()  # type: ignore
-
 
 IAMDuration = NewType("IAMDuration", int)
 
@@ -35,6 +36,23 @@ class IAMDurationEncoder(FieldEncoder):
 
 
 dbtClassMixin.register_field_encoders({IAMDuration: IAMDurationEncoder()})
+
+
+def _get_aws_regions():
+    # Extract the prefixes from the AWS IP ranges JSON to determine the available regions
+    url = "https://ip-ranges.amazonaws.com/ip-ranges.json"
+    response = urllib.request.urlopen(url)
+    data = json.loads(response.read().decode())
+    regions = set()
+
+    for prefix in data["prefixes"]:
+        if prefix["service"] == "AMAZON":
+            regions.add(prefix["region"])
+
+    return regions
+
+
+_AVAILABLE_AWS_REGIONS = _get_aws_regions()
 
 
 class RedshiftConnectionMethod(StrEnum):
@@ -93,11 +111,19 @@ class RedshiftCredentials(Credentials):
             "cluster_id",
             "iam_profile",
             "sslmode",
+            "region",
         )
 
     @property
     def unique_field(self) -> str:
         return self.host if self.host else self.database
+
+
+def _is_valid_region(region):
+    if region is None or len(region) == 0:
+        logger.warning("Couldn't determine AWS regions. Skipping validation to avoid blocking.")
+        return True
+    return region in _AVAILABLE_AWS_REGIONS
 
 
 class RedshiftConnectMethodFactory:
@@ -120,7 +146,24 @@ class RedshiftConnectMethodFactory:
         }
         if method == RedshiftConnectionMethod.IAM or method == RedshiftConnectionMethod.DATABASE:
             kwargs["host"] = self.credentials.host
-            kwargs["region"] = self.credentials.host.split(".")[2]
+        if kwargs["region"] is None:
+            logger.debug("No region provided, attempting to determine from host.")
+            try:
+                region_value = self.credentials.host.split(".")[2]
+            except IndexError:
+                raise dbt.exceptions.FailedToConnectError(
+                    "No region provided and unable to determine region from host: "
+                    "{}".format(self.credentials.host)
+                )
+
+            kwargs["region"] = region_value
+
+        # Validate the set region
+        if not _is_valid_region(kwargs["region"]):
+            raise dbt.exceptions.FailedToConnectError(
+                "Invalid region provided: {}".format(kwargs["region"])
+            )
+
         if self.credentials.sslmode:
             kwargs["sslmode"] = self.credentials.sslmode
         if self.credentials.host and self.credentials.region:
@@ -390,12 +433,16 @@ class RedshiftConnectionManager(SQLConnectionManager):
         )
 
     def execute(
-        self, sql: str, auto_begin: bool = False, fetch: bool = False
+        self,
+        sql: str,
+        auto_begin: bool = False,
+        fetch: bool = False,
+        limit: Optional[int] = None,
     ) -> Tuple[AdapterResponse, agate.Table]:
         _, cursor = self.add_query(sql, auto_begin)
         response = self.get_response(cursor)
         if fetch:
-            table = self.get_result_from_cursor(cursor)
+            table = self.get_result_from_cursor(cursor, limit)
         else:
             table = dbt.clients.agate_helper.empty_table()
         return response, table
