@@ -75,7 +75,7 @@ class RedshiftCredentials(Credentials):
     autocreate: bool = False
     db_groups: List[str] = field(default_factory=list)
     ra3_node: Optional[bool] = False
-    connect_timeout: int = 30
+    connect_timeout: Optional[int] = None
     role: Optional[str] = None
     sslmode: Optional[str] = None
     retries: int = 1
