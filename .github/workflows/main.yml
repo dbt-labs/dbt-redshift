@@ -102,7 +102,9 @@ jobs:
       - name: Get current date
         if: always()
         id: date
-          echo "date=$(date +'%Y-%m-%dT%H_%M_%S')" >> $GITHUB_OUTPUT #no colons allowed for artifacts
+        #no colons allowed for artifacts
+        run: |
+          echo "date=$(date +'%Y-%m-%dT%H_%M_%S')" >> $GITHUB_OUTPUT
 
       - uses: actions/upload-artifact@v3
         if: always()
