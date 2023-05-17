@@ -116,7 +116,6 @@ class RedshiftAdapter(SQLAdapter):
     def _get_cursor(self):
         return self.connections.get_thread_connection().handle.cursor()
 
-    @available
     def list_schemas(self, database: str, schema: Optional[str] = None) -> List[str]:
         cursor = self._get_cursor()
         results = []
