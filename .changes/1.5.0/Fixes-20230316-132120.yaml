@@ -1,7 +1,0 @@
-kind: Fixes
-body: Added methods to `RedshiftAdapter` that were inadvertantly dropped when migrating
-  from `PostgresAdapter` to `SQLAdapter`
-time: 2023-03-16T13:21:20.306393-04:00
-custom:
-  Author: mikealfare
-  Issue: "365"

@@ -1,8 +1,0 @@
-kind: Under the Hood
-body: Replace psycopg2 connector with Redshift python connector when connecting to
-  Redshift
-time: 2023-01-18T07:15:42.183304-08:00
-custom:
-  Author: sathiish-kumar
-  Issue: "219"
-  PR: "251"
