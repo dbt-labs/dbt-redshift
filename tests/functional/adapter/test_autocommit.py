@@ -31,13 +31,14 @@ class TestAutocommitWorksWithTransactionBlocks:
     @pytest.fixture(scope="class")
     def dbt_profile_target(self):
         return {
-            "type": "postgres",
-            "threads": 4,
-            "host": "localhost",
-            "port": int(os.getenv("POSTGRES_TEST_PORT", 5432)),
-            "user": os.getenv("POSTGRES_TEST_USER", "root"),
-            "pass": os.getenv("POSTGRES_TEST_PASS", "password"),
-            "dbname": os.getenv("POSTGRES_TEST_DATABASE", "dbt"),
+            "type": "redshift",
+            "threads": 1,
+            "retries": 6,
+            "host": os.getenv("REDSHIFT_TEST_HOST"),
+            "port": int(os.getenv("REDSHIFT_TEST_PORT")),
+            "user": os.getenv("REDSHIFT_TEST_USER"),
+            "pass": os.getenv("REDSHIFT_TEST_PASS"),
+            "dbname": os.getenv("REDSHIFT_TEST_DBNAME"),
             "autocommit": True,
         }
 
