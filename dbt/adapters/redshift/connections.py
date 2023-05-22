@@ -112,7 +112,7 @@ def _is_valid_region(region):
 
 def _translate_sslmode(sslmode_input):
     args = {"ssl": True, "sslmode": "verify-ca"}
-    warning_msg = (
+    log_msg = (
         "Establishing connection using ssl with sslmode set to 'verify-ca'."
         "To connect without ssl, set sslmode to 'disable'."
     )
@@ -121,25 +121,25 @@ def _translate_sslmode(sslmode_input):
         if sslmode_input == "disable":
             args["ssl"] = False
             args["sslmode"] = None
-            warning_msg = "Establishing connection without ssl."
+            log_msg = "Establishing connection without ssl."
         elif (
             sslmode_input == "verify-ca"
             or sslmode_input == "verify-full"
             or sslmode_input == "require"
         ):
             args["sslmode"] = sslmode_input
-            warning_msg = None
+            log_msg = None
         elif sslmode_input == "none":
             args["sslmode"] = "verify-ca"
         elif sslmode_input != "allow" and sslmode_input != "prefer":
             args["sslmode"] = "verify-ca"
-            warning_msg = (
+            log_msg = (
                 "Redshift adapter: Invalid sslmode provided. Establishing connection using ssl with "
                 "sslmode set to 'verify-ca'. Supported values are 'disable', 'allow', 'prefer', 'require', "
                 "'verify-ca', 'verify-full'."
             )
 
-    return args, warning_msg
+    return args, log_msg
 
 
 class RedshiftConnectMethodFactory:
@@ -177,9 +177,9 @@ class RedshiftConnectMethodFactory:
                 "Invalid region provided: {}".format(kwargs["region"])
             )
 
-        ssl_args, warning_msg = _translate_sslmode(self.credentials.sslmode)
-        if warning_msg is not None:
-            logger.warning(warning_msg)
+        ssl_args, log_msg = _translate_sslmode(self.credentials.sslmode)
+        if log_msg is not None:
+            logger.debug(log_msg)
         kwargs["ssl"] = ssl_args["ssl"]
         kwargs["sslmode"] = ssl_args["sslmode"]
 
