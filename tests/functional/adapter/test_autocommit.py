@@ -55,6 +55,6 @@ class TestTransactionBlocksPreventCertainCommands:
         return {"macro.sql": _MACROS__CREATE_DB}
 
     def test_normally_create_db_disallowed(self, project):
-        """Monitor if status quo in Cedshift connector changes"""
+        """Monitor if status quo in Redshift connector changes"""
         result, out = run_dbt_and_capture(["run-operation", "create_db_fake"], expect_pass=False)
         assert "CREATE DATABASE cannot run inside a transaction block" in out
