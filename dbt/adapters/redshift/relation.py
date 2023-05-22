@@ -1,5 +1,7 @@
 from dataclasses import dataclass
+from typing import Optional
 from dbt.adapters.postgres.relation import PostgresRelation
+from dbt.contracts.graph.model_config import NodeConfig
 
 
 @dataclass(frozen=True, eq=False, repr=False)
@@ -11,3 +13,6 @@ class RedshiftRelation(PostgresRelation):
     # see: https://docs.aws.amazon.com/redshift/latest/dg/r_names.html
     def relation_max_name_length(self):
         return 127
+
+    def get_dist_updates(self, dist: str, config: NodeConfig) -> Optional[str]:
+        pass
