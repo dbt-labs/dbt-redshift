@@ -14,6 +14,13 @@
 {%- endmacro -%}
 
 
+{% macro redshift__get_show_dist_sql(relation) %}
+    select
+
+
+{% endmacro %}
+
+
 {% macro sort(sort_type, sort) %}
   {%- if sort is not none %}
       {{ sort_type | default('compound', boolean=true) }} sortkey(

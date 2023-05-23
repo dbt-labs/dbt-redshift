@@ -15,4 +15,9 @@ class RedshiftRelation(PostgresRelation):
         return 127
 
     def get_dist_updates(self, dist: str, config: NodeConfig) -> Optional[str]:
-        pass
+        new_dist = config.get("dist", "")
+        if dist != new_dist:
+            dist = new_dist
+            return dist
+        else:
+            return dist

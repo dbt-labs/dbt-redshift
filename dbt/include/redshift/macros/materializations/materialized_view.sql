@@ -37,6 +37,7 @@
     {%- set _sort_type = config.get('sort_type',validator=validation.any['compound', 'interleaved']) -%}
     {%- set backup = config.get('backup') -%}
     {%- set auto_refresh = 'yes' if config.get('auto_refresh', false) else 'no' %}
+
 {% endmacro %}
 
 
@@ -46,3 +47,8 @@
 -- \   if change in sort and dist keys trigger refresh
 -- two new methods in impl
 -- add alter method
+    -- {% dist_updates = existing_relation.get_dist_updates(existiing_dist, new_config) %}
+    -- {% sort_updates = existing_relation.get_sort_updates(existing_sort, new_config) %}
+    -- {% sort_type_updates = existing_relation.get_sort_type_updates(existing_sort_type, new_config) %}
+
+-- res.result[1].node.config to reach dist, sort area
