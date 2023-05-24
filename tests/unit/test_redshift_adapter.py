@@ -72,7 +72,7 @@ class TestRedshiftAdapter(unittest.TestCase):
             port=5439,
             auto_create=False,
             db_groups=[],
-            timeout=30,
+            timeout=None,
             region="us-east-1",
         )
 
@@ -91,7 +91,7 @@ class TestRedshiftAdapter(unittest.TestCase):
             auto_create=False,
             db_groups=[],
             region="us-east-1",
-            timeout=30,
+            timeout=None,
         )
 
     @mock.patch("redshift_connector.connect", Mock())
@@ -115,8 +115,25 @@ class TestRedshiftAdapter(unittest.TestCase):
             auto_create=False,
             db_groups=[],
             profile=None,
-            timeout=30,
+            timeout=None,
             port=5439,
+        )
+
+    @mock.patch("redshift_connector.connect", Mock())
+    def test_conn_timeout_30(self):
+        self.config.credentials = self.config.credentials.replace(connect_timeout=30)
+        connection = self.adapter.acquire_connection("dummy")
+        connection.handle
+        redshift_connector.connect.assert_called_once_with(
+            host="thishostshouldnotexist.test.us-east-1",
+            database="redshift",
+            user="root",
+            password="password",
+            port=5439,
+            auto_create=False,
+            db_groups=[],
+            region="us-east-1",
+            timeout=30,
         )
 
     @mock.patch("redshift_connector.connect", Mock())
@@ -143,7 +160,7 @@ class TestRedshiftAdapter(unittest.TestCase):
             password="",
             user="",
             profile="test",
-            timeout=30,
+            timeout=None,
             port=5439,
         )
 
@@ -169,7 +186,7 @@ class TestRedshiftAdapter(unittest.TestCase):
             password="",
             user="",
             profile="test",
-            timeout=30,
+            timeout=None,
             port=5439,
         )
 
@@ -197,7 +214,7 @@ class TestRedshiftAdapter(unittest.TestCase):
             password="",
             user="",
             profile="test",
-            timeout=30,
+            timeout=None,
             port=5439,
         )
 
@@ -226,7 +243,7 @@ class TestRedshiftAdapter(unittest.TestCase):
                 password="",
                 user="",
                 profile="test",
-                timeout=30,
+                timeout=None,
                 port=5439,
             )
 
@@ -255,7 +272,7 @@ class TestRedshiftAdapter(unittest.TestCase):
                 password="",
                 user="",
                 profile="test",
-                timeout=30,
+                timeout=None,
                 port=5439,
             )
 
@@ -283,7 +300,7 @@ class TestRedshiftAdapter(unittest.TestCase):
                 user="",
                 profile="test",
                 port=5439,
-                timeout=30,
+                timeout=None,
             )
         self.assertTrue("'host' must be provided" in context.exception.msg)
 
