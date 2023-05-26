@@ -1,6 +1,0 @@
-kind: Fixes
-body: Fix redshift_connector issue of timing out after 30s
-time: 2023-05-08T09:48:34.019843-07:00
-custom:
-  Author: jiezhen-chen
-  Issue: "427"
