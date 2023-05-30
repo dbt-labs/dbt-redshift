@@ -13,12 +13,12 @@ from redshift_connector.utils.oids import get_datatype_name
 
 from dbt.adapters.sql import SQLConnectionManager
 from dbt.contracts.connection import AdapterResponse, Connection, Credentials
+from dbt.contracts.util import Replaceable
+from dbt.dataclass_schema import FieldEncoder, dbtClassMixin, StrEnum, ValidationError
 from dbt.events import AdapterLogger
 from dbt.exceptions import DbtRuntimeError, CompilationError
 import dbt.flags
-from dbt.dataclass_schema import FieldEncoder, dbtClassMixin, StrEnum, ValidationError
 from dbt.helper_types import Port
-from dbt.contracts.graph.model_config import Metadata
 
 
 class SSLConfigError(CompilationError):
@@ -70,7 +70,7 @@ class RedshiftConnectionMethod(StrEnum):
     IAM = "iam"
 
 
-class UserSSLMode(str, Metadata):
+class UserSSLMode(StrEnum):
     disable = "disable"
     allow = "allow"
     prefer = "prefer"
@@ -79,13 +79,9 @@ class UserSSLMode(str, Metadata):
     verify_full = "verify-full"
 
     @classmethod
-    def default_field(cls) -> "UserSSLMode":
+    def default(cls) -> "UserSSLMode":
         # default for `psycopg2`, which aligns with dbt-redshift 1.4 and provides backwards compatibility
         return cls.prefer
-
-    @classmethod
-    def metadata_key(cls) -> str:
-        return "sslmode"
 
 
 class RedshiftSSLMode(StrEnum):
@@ -104,9 +100,9 @@ SSL_MODE_TRANSLATION = {
 
 
 @dataclass
-class RedshiftSSLConfig(dbtClassMixin):
+class RedshiftSSLConfig(dbtClassMixin, Replaceable):  # type: ignore
     ssl: bool = True
-    sslmode: Optional[RedshiftSSLMode] = SSL_MODE_TRANSLATION[UserSSLMode.default_field()]
+    sslmode: Optional[RedshiftSSLMode] = SSL_MODE_TRANSLATION[UserSSLMode.default()]
 
     @classmethod
     def parse(cls, user_sslmode: UserSSLMode) -> "RedshiftSSLConfig":
@@ -151,7 +147,7 @@ class RedshiftCredentials(Credentials):
     ra3_node: Optional[bool] = False
     connect_timeout: Optional[int] = None
     role: Optional[str] = None
-    sslmode: Optional[UserSSLMode] = UserSSLMode.default_field()
+    sslmode: Optional[UserSSLMode] = field(default_factory=UserSSLMode.default)
     retries: int = 1
     region: Optional[str] = None  # if not provided, will be determined from host
     autocommit: Optional[bool] = False
