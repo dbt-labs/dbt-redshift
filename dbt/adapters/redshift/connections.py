@@ -2,7 +2,7 @@ import re
 from multiprocessing import Lock
 from contextlib import contextmanager
 from typing import NewType, Tuple, Union, Optional, List
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass, field
 
 import agate
 import sqlparse
@@ -14,11 +14,22 @@ from redshift_connector.utils.oids import get_datatype_name
 from dbt.adapters.sql import SQLConnectionManager
 from dbt.contracts.connection import AdapterResponse, Connection, Credentials
 from dbt.events import AdapterLogger
-import dbt.exceptions
+from dbt.exceptions import DbtRuntimeError, CompilationError
 import dbt.flags
-from dbt.dataclass_schema import FieldEncoder, dbtClassMixin, StrEnum
+from dbt.dataclass_schema import FieldEncoder, dbtClassMixin, StrEnum, ValidationError
 from dbt.helper_types import Port
 from dbt.contracts.graph.model_config import Metadata
+
+
+class SSLConfigError(CompilationError):
+    def __init__(self, exc: ValidationError):
+        self.exc = exc
+        super().__init__(msg=self.get_message())
+
+    def get_message(self) -> str:
+        validator_msg = self.validator_error_message(self.exc)
+        msg = f"Could not parse SSL config: {validator_msg}"
+        return msg
 
 
 logger = AdapterLogger("Redshift")
@@ -66,11 +77,11 @@ class UserSSLMode(str, Metadata):
     require = "require"
     verify_ca = "verify-ca"
     verify_full = "verify-full"
-    none = "none"
 
     @classmethod
     def default_field(cls) -> "UserSSLMode":
-        return cls.none
+        # default for `psycopg2`, which aligns with dbt-redshift 1.4 and provides backwards compatibility
+        return cls.prefer
 
     @classmethod
     def metadata_key(cls) -> str:
@@ -82,51 +93,58 @@ class RedshiftSSLMode(StrEnum):
     verify_full = "verify-full"
 
 
-@dataclass(frozen=True)
-class RedshiftSSL:
-    ssl: bool = True
-    sslmode: Optional[RedshiftSSLMode] = RedshiftSSLMode.verify_ca
+SSL_MODE_TRANSLATION = {
+    UserSSLMode.disable: None,
+    UserSSLMode.allow: RedshiftSSLMode.verify_ca,
+    UserSSLMode.prefer: RedshiftSSLMode.verify_ca,
+    UserSSLMode.require: RedshiftSSLMode.verify_ca,
+    UserSSLMode.verify_ca: RedshiftSSLMode.verify_ca,
+    UserSSLMode.verify_full: RedshiftSSLMode.verify_full,
+}
+
+
+SSL_TRANSLATION = {
+    UserSSLMode.disable: False,
+    UserSSLMode.allow: True,
+    UserSSLMode.prefer: True,
+    UserSSLMode.require: True,
+    UserSSLMode.verify_ca: True,
+    UserSSLMode.verify_full: True,
+}
+
+
+@dataclass
+class RedshiftSSL(dbtClassMixin):
+    ssl: bool = SSL_TRANSLATION[UserSSLMode.default_field()]
+    sslmode: Optional[RedshiftSSLMode] = SSL_MODE_TRANSLATION[UserSSLMode.default_field()]
 
     @classmethod
-    def from_user_config(cls, user_sslmode: UserSSLMode) -> "RedshiftSSL":
-        ssl = cls._redshift_ssl(user_sslmode)
-        sslmode = cls._redshift_sslmode(user_sslmode)
-        message = cls._log_message(user_sslmode)
-        if message is not None:
-            logger.debug(message)
-        return RedshiftSSL(ssl=ssl, sslmode=sslmode)
+    def parse(cls, user_sslmode: UserSSLMode) -> Optional["RedshiftSSL"]:
+        if user_sslmode is None:
+            return None
 
-    @staticmethod
-    def _redshift_ssl(user_sslmode: UserSSLMode) -> bool:
-        if user_sslmode == user_sslmode.disable:
-            return False
-        return True
+        try:
+            raw_redshift_ssl = {
+                "ssl": SSL_TRANSLATION[user_sslmode],
+                "sslmode": SSL_MODE_TRANSLATION[user_sslmode],
+            }
+            cls.validate(raw_redshift_ssl)
+        except ValidationError as exc:
+            raise SSLConfigError(exc)
 
-    @staticmethod
-    def _redshift_sslmode(user_sslmode: UserSSLMode) -> Optional[RedshiftSSLMode]:
-        mapping = {
-            user_sslmode.disable: None,
-            user_sslmode.allow: RedshiftSSLMode.verify_ca,
-            user_sslmode.prefer: RedshiftSSLMode.verify_ca,
-            user_sslmode.require: RedshiftSSLMode.verify_ca,
-            user_sslmode.verify_ca: RedshiftSSLMode.verify_ca,
-            user_sslmode.verify_full: RedshiftSSLMode.verify_full,
-            user_sslmode.none: RedshiftSSLMode.verify_ca,
-        }
-        return mapping[user_sslmode]
+        redshift_ssl = cls.from_dict(raw_redshift_ssl)
 
-    @staticmethod
-    def _log_message(user_sslmode: UserSSLMode) -> Optional[str]:
-        default_message = (
-            "Establishing connection using ssl with `sslmode` set to 'verify-ca'."
-            "To connect without ssl, set `sslmode` to 'disable'."
-        )
-        disable_message = "Establishing connection without ssl."
-        messages = {
-            user_sslmode.none: default_message,
-            user_sslmode.disable: disable_message,
-        }
-        return messages.get(user_sslmode)
+        if redshift_ssl.ssl:
+            message = (
+                f"Establishing connection using ssl with `sslmode` set to '{user_sslmode}'."
+                f"To connect without ssl, set `sslmode` to 'disable'."
+            )
+        else:
+            message = "Establishing connection without ssl."
+
+        logger.debug(message)
+
+        return redshift_ssl
 
 
 @dataclass
@@ -146,7 +164,7 @@ class RedshiftCredentials(Credentials):
     ra3_node: Optional[bool] = False
     connect_timeout: Optional[int] = None
     role: Optional[str] = None
-    sslmode: Optional[UserSSLMode] = None
+    sslmode: Optional[UserSSLMode] = UserSSLMode.default_field()
     retries: int = 1
     region: Optional[str] = None  # if not provided, will be determined from host
     autocommit: Optional[bool] = False
@@ -218,9 +236,8 @@ class RedshiftConnectMethodFactory:
                 "Invalid region provided: {}".format(kwargs["region"])
             )
 
-        if self.credentials.sslmode:
-            redshift_ssl_mode = RedshiftSSL.from_user_config(self.credentials.sslmode)
-            kwargs.update(asdict(redshift_ssl_mode))
+        redshift_ssl_mode = RedshiftSSL.parse(self.credentials.sslmode)
+        kwargs.update(redshift_ssl_mode.to_dict())
 
         # Support missing 'method' for backwards compatibility
         if method == RedshiftConnectionMethod.DATABASE or method is None:
@@ -415,7 +432,7 @@ class RedshiftConnectionManager(SQLConnectionManager):
         if cursor is None:
             conn = self.get_thread_connection()
             conn_name = conn.name if conn and conn.name else "<None>"
-            raise dbt.exceptions.DbtRuntimeError(f"Tried to run invalid SQL: {sql} on {conn_name}")
+            raise DbtRuntimeError(f"Tried to run invalid SQL: {sql} on {conn_name}")
 
         return connection, cursor
 
