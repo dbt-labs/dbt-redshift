@@ -59,11 +59,6 @@ class RedshiftConnectionMethod(StrEnum):
     IAM = "iam"
 
 
-class RedshiftSSLMode(StrEnum):
-    verify_ca = "verify-ca"
-    verify_full = "verify-full"
-
-
 class UserSSLMode(str, Metadata):
     disable = "disable"
     allow = "allow"
@@ -80,6 +75,11 @@ class UserSSLMode(str, Metadata):
     @classmethod
     def metadata_key(cls) -> str:
         return "sslmode"
+
+
+class RedshiftSSLMode(StrEnum):
+    verify_ca = "verify-ca"
+    verify_full = "verify-full"
 
 
 @dataclass(frozen=True)
