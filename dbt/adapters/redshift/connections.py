@@ -2,7 +2,7 @@ import re
 from multiprocessing import Lock
 from contextlib import contextmanager
 from typing import NewType, Tuple, Union, Optional, List
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, asdict
 
 import agate
 import sqlparse
@@ -18,6 +18,8 @@ import dbt.exceptions
 import dbt.flags
 from dbt.dataclass_schema import FieldEncoder, dbtClassMixin, StrEnum
 from dbt.helper_types import Port
+from dbt.contracts.graph.model_config import Metadata
+
 
 logger = AdapterLogger("Redshift")
 
@@ -57,6 +59,76 @@ class RedshiftConnectionMethod(StrEnum):
     IAM = "iam"
 
 
+class RedshiftSSLMode(StrEnum):
+    verify_ca = "verify-ca"
+    verify_full = "verify-full"
+
+
+class UserSSLMode(str, Metadata):
+    disable = "disable"
+    allow = "allow"
+    prefer = "prefer"
+    require = "require"
+    verify_ca = "verify-ca"
+    verify_full = "verify-full"
+    none = "none"
+
+    @classmethod
+    def default_field(cls) -> "UserSSLMode":
+        return cls.none
+
+    @classmethod
+    def metadata_key(cls) -> str:
+        return "sslmode"
+
+
+@dataclass(frozen=True)
+class RedshiftSSL:
+    ssl: bool = True
+    sslmode: Optional[RedshiftSSLMode] = RedshiftSSLMode.verify_ca
+
+    @classmethod
+    def from_user_config(cls, user_sslmode: UserSSLMode) -> "RedshiftSSL":
+        ssl = cls._redshift_ssl(user_sslmode)
+        sslmode = cls._redshift_sslmode(user_sslmode)
+        message = cls._log_message(user_sslmode)
+        if message is not None:
+            logger.debug(message)
+        return RedshiftSSL(ssl=ssl, sslmode=sslmode)
+
+    @staticmethod
+    def _redshift_ssl(user_sslmode: UserSSLMode) -> bool:
+        if user_sslmode == user_sslmode.disable:
+            return False
+        return True
+
+    @staticmethod
+    def _redshift_sslmode(user_sslmode: UserSSLMode) -> Optional[RedshiftSSLMode]:
+        mapping = {
+            user_sslmode.disable: None,
+            user_sslmode.allow: RedshiftSSLMode.verify_ca,
+            user_sslmode.prefer: RedshiftSSLMode.verify_ca,
+            user_sslmode.require: RedshiftSSLMode.verify_ca,
+            user_sslmode.verify_ca: RedshiftSSLMode.verify_ca,
+            user_sslmode.verify_full: RedshiftSSLMode.verify_full,
+            user_sslmode.none: RedshiftSSLMode.verify_ca,
+        }
+        return mapping[user_sslmode]
+
+    @staticmethod
+    def _log_message(user_sslmode: UserSSLMode) -> Optional[str]:
+        default_message = (
+            "Establishing connection using ssl with `sslmode` set to 'verify-ca'."
+            "To connect without ssl, set `sslmode` to 'disable'."
+        )
+        disable_message = "Establishing connection without ssl."
+        messages = {
+            user_sslmode.none: default_message,
+            user_sslmode.disable: disable_message,
+        }
+        return messages.get(user_sslmode)
+
+
 @dataclass
 class RedshiftCredentials(Credentials):
     host: str
@@ -74,7 +146,7 @@ class RedshiftCredentials(Credentials):
     ra3_node: Optional[bool] = False
     connect_timeout: Optional[int] = None
     role: Optional[str] = None
-    sslmode: Optional[str] = None
+    sslmode: Optional[UserSSLMode] = None
     retries: int = 1
     region: Optional[str] = None  # if not provided, will be determined from host
     autocommit: Optional[bool] = False
@@ -109,38 +181,6 @@ def _is_valid_region(region):
         logger.warning("Couldn't determine AWS regions. Skipping validation to avoid blocking.")
         return True
     return region in _AVAILABLE_AWS_REGIONS
-
-
-def _translate_sslmode(sslmode_input):
-    args = {"ssl": True, "sslmode": "verify-ca"}
-    log_msg = (
-        "Establishing connection using ssl with sslmode set to 'verify-ca'."
-        "To connect without ssl, set sslmode to 'disable'."
-    )
-    if sslmode_input is not None:
-        sslmode_input = sslmode_input.lower()
-        if sslmode_input == "disable":
-            args["ssl"] = False
-            args["sslmode"] = None
-            log_msg = "Establishing connection without ssl."
-        elif (
-            sslmode_input == "verify-ca"
-            or sslmode_input == "verify-full"
-            or sslmode_input == "require"
-        ):
-            args["sslmode"] = sslmode_input
-            log_msg = None
-        elif sslmode_input == "none":
-            args["sslmode"] = "verify-ca"
-        elif sslmode_input != "allow" and sslmode_input != "prefer":
-            args["sslmode"] = "verify-ca"
-            log_msg = (
-                "Redshift adapter: Invalid sslmode provided. Establishing connection using ssl with "
-                "sslmode set to 'verify-ca'. Supported values are 'disable', 'allow', 'prefer', 'require', "
-                "'verify-ca', 'verify-full'."
-            )
-
-    return args, log_msg
 
 
 class RedshiftConnectMethodFactory:
@@ -178,11 +218,9 @@ class RedshiftConnectMethodFactory:
                 "Invalid region provided: {}".format(kwargs["region"])
             )
 
-        ssl_args, log_msg = _translate_sslmode(self.credentials.sslmode)
-        if log_msg is not None:
-            logger.debug(log_msg)
-        kwargs["ssl"] = ssl_args["ssl"]
-        kwargs["sslmode"] = ssl_args["sslmode"]
+        if self.credentials.sslmode:
+            redshift_ssl_mode = RedshiftSSL.from_user_config(self.credentials.sslmode)
+            kwargs.update(asdict(redshift_ssl_mode))
 
         # Support missing 'method' for backwards compatibility
         if method == RedshiftConnectionMethod.DATABASE or method is None:
