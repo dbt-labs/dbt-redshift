@@ -17,7 +17,6 @@
 ### Contributors
 - [@jiezhen-chen](https://github.com/jiezhen-chen) ([#427](https://github.com/dbt-labs/dbt-redshift/issues/427))
 
-
 ## dbt-redshift 1.6.0-b1 - May 12, 2023
 
 ### Fixes
@@ -33,6 +32,7 @@
 
 ## Previous Releases
 For information on prior major and minor releases, see their changelogs:
+- [1.5](https://github.com/dbt-labs/dbt-redshift/blob/1.5.latest/CHANGELOG.md)
 - [1.4](https://github.com/dbt-labs/dbt-redshift/blob/1.4.latest/CHANGELOG.md)
 - [1.3](https://github.com/dbt-labs/dbt-redshift/blob/1.3.latest/CHANGELOG.md)
 - [1.2](https://github.com/dbt-labs/dbt-redshift/blob/1.2.latest/CHANGELOG.md)
