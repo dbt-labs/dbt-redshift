@@ -105,8 +105,8 @@ SSL_MODE_TRANSLATION = {
 
 @dataclass
 class RedshiftSSLConfig(dbtClassMixin):
-    ssl: bool
-    sslmode: Optional[RedshiftSSLMode]
+    ssl: bool = True
+    sslmode: Optional[RedshiftSSLMode] = SSL_MODE_TRANSLATION[UserSSLMode.default_field()]
 
     @classmethod
     def parse(cls, user_sslmode: UserSSLMode) -> "RedshiftSSLConfig":
