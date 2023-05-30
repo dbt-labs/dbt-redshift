@@ -103,29 +103,16 @@ SSL_MODE_TRANSLATION = {
 }
 
 
-SSL_TRANSLATION = {
-    UserSSLMode.disable: False,
-    UserSSLMode.allow: True,
-    UserSSLMode.prefer: True,
-    UserSSLMode.require: True,
-    UserSSLMode.verify_ca: True,
-    UserSSLMode.verify_full: True,
-}
-
-
 @dataclass
-class RedshiftSSL(dbtClassMixin):
-    ssl: bool = SSL_TRANSLATION[UserSSLMode.default_field()]
-    sslmode: Optional[RedshiftSSLMode] = SSL_MODE_TRANSLATION[UserSSLMode.default_field()]
+class RedshiftSSLConfig(dbtClassMixin):
+    ssl: bool
+    sslmode: Optional[RedshiftSSLMode]
 
     @classmethod
-    def parse(cls, user_sslmode: UserSSLMode) -> Optional["RedshiftSSL"]:
-        if user_sslmode is None:
-            return None
-
+    def parse(cls, user_sslmode: UserSSLMode) -> "RedshiftSSLConfig":
         try:
             raw_redshift_ssl = {
-                "ssl": SSL_TRANSLATION[user_sslmode],
+                "ssl": user_sslmode != UserSSLMode.disable,
                 "sslmode": SSL_MODE_TRANSLATION[user_sslmode],
             }
             cls.validate(raw_redshift_ssl)
@@ -236,8 +223,8 @@ class RedshiftConnectMethodFactory:
                 "Invalid region provided: {}".format(kwargs["region"])
             )
 
-        redshift_ssl_mode = RedshiftSSL.parse(self.credentials.sslmode)
-        kwargs.update(redshift_ssl_mode.to_dict())
+        redshift_ssl_config = RedshiftSSLConfig.parse(self.credentials.sslmode)
+        kwargs.update(redshift_ssl_config.to_dict())
 
         # Support missing 'method' for backwards compatibility
         if method == RedshiftConnectionMethod.DATABASE or method is None:
