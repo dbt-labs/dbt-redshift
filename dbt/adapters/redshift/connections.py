@@ -150,7 +150,7 @@ class RedshiftCredentials(Credentials):
     sslmode: Optional[UserSSLMode] = field(default_factory=UserSSLMode.default)
     retries: int = 1
     region: Optional[str] = None  # if not provided, will be determined from host
-    autocommit: Optional[bool] = False
+    deactivate_autocommit: Optional[bool] = False
 
     _ALIASES = {"dbname": "database", "pass": "password"}
 
@@ -238,7 +238,7 @@ class RedshiftConnectMethodFactory:
                     password=self.credentials.password,
                     **kwargs,
                 )
-                if self.credentials.autocommit:
+                if not self.credentials.deactivate_autocommit:
                     c.autocommit = True
                 if self.credentials.role:
                     c.cursor().execute("set role {}".format(self.credentials.role))
@@ -262,7 +262,7 @@ class RedshiftConnectMethodFactory:
                     profile=self.credentials.iam_profile,
                     **kwargs,
                 )
-                if self.credentials.autocommit:
+                if not self.credentials.deactivate_autocommit:
                     c.autocommit = True
                 if self.credentials.role:
                     c.cursor().execute("set role {}".format(self.credentials.role))
