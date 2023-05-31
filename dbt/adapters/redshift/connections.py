@@ -13,11 +13,24 @@ from redshift_connector.utils.oids import get_datatype_name
 
 from dbt.adapters.sql import SQLConnectionManager
 from dbt.contracts.connection import AdapterResponse, Connection, Credentials
+from dbt.contracts.util import Replaceable
+from dbt.dataclass_schema import FieldEncoder, dbtClassMixin, StrEnum, ValidationError
 from dbt.events import AdapterLogger
-import dbt.exceptions
+from dbt.exceptions import DbtRuntimeError, CompilationError
 import dbt.flags
-from dbt.dataclass_schema import FieldEncoder, dbtClassMixin, StrEnum
 from dbt.helper_types import Port
+
+
+class SSLConfigError(CompilationError):
+    def __init__(self, exc: ValidationError):
+        self.exc = exc
+        super().__init__(msg=self.get_message())
+
+    def get_message(self) -> str:
+        validator_msg = self.validator_error_message(self.exc)
+        msg = f"Could not parse SSL config: {validator_msg}"
+        return msg
+
 
 logger = AdapterLogger("Redshift")
 
@@ -57,6 +70,66 @@ class RedshiftConnectionMethod(StrEnum):
     IAM = "iam"
 
 
+class UserSSLMode(StrEnum):
+    disable = "disable"
+    allow = "allow"
+    prefer = "prefer"
+    require = "require"
+    verify_ca = "verify-ca"
+    verify_full = "verify-full"
+
+    @classmethod
+    def default(cls) -> "UserSSLMode":
+        # default for `psycopg2`, which aligns with dbt-redshift 1.4 and provides backwards compatibility
+        return cls.prefer
+
+
+class RedshiftSSLMode(StrEnum):
+    verify_ca = "verify-ca"
+    verify_full = "verify-full"
+
+
+SSL_MODE_TRANSLATION = {
+    UserSSLMode.disable: None,
+    UserSSLMode.allow: RedshiftSSLMode.verify_ca,
+    UserSSLMode.prefer: RedshiftSSLMode.verify_ca,
+    UserSSLMode.require: RedshiftSSLMode.verify_ca,
+    UserSSLMode.verify_ca: RedshiftSSLMode.verify_ca,
+    UserSSLMode.verify_full: RedshiftSSLMode.verify_full,
+}
+
+
+@dataclass
+class RedshiftSSLConfig(dbtClassMixin, Replaceable):  # type: ignore
+    ssl: bool = True
+    sslmode: Optional[RedshiftSSLMode] = SSL_MODE_TRANSLATION[UserSSLMode.default()]
+
+    @classmethod
+    def parse(cls, user_sslmode: UserSSLMode) -> "RedshiftSSLConfig":
+        try:
+            raw_redshift_ssl = {
+                "ssl": user_sslmode != UserSSLMode.disable,
+                "sslmode": SSL_MODE_TRANSLATION[user_sslmode],
+            }
+            cls.validate(raw_redshift_ssl)
+        except ValidationError as exc:
+            raise SSLConfigError(exc)
+
+        redshift_ssl = cls.from_dict(raw_redshift_ssl)
+
+        if redshift_ssl.ssl:
+            message = (
+                f"Establishing connection using ssl with `sslmode` set to '{user_sslmode}'."
+                f"To connect without ssl, set `sslmode` to 'disable'."
+            )
+        else:
+            message = "Establishing connection without ssl."
+
+        logger.debug(message)
+
+        return redshift_ssl
+
+
 @dataclass
 class RedshiftCredentials(Credentials):
     host: str
@@ -74,7 +147,7 @@ class RedshiftCredentials(Credentials):
     ra3_node: Optional[bool] = False
     connect_timeout: Optional[int] = None
     role: Optional[str] = None
-    sslmode: Optional[str] = None
+    sslmode: Optional[UserSSLMode] = field(default_factory=UserSSLMode.default)
     retries: int = 1
     region: Optional[str] = None  # if not provided, will be determined from host
     autocommit: Optional[bool] = False
@@ -146,8 +219,8 @@ class RedshiftConnectMethodFactory:
                 "Invalid region provided: {}".format(kwargs["region"])
             )
 
-        if self.credentials.sslmode:
-            kwargs["sslmode"] = self.credentials.sslmode
+        redshift_ssl_config = RedshiftSSLConfig.parse(self.credentials.sslmode)
+        kwargs.update(redshift_ssl_config.to_dict())
 
         # Support missing 'method' for backwards compatibility
         if method == RedshiftConnectionMethod.DATABASE or method is None:
@@ -342,7 +415,7 @@ class RedshiftConnectionManager(SQLConnectionManager):
         if cursor is None:
             conn = self.get_thread_connection()
             conn_name = conn.name if conn and conn.name else "<None>"
-            raise dbt.exceptions.DbtRuntimeError(f"Tried to run invalid SQL: {sql} on {conn_name}")
+            raise DbtRuntimeError(f"Tried to run invalid SQL: {sql} on {conn_name}")
 
         return connection, cursor
 
