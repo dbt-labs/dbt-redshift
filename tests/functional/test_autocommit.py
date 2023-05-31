@@ -31,11 +31,32 @@ _MACROS__UPDATE_MY_MODEL = """
 {% endmacro %}
 """
 
+_MACROS__UDPATE_MY_SEED = """
+{% macro udpate_my_seed() %}
+update {{ ref("my_seed") }} set status = 'done'
+{% endmacro %}
+"""
+
 _MODELS__MY_MODEL = """
 {{ config(materialized="table") }}
 
 select 1 as id, 'pending' as status
 """
+
+_MODELS__AFTER_COMMIT = """
+{{
+  config(
+    post_hook=after_commit("{{ udpate_my_seed() }}")
+  )
+}}
+
+select 1 as id
+"""
+
+_SEEDS_MY_SEED = """
+id,status
+1,pending
+""".lstrip()
 
 
 class TestTransactionBlocksPreventCertainCommands:
@@ -87,7 +108,7 @@ class TestUpdateDDLCommits:
     def test_udpate_will_go_through(self, project):
         run_dbt()
         run_dbt(["run-operation", "update_some_model"])
-        result, out = run_dbt_and_capture(
+        _, out = run_dbt_and_capture(
             ["show", "--inline", "select * from {}.my_model".format(project.test_schema)]
         )
         assert "1 | sent" in out
@@ -114,10 +135,37 @@ class TestUpdateDDLDoesNotCommitWithoutAutocommit:
     def models(self):
         return {"my_model.sql": _MODELS__MY_MODEL}
 
-    def test_udpate_will_go_through(self, project):
+    def test_update_will_not_go_through(self, project):
         run_dbt()
         run_dbt(["run-operation", "update_some_model"])
-        result, out = run_dbt_and_capture(
+        _, out = run_dbt_and_capture(
             ["show", "--inline", "select * from {}.my_model".format(project.test_schema)]
         )
         assert "1 | pending" in out
+
+
+class TestAfterCommitMacroTakesEffect:
+    @pytest.fixture(scope="class")
+    def macros(self):
+        return {"macro.sql": _MACROS__UDPATE_MY_SEED}
+
+    @pytest.fixture(scope="class")
+    def models(self):
+        return {"my_model.sql": _MODELS__AFTER_COMMIT}
+
+    @pytest.fixture(scope="class")
+    def seeds(self):
+        return {"my_seed.csv": _SEEDS_MY_SEED}
+
+    def test_update_happens_via_macro_in_config(self, project):
+        run_dbt(["seed"])
+        _, out = run_dbt_and_capture(
+            ["show", "--inline", "select * from {}.my_seed".format(project.test_schema)]
+        )
+        assert "1 | pending" in out
+
+        run_dbt()
+        _, out = run_dbt_and_capture(
+            ["show", "--inline", "select * from {}.my_seed".format(project.test_schema)]
+        )
+        assert "1 | done" in out
