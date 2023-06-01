@@ -31,8 +31,8 @@ _MACROS__UPDATE_MY_MODEL = """
 {% endmacro %}
 """
 
-_MACROS__UDPATE_MY_SEED = """
-{% macro udpate_my_seed() %}
+_MACROS__UPDATE_MY_SEED = """
+{% macro update_my_seed() %}
 update {{ ref("my_seed") }} set status = 'done'
 {% endmacro %}
 """
@@ -46,7 +46,7 @@ select 1 as id, 'pending' as status
 _MODELS__AFTER_COMMIT = """
 {{
   config(
-    post_hook=after_commit("{{ udpate_my_seed() }}")
+    post_hook=after_commit("{{ update_my_seed() }}")
   )
 }}
 
@@ -105,7 +105,7 @@ class TestUpdateDDLCommits:
     def models(self):
         return {"my_model.sql": _MODELS__MY_MODEL}
 
-    def test_udpate_will_go_through(self, project):
+    def test_update_will_go_through(self, project):
         run_dbt()
         run_dbt(["run-operation", "update_some_model"])
         _, out = run_dbt_and_capture(
@@ -147,7 +147,7 @@ class TestUpdateDDLDoesNotCommitWithoutAutocommit:
 class TestAfterCommitMacroTakesEffect:
     @pytest.fixture(scope="class")
     def macros(self):
-        return {"macro.sql": _MACROS__UDPATE_MY_SEED}
+        return {"macro.sql": _MACROS__UPDATE_MY_SEED}
 
     @pytest.fixture(scope="class")
     def models(self):
