@@ -150,7 +150,8 @@ class RedshiftCredentials(Credentials):
     sslmode: Optional[UserSSLMode] = field(default_factory=UserSSLMode.default)
     retries: int = 1
     region: Optional[str] = None  # if not provided, will be determined from host
-    autocommit: Optional[bool] = True  # opt-in by default, per some team deliberation
+    # opt-in by default per team deliberation on https://peps.python.org/pep-0249/#autocommit
+    autocommit: Optional[bool] = True
 
     _ALIASES = {"dbname": "database", "pass": "password"}
 
