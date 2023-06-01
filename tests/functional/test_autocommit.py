@@ -64,6 +64,14 @@ class TestTransactionBlocksPreventCertainCommands:
     def macros(self):
         return {"macro.sql": _MACROS__CREATE_DB}
 
+    def test_autocommit_deactivated_prevents_DDL(self, project):
+        """Scenario: user has autocommit=True in their target to run macros with normally
+        forbidden commands like CREATE DATABASE and VACUUM"""
+        result, out = run_dbt_and_capture(["run-operation", "create_db_fake"], expect_pass=False)
+        assert "CREATE DATABASE cannot run inside a transaction block" not in out
+
+
+class TestAutocommitUnblocksDDLInTransactions:
     @pytest.fixture(scope="class")
     def dbt_profile_target(self):
         return {
@@ -75,17 +83,9 @@ class TestTransactionBlocksPreventCertainCommands:
             "user": os.getenv("REDSHIFT_TEST_USER"),
             "pass": os.getenv("REDSHIFT_TEST_PASS"),
             "dbname": os.getenv("REDSHIFT_TEST_DBNAME"),
-            "deactivate_autocommit": True,
+            "autocommit": False,
         }
 
-    def test_autocommit_deactivated_prevents_DDL(self, project):
-        """Scenario: user has autocommit=True in their target to run macros with normally
-        forbidden commands like CREATE DATABASE and VACUUM"""
-        result, out = run_dbt_and_capture(["run-operation", "create_db_fake"], expect_pass=False)
-        assert "CREATE DATABASE cannot run inside a transaction block" in out
-
-
-class TestAutocommitUnblocksDDLInTransactions:
     @pytest.fixture(scope="class")
     def macros(self):
         return {"macro.sql": _MACROS__CREATE_DB}
@@ -93,7 +93,7 @@ class TestAutocommitUnblocksDDLInTransactions:
     def test_default_setting_allows_DDL(self, project):
         """Monitor if status quo in Redshift connector changes"""
         result, out = run_dbt_and_capture(["run-operation", "create_db_fake"], expect_pass=False)
-        assert "CREATE DATABASE cannot run inside a transaction block" not in out
+        assert "CREATE DATABASE cannot run inside a transaction block" in out
 
 
 class TestUpdateDDLCommits:
@@ -124,7 +124,7 @@ class TestUpdateDDLDoesNotCommitWithoutAutocommit:
             "user": os.getenv("REDSHIFT_TEST_USER"),
             "pass": os.getenv("REDSHIFT_TEST_PASS"),
             "dbname": os.getenv("REDSHIFT_TEST_DBNAME"),
-            "deactivate_autocommit": True,
+            "autocommit": False,
         }
 
     @pytest.fixture(scope="class")
