@@ -270,11 +270,6 @@
 {% endmacro %}
 
 
-{% macro set_query_tag() -%}
-    {{ return(adapter.dispatch('set_query_tag', 'dbt')()) }}
-{% endmacro %}
-
-
 {% macro redshift__set_query_tag() -%}
   {% set new_query_tag = config.get('query_tag') %}
   {% if new_query_tag %}
@@ -284,11 +279,6 @@
     {{ return(original_query_tag)}}
   {% endif %}
   {{ return(none)}}
-{% endmacro %}
-
-
-{% macro unset_query_tag(original_query_tag) -%}
-    {{ return(adapter.dispatch('unset_query_tag', 'dbt')(original_query_tag)) }}
 {% endmacro %}
 
 
