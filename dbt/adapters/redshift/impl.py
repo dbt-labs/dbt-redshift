@@ -30,7 +30,7 @@ class RedshiftConfig(AdapterConfig):
 
 
 class RedshiftAdapter(SQLAdapter):
-    Relation = RedshiftRelation
+    Relation = RedshiftRelation  # type: ignore
     ConnectionManager = RedshiftConnectionManager
     connections: RedshiftConnectionManager
     Column = RedshiftColumn  # type: ignore
@@ -113,6 +113,36 @@ class RedshiftAdapter(SQLAdapter):
 
     def timestamp_add_sql(self, add_to: str, number: int = 1, interval: str = "hour") -> str:
         return f"{add_to} + interval '{number} {interval}'"
+
+    def _get_cursor(self):
+        return self.connections.get_thread_connection().handle.cursor()
+
+    def get_columns_in_relation(self, relation):
+        cursor = self._get_cursor()
+        results = []
+        if relation.identifier:
+            columns = cursor.get_columns(
+                catalog=relation.database,
+                schema_pattern=relation.schema,
+                tablename_pattern=relation.identifier,
+            )
+        else:
+            columns = cursor.get_columns(catalog=relation.database, schema_pattern=relation.schema)
+        if columns is not None and len(columns) > 0:
+            for column in columns:
+                if column[4] == 1 or column[4] == 12:  # if column type is character
+                    results.append(RedshiftColumn(column[3], column[5], column[6], None, None))
+                # elif column[4] == 5 or column[4] == 4 or column[4] == -5 or column[4] == 3 or column[4] == 7\
+                #         or column[4] == 8 or column[4] == 6 or column[4] == 2 or column[4] == 2003:#if column type is numeric
+                elif any(
+                    column[4] == type_int for type_int in [5, 4, -5, 3, 7, 8, 6, 2, 2003]
+                ):  # if column type is numeric
+                    results.append(
+                        RedshiftColumn(column[3], column[5], None, column[6], column[8])
+                    )
+                else:
+                    results.append(RedshiftColumn(column[3], column[5], column[6], None, None))
+        return results
 
     def _link_cached_database_relations(self, schemas: Set[str]):
         """

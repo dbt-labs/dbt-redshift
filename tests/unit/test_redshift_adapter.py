@@ -77,6 +77,7 @@ class TestRedshiftAdapter(unittest.TestCase):
             db_groups=[],
             timeout=None,
             region="us-east-1",
+            database_metadata_current_db_only=False,
             **DEFAULT_SSL_CONFIG,
         )
 
@@ -97,6 +98,7 @@ class TestRedshiftAdapter(unittest.TestCase):
             region="us-east-1",
             timeout=None,
             **DEFAULT_SSL_CONFIG,
+            database_metadata_current_db_only=False,
         )
 
     @mock.patch("redshift_connector.connect", Mock())
@@ -123,6 +125,7 @@ class TestRedshiftAdapter(unittest.TestCase):
             profile=None,
             port=5439,
             **DEFAULT_SSL_CONFIG,
+            database_metadata_current_db_only=False,
         )
 
     @mock.patch("redshift_connector.connect", Mock())
@@ -141,6 +144,7 @@ class TestRedshiftAdapter(unittest.TestCase):
             region="us-east-1",
             timeout=30,
             **DEFAULT_SSL_CONFIG,
+            database_metadata_current_db_only=False,
         )
 
     @mock.patch("redshift_connector.connect", Mock())
@@ -170,6 +174,7 @@ class TestRedshiftAdapter(unittest.TestCase):
             timeout=None,
             port=5439,
             **DEFAULT_SSL_CONFIG,
+            database_metadata_current_db_only=False,
         )
 
     @mock.patch("redshift_connector.connect", Mock())
@@ -197,6 +202,7 @@ class TestRedshiftAdapter(unittest.TestCase):
             timeout=None,
             port=5439,
             **DEFAULT_SSL_CONFIG,
+            database_metadata_current_db_only=False,
         )
 
     @mock.patch("redshift_connector.connect", Mock())
@@ -226,6 +232,7 @@ class TestRedshiftAdapter(unittest.TestCase):
             timeout=None,
             port=5439,
             **DEFAULT_SSL_CONFIG,
+            database_metadata_current_db_only=False,
         )
 
     @mock.patch("redshift_connector.connect", Mock())
@@ -256,6 +263,7 @@ class TestRedshiftAdapter(unittest.TestCase):
                 timeout=None,
                 port=5439,
                 **DEFAULT_SSL_CONFIG,
+                database_metadata_current_db_only=False,
             )
 
     @mock.patch("redshift_connector.connect", Mock())
@@ -286,6 +294,7 @@ class TestRedshiftAdapter(unittest.TestCase):
                 timeout=None,
                 port=5439,
                 **DEFAULT_SSL_CONFIG,
+                database_metadata_current_db_only=False,
             )
 
     @mock.patch("redshift_connector.connect", Mock())
@@ -305,6 +314,7 @@ class TestRedshiftAdapter(unittest.TestCase):
             timeout=None,
             ssl=False,
             sslmode=None,
+            database_metadata_current_db_only=False,
         )
 
     @mock.patch("redshift_connector.connect", Mock())
@@ -324,6 +334,7 @@ class TestRedshiftAdapter(unittest.TestCase):
             timeout=None,
             ssl=True,
             sslmode="verify-ca",
+            database_metadata_current_db_only=False,
         )
 
     @mock.patch("redshift_connector.connect", Mock())
@@ -343,6 +354,7 @@ class TestRedshiftAdapter(unittest.TestCase):
             timeout=None,
             ssl=True,
             sslmode="verify-full",
+            database_metadata_current_db_only=False,
         )
 
     @mock.patch("redshift_connector.connect", Mock())
@@ -362,6 +374,7 @@ class TestRedshiftAdapter(unittest.TestCase):
             timeout=None,
             ssl=True,
             sslmode="verify-ca",
+            database_metadata_current_db_only=False,
         )
 
     @mock.patch("redshift_connector.connect", Mock())
@@ -381,6 +394,7 @@ class TestRedshiftAdapter(unittest.TestCase):
             timeout=None,
             ssl=True,
             sslmode="verify-ca",
+            database_metadata_current_db_only=False,
         )
 
     @mock.patch("redshift_connector.connect", Mock())
@@ -409,6 +423,7 @@ class TestRedshiftAdapter(unittest.TestCase):
                 port=5439,
                 timeout=None,
                 **DEFAULT_SSL_CONFIG,
+                database_metadata_current_db_only=False,
             )
         self.assertTrue("'host' must be provided" in context.exception.msg)
 

@@ -152,6 +152,7 @@ class RedshiftCredentials(Credentials):
     region: Optional[str] = None  # if not provided, will be determined from host
     # opt-in by default per team deliberation on https://peps.python.org/pep-0249/#autocommit
     autocommit: Optional[bool] = True
+    current_db_only: Optional[bool] = False
 
     _ALIASES = {"dbname": "database", "pass": "password"}
 
@@ -201,6 +202,7 @@ class RedshiftConnectMethodFactory:
             "db_groups": self.credentials.db_groups,
             "region": self.credentials.region,
             "timeout": self.credentials.connect_timeout,
+            "database_metadata_current_db_only": self.credentials.current_db_only,
         }
         if kwargs["region"] is None:
             logger.debug("No region provided, attempting to determine from host.")
