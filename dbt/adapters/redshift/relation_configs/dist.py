@@ -74,6 +74,8 @@ class RedshiftDistConfig(RelationConfigBase, RelationConfigValidationMixin):
     def parse_model_node(cls, model_node: ModelNode) -> dict:
         dist = model_node.config.get("dist")
 
+        # this type annotation make mypy happy, I don't know what the difference is between this method
+        # and `RedshiftSortConfig.parse_model_node()`
         config_dict: Dict[str, Optional[str]] = {}
 
         if dist is None:
