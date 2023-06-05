@@ -1,3 +1,29 @@
+{% macro redshift__get_alter_materialized_view_as_sql(
+    relation,
+    configuration_changes,
+    sql,
+    existing_relation,
+    backup_relation,
+    intermediate_relation
+) %}
+
+    -- apply a full refresh immediately if needed
+    {% if configuration_changes.requires_full_refresh %}
+
+        {{ get_replace_materialized_view_as_sql(relation, sql, existing_relation, backup_relation, intermediate_relation) }}
+
+    -- otherwise apply individual changes as needed
+    {% else %}
+
+        {% if configuration_changes.auto_refresh.is_change %}
+            {{ redshift__update_auto_refresh_on_materialized_view(relation, configuration_changes.auto_refresh) }}
+        {%- endif -%}
+
+    {%- endif -%}
+
+{% endmacro %}
+
+
 {% macro redshift__get_create_materialized_view_as_sql(relation, sql) %}
 
     create materialized view if not exists {{ relation }}
@@ -13,22 +39,13 @@
 
 
 {% macro redshift__get_replace_materialized_view_as_sql(relation, sql, existing_relation, backup_relation, intermediate_relation) %}
-
+    -- Redshift does not allow you to rename materialized views, so we cannot use `backup_relation` nor `intermediate_relation`
+    -- TODO:
+    -- We're not accounting for the scenario where the existing relation is not a materialized view (e.g. table)
+    --    In this scenario, we could actually do the name swapping, but we have not implemented that.
     {{ drop_relation_if_exists(existing_relation) }}
-
     {{ get_create_materialized_view_as_sql(relation, sql) }}
-
 {% endmacro %}
-
-
-{% macro redshift__refresh_materialized_view(relation) -%}
-  {{ postgres__refresh_materialized_view(relation) }}
-{% endmacro %}
-
-
-{% macro redshift__drop_materialized_view(relation) -%}
-    drop materialized view if exists {{ relation }};
-{%- endmacro %}
 
 
 {% macro redshift__get_materialized_view_configuration_changes(existing_relation, new_config) %}
@@ -41,14 +58,20 @@
 {% endmacro %}
 
 
+{% macro redshift__refresh_materialized_view(relation) -%}
+    refresh materialized view {{ relation }}
+{% endmacro %}
+
+
+{% macro redshift__update_auto_refresh_on_materialized_view(relation, auto_refresh_change) -%}
+    {{- log("Applying UPDATE AUTO REFRESH to: " ~ relation) -}}
+
+    {%- set _auto_refresh = auto_refresh_change.context -%}
+
+    alter materialized view {{ relation }}
+        auto refresh {% if _auto_refresh %}yes{% else %}no{% endif %}
+
+{%- endmacro -%}
+
 -- TODO
 -- fix caching relation and get_relation
--- sort and dist key updates
--- \   if change in sort and dist keys trigger refresh
--- two new methods in impl
--- add alter method
-    -- {% dist_updates = existing_relation.get_dist_updates(existiing_dist, new_config) %}
-    -- {% sort_updates = existing_relation.get_sort_updates(existing_sort, new_config) %}
-    -- {% sort_type_updates = existing_relation.get_sort_type_updates(existing_sort_type, new_config) %}
-
--- res.result[1].node.config to reach dist, sort area

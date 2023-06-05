@@ -4,13 +4,21 @@ from typing import Optional, Set
 from dbt.adapters.relation_configs import (
     RelationConfigBase,
     RelationResults,
+    RelationConfigChange,
     RelationConfigValidationMixin,
     RelationConfigValidationRule,
 )
 from dbt.contracts.graph.nodes import ModelNode
 
-from dbt.adapters.redshift.relation_configs.dist import RedshiftDistConfig, RedshiftDistStyle
-from dbt.adapters.redshift.relation_configs.sort import RedshiftSortConfig
+from dbt.adapters.redshift.relation_configs.dist import (
+    RedshiftDistConfig,
+    RedshiftDistStyle,
+    RedshiftDistConfigChange,
+)
+from dbt.adapters.redshift.relation_configs.sort import (
+    RedshiftSortConfig,
+    RedshiftSortConfigChange,
+)
 
 
 @dataclass(frozen=True, eq=True, unsafe_hash=True)
@@ -36,10 +44,10 @@ class RedshiftMaterializedViewConfig(RelationConfigBase, RelationConfigValidatio
 
     mv_name: Optional[str] = None  # see docstring above
     query: Optional[str] = None  # see docstring above
-    backup: Optional[bool] = True
-    dist: Optional[RedshiftDistConfig] = RedshiftDistConfig(diststyle=RedshiftDistStyle.even)
-    sort: Optional[RedshiftSortConfig] = RedshiftSortConfig()
-    auto_refresh: Optional[bool] = False
+    backup: bool = True
+    dist: RedshiftDistConfig = RedshiftDistConfig(diststyle=RedshiftDistStyle.even)
+    sort: RedshiftSortConfig = RedshiftSortConfig()
+    auto_refresh: bool = False
 
     @property
     def validation_rules(self) -> Set[RelationConfigValidationRule]:
@@ -104,3 +112,51 @@ class RedshiftMaterializedViewConfig(RelationConfigBase, RelationConfigValidatio
         }
 
         return config_dict
+
+
+@dataclass(frozen=True, eq=True, unsafe_hash=True)
+class RedshiftAutoRefreshConfigChange(RelationConfigChange):
+    context: Optional[bool] = None
+
+    @property
+    def requires_full_refresh(self) -> bool:
+        return False
+
+
+@dataclass(frozen=True, eq=True, unsafe_hash=True)
+class RedshiftBackupConfigChange(RelationConfigChange):
+    context: Optional[bool] = None
+
+    @property
+    def requires_full_refresh(self) -> bool:
+        return True
+
+
+@dataclass
+class RedshiftMaterializedViewConfigChangeCollection:
+    backup: Optional[RedshiftBackupConfigChange] = None
+    dist: Optional[RedshiftDistConfigChange] = None
+    sort: Optional[RedshiftSortConfigChange] = None
+    auto_refresh: Optional[RedshiftAutoRefreshConfigChange] = None
+
+    @property
+    def requires_full_refresh(self) -> bool:
+        return any(
+            {
+                self.auto_refresh.requires_full_refresh if self.auto_refresh else False,
+                self.backup.requires_full_refresh if self.backup else False,
+                self.dist.requires_full_refresh if self.dist else False,
+                self.sort.requires_full_refresh if self.sort else False,
+            }
+        )
+
+    @property
+    def has_changes(self) -> bool:
+        return any(
+            {
+                self.backup.is_change if self.backup else False,
+                self.dist.is_change if self.dist else False,
+                self.sort.is_change if self.sort else False,
+                self.auto_refresh.is_change if self.auto_refresh else False,
+            }
+        )

@@ -3,6 +3,8 @@ from typing import Optional, Set, Dict
 
 from dbt.adapters.relation_configs import (
     RelationConfigBase,
+    RelationConfigChange,
+    RelationConfigChangeAction,
     RelationResults,
     RelationConfigValidationMixin,
     RelationConfigValidationRule,
@@ -100,3 +102,23 @@ class RedshiftDistConfig(RelationConfigBase, RelationConfigValidationMixin):
             "distkey": dist.get("distkey"),
         }
         return config_dict
+
+
+@dataclass(frozen=True, eq=True, unsafe_hash=True)
+class RedshiftDistConfigChange(RelationConfigChange, RelationConfigValidationMixin):
+    context: RedshiftDistConfig
+
+    @property
+    def requires_full_refresh(self) -> bool:
+        return True
+
+    @property
+    def validation_rules(self) -> Set[RelationConfigValidationRule]:
+        return {
+            RelationConfigValidationRule(
+                validation_check=(self.action == RelationConfigChangeAction.alter),
+                validation_error=DbtRuntimeError(
+                    "Invalid operation, only `alter` changes are supported for `distkey` / `diststyle`."
+                ),
+            ),
+        }
