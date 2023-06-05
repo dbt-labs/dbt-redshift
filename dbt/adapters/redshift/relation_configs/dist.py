@@ -1,87 +1,99 @@
 from dataclasses import dataclass
-from enum import Enum
-from typing import Optional
+from typing import Optional, Set, Dict
 
-from dbt.contracts.graph.model_config import NodeConfig
+from dbt.adapters.relation_configs import (
+    RelationConfigBase,
+    RelationResults,
+    RelationConfigValidationMixin,
+    RelationConfigValidationRule,
+)
+from dbt.contracts.graph.nodes import ModelNode
+from dbt.dataclass_schema import StrEnum
 from dbt.exceptions import DbtRuntimeError
 
 
-class DistStyle(str, Enum):
+class RedshiftDistStyle(StrEnum):
     auto = "auto"
     even = "even"
     all = "all"
     key = "key"
 
     @classmethod
-    def default(cls) -> "DistStyle":
+    def default(cls) -> "RedshiftDistStyle":
         return cls.auto
 
 
-@dataclass(frozen=True, eq=True)
-class DistConfig:
-    dist_style: Optional[DistStyle] = DistStyle.default()
-    dist_key: Optional[str] = None
+@dataclass(frozen=True, eq=True, unsafe_hash=True)
+class RedshiftDistConfig(RelationConfigBase, RelationConfigValidationMixin):
+    """
+    This config fallows the specs found here:
+    https://docs.aws.amazon.com/redshift/latest/dg/r_CREATE_TABLE_NEW.html
 
-    @classmethod
-    def from_node_config(cls, node_config: NodeConfig) -> "DistConfig":
-        dist = node_config.get("dist")
-        if dist is None:
-            dist_style = None
-            dist_key = None
-        elif dist.lower() in (DistStyle.auto, DistStyle.even, DistStyle.all):
-            dist_style = dist
-            dist_key = None
-        else:
-            dist_style = DistStyle.key
-            dist_key = dist
+    The following parameters are configurable by dbt:
+    - diststyle: the type of data distribution style to use on the table/materialized view
+    - distkey: the column to use for the dist key if `dist_style` is `key`
+    """
 
-        try:
-            dist_config = cls._get_valid_dist_config(dist_style, dist_key)
-        except DbtRuntimeError:
-            raise DbtRuntimeError(f"Unexpected dist metadata retrieved from the config: {dist}")
-        return dist_config
-
-    @classmethod
-    def from_database_config(cls, database_config: dict) -> "DistConfig":
-        dist_style = database_config.get("diststyle")
-        dist_key = database_config.get("column")
-
-        try:
-            dist_config = cls._get_valid_dist_config(dist_style, dist_key)
-        except DbtRuntimeError:
-            raise DbtRuntimeError(
-                f"Unexpected dist metadata retrieved from the database: {database_config}"
-            )
-        return dist_config
-
-    @classmethod
-    def _get_valid_dist_config(
-        cls, dist_style: Optional[str], dist_key: Optional[str]
-    ) -> "DistConfig":
-        if dist_style is None:
-            dist_style_clean = None
-        else:
-            dist_style_clean = DistStyle(dist_style.lower())
-
-        if dist_key is None:
-            dist_key_clean = None
-        else:
-            dist_key_clean = dist_key.upper()  # TODO: do we need to look at the quoting policy?
-
-        dist_config = DistConfig(dist_style=dist_style_clean, dist_key=dist_key_clean)
-        if dist_config.is_valid:
-            return dist_config
-        raise DbtRuntimeError(
-            f"Unexpected dist metadata: diststyle: {dist_style}; distkey: {dist_key}"
-        )
+    diststyle: Optional[RedshiftDistStyle] = RedshiftDistStyle.default()
+    distkey: Optional[str] = None
 
     @property
-    def is_valid(self) -> bool:
-        if self.dist_style == DistStyle.key and self.dist_key is None:
-            return False
-        elif (
-            self.dist_style in (DistStyle.auto, DistStyle.even, DistStyle.all)
-            and self.dist_key is not None
+    def validation_rules(self) -> Set[RelationConfigValidationRule]:
+        # index rules get run by default with the mixin
+        return {
+            RelationConfigValidationRule(
+                validation_check=not (
+                    self.diststyle == RedshiftDistStyle.key and self.distkey is None
+                ),
+                validation_error=DbtRuntimeError(
+                    "A `RedshiftDistConfig` that specifies a `diststyle` of `key` must provide a value for `distkey`."
+                ),
+            ),
+            RelationConfigValidationRule(
+                validation_check=not (
+                    self.diststyle
+                    in (RedshiftDistStyle.auto, RedshiftDistStyle.even, RedshiftDistStyle.all)
+                    and self.distkey is not None
+                ),
+                validation_error=DbtRuntimeError(
+                    "A `RedshiftDistConfig` that specifies a `distkey` must be of `diststyle` `key`."
+                ),
+            ),
+        }
+
+    @classmethod
+    def from_dict(cls, config_dict) -> "RedshiftDistConfig":
+        kwargs_dict = {
+            "diststyle": config_dict.get("diststyle"),
+            "distkey": frozenset(column for column in config_dict.get("distkey", {})),
+        }
+        dist: "RedshiftDistConfig" = super().from_dict(kwargs_dict)  # type: ignore
+        return dist
+
+    @classmethod
+    def parse_model_node(cls, model_node: ModelNode) -> dict:
+        dist = model_node.config.get("dist")
+
+        config_dict: Dict[str, Optional[str]] = {}
+        if dist is None:
+            config_dict = {"diststyle": None, "distkey": None}
+        elif dist.lower() in (
+            RedshiftDistStyle.auto,
+            RedshiftDistStyle.even,
+            RedshiftDistStyle.all,
         ):
-            return False
-        return True
+            # TODO: include the QuotePolicy instead of defaulting to lower()
+            config_dict = {"diststyle": dist.lower(), "distkey": None}
+        else:
+            # TODO: include the QuotePolicy instead of defaulting to lower()
+            config_dict = {"diststyle": RedshiftDistStyle.key, "distkey": dist.lower()}
+        return config_dict
+
+    @classmethod
+    def parse_relation_results(cls, relation_results: RelationResults) -> dict:
+        dist = relation_results.get("base", {})
+        config_dict = {
+            "diststyle": dist.get("diststyle"),
+            "distkey": dist.get("distkey"),
+        }
+        return config_dict
