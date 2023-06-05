@@ -75,18 +75,19 @@ class RedshiftDistConfig(RelationConfigBase, RelationConfigValidationMixin):
         dist = model_node.config.get("dist")
 
         config_dict: Dict[str, Optional[str]] = {}
+
         if dist is None:
-            config_dict = {"diststyle": None, "distkey": None}
+            config_dict.update({"diststyle": None, "distkey": None})
         elif dist.lower() in (
             RedshiftDistStyle.auto,
             RedshiftDistStyle.even,
             RedshiftDistStyle.all,
         ):
             # TODO: include the QuotePolicy instead of defaulting to lower()
-            config_dict = {"diststyle": dist.lower(), "distkey": None}
+            config_dict.update({"diststyle": dist.lower(), "distkey": None})
         else:
             # TODO: include the QuotePolicy instead of defaulting to lower()
-            config_dict = {"diststyle": RedshiftDistStyle.key, "distkey": dist.lower()}
+            config_dict.update({"diststyle": RedshiftDistStyle.key, "distkey": dist.lower()})
         return config_dict
 
     @classmethod

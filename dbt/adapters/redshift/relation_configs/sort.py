@@ -109,7 +109,7 @@ class RedshiftSortConfig(RelationConfigBase, RelationConfigValidationMixin):
         if sortstyle := model_node.config.get("sort_type"):
             config_dict.update({"sortstyle": sortstyle.lower()})
 
-        if sortkey := model_node.config.get("sort_key", []):
+        if sortkey := model_node.config.get("sort_key"):
             # we allow users to specify the `sort_key` as a string if it's a single column
             if isinstance(sortkey, str):
                 sortkey = [sortkey]
