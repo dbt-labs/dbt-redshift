@@ -128,4 +128,22 @@ insert into <model_identifier>
 
 
 class TestRedshiftConstraintQuotedColumn(BaseConstraintQuotedColumn):
-    pass
+    @pytest.fixture(scope="class")
+    def expected_sql(self):
+        return """
+create table <model_identifier> (
+    id integer not null,
+    "from" text not null,
+    date_day text
+) ;
+insert into <model_identifier>
+(
+    select id, "from", date_day
+    from (
+        select
+          'blue' as "from",
+          1 as id,
+          '2019-01-01' as date_day
+    ) as model_subq
+);
+"""
