@@ -43,12 +43,14 @@
 
   {{ sql_header if sql_header is not none }}
 
-  {%- if config.get('constraints_enabled', False) %}
+  {%- set contract_config = config.get('contract') -%}
+  {%- if contract_config.enforced -%}
 
   create {% if temporary -%}temporary{%- endif %} table
     {{ relation.include(database=(not temporary), schema=(not temporary)) }}
-    {{ get_columns_spec_ddl() }}
+    {{ get_table_columns_and_constraints() }}
     {{ get_assert_columns_equivalent(sql) }}
+    {%- set sql = get_select_subquery(sql) %}
     {% if backup == false -%}backup no{%- endif %}
     {{ dist(_dist) }}
     {{ sort(_sort_type, _sort) }}
@@ -83,7 +85,11 @@
 
   {{ sql_header if sql_header is not none }}
 
-  create view {{ relation }} as (
+  create view {{ relation }}
+  {%- set contract_config = config.get('contract') -%}
+  {%- if contract_config.enforced -%}
+    {{ get_assert_columns_equivalent(sql) }}
+  {%- endif %} as (
     {{ sql }}
   ) {{ bind_qualifier }};
 {% endmacro %}
@@ -286,3 +292,21 @@
   {% endif %}
 
 {% endmacro %}
+
+{#
+  By using dollar-quoting like this, users can embed anything they want into their comments
+  (including nested dollar-quoting), as long as they do not use this exact dollar-quoting
+  label. It would be nice to just pick a new one but eventually you do have to give up.
+#}
+{% macro postgres_escape_comment(comment) -%}
+  {% if comment is not string %}
+    {% do exceptions.raise_compiler_error('cannot escape a non-string: ' ~ comment) %}
+  {% endif %}
+  {%- set magic = '$dbt_comment_literal_block$' -%}
+  {%- if magic in comment -%}
+    {%- do exceptions.raise_compiler_error('The string ' ~ magic ~ ' is not allowed in comments.') -%}
+  {%- endif -%}
+  {#- -- escape % until the underlying issue is fixed in redshift_connector -#}
+  {%- set comment = comment|replace("%", "%%") -%}
+  {{ magic }}{{ comment }}{{ magic }}
+{%- endmacro %}

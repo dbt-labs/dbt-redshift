@@ -60,9 +60,7 @@ class TestSimpleSeedColumnOverride(BaseSimpleSeedColumnOverride):
 
     @pytest.fixture(scope="class")
     def models(self):
-        return {
-            "models-rs.yml": _SCHEMA_YML
-        }
+        return {"models-rs.yml": _SCHEMA_YML}
 
     @staticmethod
     def seed_enabled_types():
@@ -74,9 +72,9 @@ class TestSimpleSeedColumnOverride(BaseSimpleSeedColumnOverride):
     @staticmethod
     def seed_tricky_types():
         return {
-            'seed_id_str': 'text',
-            'looks_like_a_bool': 'text',
-            'looks_like_a_date': 'text',
+            "seed_id_str": "text",
+            "looks_like_a_bool": "text",
+            "looks_like_a_date": "text",
         }
 
     def test_redshift_simple_seed_with_column_override_redshift(self, project):
