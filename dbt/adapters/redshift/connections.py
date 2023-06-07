@@ -162,15 +162,25 @@ class RedshiftCredentials(Credentials):
     def _connection_keys(self):
         return (
             "host",
-            "port",
             "user",
+            "port",
             "database",
-            "schema",
             "method",
             "cluster_id",
             "iam_profile",
+            "schema",
             "sslmode",
             "region",
+            "sslmode",
+            "region",
+            "iam_profile",
+            "autocreate",
+            "db_groups",
+            "ra3_node",
+            "connect_timeout",
+            "role",
+            "retries",
+            "autocommit",
         )
 
     @property
