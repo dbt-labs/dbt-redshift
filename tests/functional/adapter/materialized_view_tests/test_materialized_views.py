@@ -1,7 +1,5 @@
-import pytest
-
-from dbt.contracts.results import RunStatus
 from dbt.contracts.relation import RelationType
+from dbt.contracts.results import RunStatus
 from dbt.tests.adapter.materialized_view.base import (
     run_model,
     assert_model_exists_and_is_correct_type,
@@ -23,6 +21,7 @@ class TestBasic(RedshiftBasicBase):
         assert_model_exists_and_is_correct_type(
             project, "base_materialized_view", RelationType.MaterializedView
         )
+        assert_model_exists_and_is_correct_type(project, "base_table", RelationType.Table)
 
     def test_relation_is_materialized_view_when_rerun(self, project):
         run_model("base_materialized_view")
@@ -42,7 +41,6 @@ class TestBasic(RedshiftBasicBase):
             project, "base_materialized_view", RelationType.MaterializedView
         )
 
-    @pytest.mark.skip("This test will fail because we're mocking with a view for now")
     def test_updated_base_table_data_only_shows_in_materialized_view_after_rerun(self, project):
         # poll database
         table_start = get_row_count(project, "base_table")
@@ -143,11 +141,11 @@ class TestOnConfigurationChangeApply(OnConfigurationChangeCommon):
         )
 
 
-class TestOnConfigurationChangeSkip(OnConfigurationChangeCommon):
-    on_configuration_change = "skip"
+class TestOnConfigurationChangeContinue(OnConfigurationChangeCommon):
+    on_configuration_change = "continue"
 
     def test_model_is_skipped_with_configuration_changes(
-        self, configuration_changes_apply, configuration_change_skip_message
+        self, configuration_changes_apply, configuration_change_continue_message
     ):
         results, logs = run_model("base_materialized_view")
         assert_proper_scenario(
@@ -155,7 +153,7 @@ class TestOnConfigurationChangeSkip(OnConfigurationChangeCommon):
             results,
             logs,
             RunStatus.Success,
-            messages_in_logs=[configuration_change_skip_message],
+            messages_in_logs=[configuration_change_continue_message],
         )
 
 

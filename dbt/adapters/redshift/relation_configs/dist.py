@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Optional, Set, Dict
+from typing import Optional, Set
 
 from dbt.adapters.relation_configs import (
     RelationConfigBase,
@@ -67,41 +67,76 @@ class RedshiftDistConfig(RelationConfigBase, RelationConfigValidationMixin):
     def from_dict(cls, config_dict) -> "RedshiftDistConfig":
         kwargs_dict = {
             "diststyle": config_dict.get("diststyle"),
-            "distkey": frozenset(column for column in config_dict.get("distkey", {})),
+            "distkey": config_dict.get("distkey"),
         }
         dist: "RedshiftDistConfig" = super().from_dict(kwargs_dict)  # type: ignore
         return dist
 
     @classmethod
     def parse_model_node(cls, model_node: ModelNode) -> dict:
-        dist = model_node.config.get("dist")
+        """
+        Translate ModelNode objects from the user-provided config into a standard dictionary.
 
-        # this type annotation make mypy happy, I don't know what the difference is between this method
-        # and `RedshiftSortConfig.parse_model_node()`
-        config_dict: Dict[str, Optional[str]] = {}
+        Args:
+            model_node: the description of the distkey and diststyle from the user in this format:
 
-        if dist is None:
-            config_dict.update({"diststyle": None, "distkey": None})
+                {
+                    "dist": any("auto", "even", "all") or "<column_name>"
+                }
+
+        Returns: a standard dictionary describing this `RedshiftDistConfig` instance
+        """
+        dist = model_node.config.extra.get("dist", "")
+
+        if dist == "":
+            return {}
         elif dist.lower() in (
             RedshiftDistStyle.auto,
             RedshiftDistStyle.even,
             RedshiftDistStyle.all,
         ):
-            # TODO: include the QuotePolicy instead of defaulting to lower()
-            config_dict.update({"diststyle": dist.lower(), "distkey": None})
+            return {"diststyle": dist.lower()}
         else:
             # TODO: include the QuotePolicy instead of defaulting to lower()
-            config_dict.update({"diststyle": RedshiftDistStyle.key, "distkey": dist.lower()})
-        return config_dict
+            return {"diststyle": RedshiftDistStyle.key, "distkey": dist.lower()}
 
     @classmethod
     def parse_relation_results(cls, relation_results: RelationResults) -> dict:
-        dist = relation_results.get("base", {})
-        config_dict = {
-            "diststyle": dist.get("diststyle"),
-            "distkey": dist.get("distkey"),
-        }
-        return config_dict
+        """
+        Translate agate objects from the database into a standard dictionary.
+
+        Args:
+            relation_results: the description of the distkey and diststyle from the database in this format:
+
+                {
+                    "dist": agate.Table(
+                        agate.Row({
+                            "dist": "<diststyle/distkey>",  # e.g. EVEN | KEY(column1) | AUTO(ALL) | AUTO(KEY(id))
+                        })
+                    )
+                }
+
+        Returns: a standard dictionary describing this `RedshiftDistConfig` instance
+        """
+        if dist := relation_results.get("dist"):
+            dist = dist.rows[0].get("dist")
+        else:
+            return {}
+
+        if dist[:3].lower() == "all":
+            return {"diststyle": RedshiftDistStyle.all}
+
+        elif dist[:4].lower() == "even":
+            return {"diststyle": RedshiftDistStyle.even}
+
+        elif dist[:4].lower() == "auto":
+            return {"diststyle": RedshiftDistStyle.auto}
+
+        elif dist[:3].lower() == "key":
+            distkey = dist[len("key(") : -len(")")]
+            return {"diststyle": RedshiftDistStyle.key, "distkey": distkey}
+
+        return {}
 
 
 @dataclass(frozen=True, eq=True, unsafe_hash=True)

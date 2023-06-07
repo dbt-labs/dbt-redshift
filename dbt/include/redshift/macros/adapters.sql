@@ -14,13 +14,6 @@
 {%- endmacro -%}
 
 
-{% macro redshift__get_show_dist_sql(relation) %}
-    select
-
-
-{% endmacro %}
-
-
 {% macro sort(sort_type, sort) %}
   {%- if sort is not none %}
       {{ sort_type | default('compound', boolean=true) }} sortkey(
@@ -245,7 +238,11 @@
       '{{ schema_relation.database }}' as database,
       viewname as name,
       schemaname as schema,
-      'view' as type
+      case
+        when definition ilike '%create materialized view%'
+          then 'materialized_view'
+        else 'view'
+      end as type
     from pg_views
     where schemaname ilike '{{ schema_relation.schema }}'
   {% endcall %}

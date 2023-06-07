@@ -32,13 +32,12 @@ class RedshiftOnConfigurationChangeBase(OnConfigurationChangeBase):
         ) }}
         select
             1 as id,
-            100 as value,
-            42 as new_id,
-            4242 as new_value
+            100 as value
         """
         base_materialized_view = """
         {{ config(
             materialized='materialized_view',
+            sort='id'
         ) }}
         select * from {{ ref('base_table') }}
         """
@@ -66,8 +65,8 @@ class RedshiftOnConfigurationChangeBase(OnConfigurationChangeBase):
 
         # add a sort_key
         new_model = initial_model.replace(
-            "materialized='materialized_view',",
-            "materialized='materialized_view', sort='id',",
+            "sort='id'",
+            "sort='value'",
         )
         set_model_file(project, "base_materialized_view", new_model)
 
@@ -78,4 +77,4 @@ class RedshiftOnConfigurationChangeBase(OnConfigurationChangeBase):
 
     @pytest.fixture(scope="function")
     def update_auto_refresh_message(self, project):
-        return f"Applying UPDATE AUTO_REFRESH to: {relation_from_name(project.adapter, 'base_materialized_view')}"
+        return f"Applying UPDATE AUTO REFRESH to: {relation_from_name(project.adapter, 'base_materialized_view')}"
