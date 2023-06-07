@@ -163,3 +163,7 @@ class RedshiftAdapter(SQLAdapter):
 
     def generate_python_submission_response(self, submission_result: Any) -> AdapterResponse:
         return super().generate_python_submission_response(submission_result)
+
+    def debug_query(self):
+        """Override for DebugTask method"""
+        self.execute("select 1 as id")
