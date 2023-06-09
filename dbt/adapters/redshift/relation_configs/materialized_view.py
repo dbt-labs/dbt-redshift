@@ -4,7 +4,6 @@ from typing import Optional, Set
 from dbt.adapters.relation_configs import (
     RelationConfigBase,
     RelationResults,
-    RelationConfigChange,
     RelationConfigValidationMixin,
     RelationConfigValidationRule,
 )
@@ -14,11 +13,9 @@ from dbt.exceptions import DbtRuntimeError
 from dbt.adapters.redshift.relation_configs.dist import (
     RedshiftDistConfig,
     RedshiftDistStyle,
-    RedshiftDistConfigChange,
 )
 from dbt.adapters.redshift.relation_configs.sort import (
     RedshiftSortConfig,
-    RedshiftSortConfigChange,
 )
 
 
@@ -183,51 +180,3 @@ class RedshiftMaterializedViewConfig(RelationConfigBase, RelationConfigValidatio
                 config_dict.update({"sort": sort})
 
         return config_dict
-
-
-@dataclass(frozen=True, eq=True, unsafe_hash=True)
-class RedshiftAutoRefreshConfigChange(RelationConfigChange):
-    context: Optional[bool] = None
-
-    @property
-    def requires_full_refresh(self) -> bool:
-        return False
-
-
-@dataclass(frozen=True, eq=True, unsafe_hash=True)
-class RedshiftBackupConfigChange(RelationConfigChange):
-    context: Optional[bool] = None
-
-    @property
-    def requires_full_refresh(self) -> bool:
-        return True
-
-
-@dataclass
-class RedshiftMaterializedViewConfigChangeCollection:
-    backup: Optional[RedshiftBackupConfigChange] = None
-    dist: Optional[RedshiftDistConfigChange] = None
-    sort: Optional[RedshiftSortConfigChange] = None
-    autorefresh: Optional[RedshiftAutoRefreshConfigChange] = None
-
-    @property
-    def requires_full_refresh(self) -> bool:
-        return any(
-            {
-                self.autorefresh.requires_full_refresh if self.autorefresh else False,
-                self.backup.requires_full_refresh if self.backup else False,
-                self.dist.requires_full_refresh if self.dist else False,
-                self.sort.requires_full_refresh if self.sort else False,
-            }
-        )
-
-    @property
-    def has_changes(self) -> bool:
-        return any(
-            {
-                self.backup.is_change if self.backup else False,
-                self.dist.is_change if self.dist else False,
-                self.sort.is_change if self.sort else False,
-                self.autorefresh.is_change if self.autorefresh else False,
-            }
-        )

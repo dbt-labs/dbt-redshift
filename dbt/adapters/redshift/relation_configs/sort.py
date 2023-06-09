@@ -3,8 +3,6 @@ from typing import Optional, FrozenSet, Set
 
 from dbt.adapters.relation_configs import (
     RelationConfigBase,
-    RelationConfigChange,
-    RelationConfigChangeAction,
     RelationResults,
     RelationConfigValidationMixin,
     RelationConfigValidationRule,
@@ -170,23 +168,3 @@ class RedshiftSortConfig(RelationConfigBase, RelationConfigValidationMixin):
                 config_dict.update({"sortkey": sortkeys})
 
         return config_dict
-
-
-@dataclass(frozen=True, eq=True, unsafe_hash=True)
-class RedshiftSortConfigChange(RelationConfigChange, RelationConfigValidationMixin):
-    context: RedshiftSortConfig
-
-    @property
-    def requires_full_refresh(self) -> bool:
-        return True
-
-    @property
-    def validation_rules(self) -> Set[RelationConfigValidationRule]:
-        return {
-            RelationConfigValidationRule(
-                validation_check=(self.action == RelationConfigChangeAction.alter),
-                validation_error=DbtRuntimeError(
-                    "Invalid operation, only `alter` changes are supported for `sortkey` / `sortstyle`."
-                ),
-            ),
-        }
