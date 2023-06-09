@@ -7,14 +7,14 @@ from dbt.tests.adapter.constraints.test_constraints import (
     BaseConstraintsRollback,
     BaseIncrementalConstraintsRuntimeDdlEnforcement,
     BaseIncrementalConstraintsRollback,
+    BaseModelConstraintsRuntimeEnforcement,
 )
 
 _expected_sql_redshift = """
 create table <model_identifier> (
-    id integer not null,
+    id integer not null primary key references <foreign_key_model_identifier> (id) unique,
     color text,
-    date_day text,
-    primary key(id)
+    date_day text
 ) ;
 insert into <model_identifier>
 (
@@ -23,6 +23,7 @@ insert into <model_identifier>
         color,
         date_day from
     (
+        -- depends_on: <foreign_key_model_identifier>
         select
             'blue' as color,
             1 as id,
@@ -93,3 +94,33 @@ class TestRedshiftIncrementalConstraintsRollback(BaseIncrementalConstraintsRollb
     @pytest.fixture(scope="class")
     def expected_error_messages(self):
         return ["Cannot insert a NULL value into column id"]
+
+
+class TestRedshiftModelConstraintsRuntimeEnforcement(BaseModelConstraintsRuntimeEnforcement):
+    @pytest.fixture(scope="class")
+    def expected_sql(self):
+        return """
+create table <model_identifier> (
+    id integer not null,
+    color text,
+    date_day text,
+    primary key (id),
+    constraint strange_uniqueness_requirement unique (color, date_day),
+    foreign key (id) references <foreign_key_model_identifier> (id)
+) ;
+insert into <model_identifier>
+(
+    select
+        id,
+        color,
+        date_day from
+    (
+        -- depends_on: <foreign_key_model_identifier>
+        select
+            'blue' as color,
+            1 as id,
+            '2019-01-01' as date_day
+    ) as model_subq
+)
+;
+"""
