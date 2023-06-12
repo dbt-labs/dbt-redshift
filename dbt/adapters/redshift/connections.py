@@ -221,9 +221,7 @@ class RedshiftConnectMethodFactory:
                 if _is_valid_region(inferred_region):
                     kwargs["region"] = inferred_region
                 else:
-                    logger.debug(
-                        f"Unable to determine region from host, proceeding without region: {self.credentials.host}"
-                    )
+                    raise IndexError
             except IndexError:
                 logger.debug(
                     f"Unable to determine region from host, proceeding without region: {self.credentials.host}"
