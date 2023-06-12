@@ -212,14 +212,24 @@ class RedshiftConnectMethodFactory:
             "region": self.credentials.region,
             "timeout": self.credentials.connect_timeout,
         }
-        # if kwargs["region"] is None:
-        #     logger.debug("No region provided, attempting to determine from host.")
-        #     try:
-        #         kwargs["region"] = self.credentials.host.split(".")[2]
-        #     except IndexError:
-        #         logger.debug(f"No region provided and unable to determine region from host: {self.credentials.host}")
 
-        # Validate the set region
+        # Use region if possible but otherwise treat it as optional
+        if kwargs["region"] is None:
+            logger.debug("No region provided, attempting to determine from host.")
+            try:
+                inferred_region = self.credentials.host.split(".")[2]
+                if _is_valid_region(inferred_region):
+                    kwargs["region"] = inferred_region
+                else:
+                    logger.debug(
+                        f"Unable to determine region from host, proceeding without region: {self.credentials.host}"
+                    )
+            except IndexError:
+                logger.debug(
+                    f"Unable to determine region from host, proceeding without region: {self.credentials.host}"
+                )
+
+        # Validate the set region if it's available
         if not kwargs["region"] and not _is_valid_region(kwargs["region"]):
             raise dbt.exceptions.FailedToConnectError(
                 "Invalid region provided: {}".format(kwargs["region"])

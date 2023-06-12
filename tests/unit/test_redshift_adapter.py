@@ -126,6 +126,26 @@ class TestRedshiftAdapter(unittest.TestCase):
         )
 
     @mock.patch("redshift_connector.connect", Mock())
+    def test_no_region_in_conn(self):
+        self.config.credentials = self.config.credentials.replace(
+            host="thishostshouldnotexist.test.no_region",
+        )
+        connection = self.adapter.acquire_connection("dummy")
+        connection.handle
+        redshift_connector.connect.assert_called_once_with(
+            host="thishostshouldnotexist.test.no_region",
+            database="redshift",
+            user="root",
+            password="password",
+            port=5439,
+            auto_create=False,
+            db_groups=[],
+            region=None,
+            timeout=None,
+            **DEFAULT_SSL_CONFIG,
+        )
+
+    @mock.patch("redshift_connector.connect", Mock())
     def test_conn_timeout_30(self):
         self.config.credentials = self.config.credentials.replace(connect_timeout=30)
         connection = self.adapter.acquire_connection("dummy")
