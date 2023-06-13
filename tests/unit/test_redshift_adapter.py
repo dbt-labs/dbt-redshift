@@ -12,13 +12,16 @@ from dbt.adapters.redshift import (
 )
 from dbt.clients import agate_helper
 from dbt.exceptions import FailedToConnectError
-from dbt.adapters.redshift.connections import RedshiftConnectMethodFactory
+from dbt.adapters.redshift.connections import RedshiftConnectMethodFactory, RedshiftSSLConfig
 from .utils import (
     config_from_parts_or_dicts,
     mock_connection,
     TestAdapterConversions,
     inject_adapter,
 )
+
+
+DEFAULT_SSL_CONFIG = RedshiftSSLConfig().to_dict()
 
 
 class TestRedshiftAdapter(unittest.TestCase):
@@ -72,9 +75,10 @@ class TestRedshiftAdapter(unittest.TestCase):
             port=5439,
             auto_create=False,
             db_groups=[],
-            timeout=30,
+            timeout=None,
             region="us-east-1",
             database_metadata_current_db_only=False,
+            **DEFAULT_SSL_CONFIG,
         )
 
     @mock.patch("redshift_connector.connect", Mock())
@@ -92,8 +96,9 @@ class TestRedshiftAdapter(unittest.TestCase):
             auto_create=False,
             db_groups=[],
             region="us-east-1",
-            timeout=30,
             database_metadata_current_db_only=False,
+            timeout=None,
+            **DEFAULT_SSL_CONFIG,
         )
 
     @mock.patch("redshift_connector.connect", Mock())
@@ -114,12 +119,31 @@ class TestRedshiftAdapter(unittest.TestCase):
             user="",
             cluster_identifier="my_redshift",
             region="us-east-1",
+            timeout=None,
             auto_create=False,
             db_groups=[],
             profile=None,
-            timeout=30,
             port=5439,
             database_metadata_current_db_only=False,
+            **DEFAULT_SSL_CONFIG,
+        )
+
+    @mock.patch("redshift_connector.connect", Mock())
+    def test_conn_timeout_30(self):
+        self.config.credentials = self.config.credentials.replace(connect_timeout=30)
+        connection = self.adapter.acquire_connection("dummy")
+        connection.handle
+        redshift_connector.connect.assert_called_once_with(
+            host="thishostshouldnotexist.test.us-east-1",
+            database="redshift",
+            user="root",
+            password="password",
+            port=5439,
+            auto_create=False,
+            db_groups=[],
+            region="us-east-1",
+            timeout=30,
+            **DEFAULT_SSL_CONFIG,
         )
 
     @mock.patch("redshift_connector.connect", Mock())
@@ -146,9 +170,10 @@ class TestRedshiftAdapter(unittest.TestCase):
             password="",
             user="",
             profile="test",
-            timeout=30,
+            timeout=None,
             port=5439,
             database_metadata_current_db_only=False,
+            **DEFAULT_SSL_CONFIG,
         )
 
     @mock.patch("redshift_connector.connect", Mock())
@@ -173,9 +198,10 @@ class TestRedshiftAdapter(unittest.TestCase):
             password="",
             user="",
             profile="test",
-            timeout=30,
+            timeout=None,
             port=5439,
             database_metadata_current_db_only=False,
+            **DEFAULT_SSL_CONFIG,
         )
 
     @mock.patch("redshift_connector.connect", Mock())
@@ -202,9 +228,10 @@ class TestRedshiftAdapter(unittest.TestCase):
             password="",
             user="",
             profile="test",
-            timeout=30,
+            timeout=None,
             port=5439,
             database_metadata_current_db_only=False,
+            **DEFAULT_SSL_CONFIG,
         )
 
     @mock.patch("redshift_connector.connect", Mock())
@@ -232,9 +259,10 @@ class TestRedshiftAdapter(unittest.TestCase):
                 password="",
                 user="",
                 profile="test",
-                timeout=30,
+                timeout=None,
                 port=5439,
                 database_metadata_current_db_only=False,
+                **DEFAULT_SSL_CONFIG,
             )
 
     @mock.patch("redshift_connector.connect", Mock())
@@ -262,10 +290,106 @@ class TestRedshiftAdapter(unittest.TestCase):
                 password="",
                 user="",
                 profile="test",
-                timeout=30,
+                timeout=None,
                 port=5439,
                 database_metadata_current_db_only=False,
+                **DEFAULT_SSL_CONFIG,
             )
+
+    @mock.patch("redshift_connector.connect", Mock())
+    def test_sslmode_disable(self):
+        self.config.credentials.sslmode = "disable"
+        connection = self.adapter.acquire_connection("dummy")
+        connection.handle
+        redshift_connector.connect.assert_called_once_with(
+            host="thishostshouldnotexist.test.us-east-1",
+            database="redshift",
+            user="root",
+            password="password",
+            port=5439,
+            auto_create=False,
+            db_groups=[],
+            region="us-east-1",
+            timeout=None,
+            ssl=False,
+            sslmode=None,
+        )
+
+    @mock.patch("redshift_connector.connect", Mock())
+    def test_sslmode_allow(self):
+        self.config.credentials.sslmode = "allow"
+        connection = self.adapter.acquire_connection("dummy")
+        connection.handle
+        redshift_connector.connect.assert_called_once_with(
+            host="thishostshouldnotexist.test.us-east-1",
+            database="redshift",
+            user="root",
+            password="password",
+            port=5439,
+            auto_create=False,
+            db_groups=[],
+            region="us-east-1",
+            timeout=None,
+            ssl=True,
+            sslmode="verify-ca",
+        )
+
+    @mock.patch("redshift_connector.connect", Mock())
+    def test_sslmode_verify_full(self):
+        self.config.credentials.sslmode = "verify-full"
+        connection = self.adapter.acquire_connection("dummy")
+        connection.handle
+        redshift_connector.connect.assert_called_once_with(
+            host="thishostshouldnotexist.test.us-east-1",
+            database="redshift",
+            user="root",
+            password="password",
+            port=5439,
+            auto_create=False,
+            db_groups=[],
+            region="us-east-1",
+            timeout=None,
+            ssl=True,
+            sslmode="verify-full",
+        )
+
+    @mock.patch("redshift_connector.connect", Mock())
+    def test_sslmode_verify_ca(self):
+        self.config.credentials.sslmode = "verify-ca"
+        connection = self.adapter.acquire_connection("dummy")
+        connection.handle
+        redshift_connector.connect.assert_called_once_with(
+            host="thishostshouldnotexist.test.us-east-1",
+            database="redshift",
+            user="root",
+            password="password",
+            port=5439,
+            auto_create=False,
+            db_groups=[],
+            region="us-east-1",
+            timeout=None,
+            ssl=True,
+            sslmode="verify-ca",
+        )
+
+    @mock.patch("redshift_connector.connect", Mock())
+    def test_sslmode_prefer(self):
+        self.config.credentials.sslmode = "prefer"
+        connection = self.adapter.acquire_connection("dummy")
+        connection.handle
+        redshift_connector.connect.assert_called_once_with(
+            host="thishostshouldnotexist.test.us-east-1",
+            database="redshift",
+            user="root",
+            password="password",
+            port=5439,
+            auto_create=False,
+            db_groups=[],
+            region="us-east-1",
+            timeout=None,
+            ssl=True,
+            sslmode="verify-ca",
+        )
 
     @mock.patch("redshift_connector.connect", Mock())
     @mock.patch("boto3.Session", Mock())
@@ -291,8 +415,9 @@ class TestRedshiftAdapter(unittest.TestCase):
                 user="",
                 profile="test",
                 port=5439,
-                timeout=30,
                 database_metadata_current_db_only=False,
+                timeout=None,
+                **DEFAULT_SSL_CONFIG,
             )
         self.assertTrue("'host' must be provided" in context.exception.msg)
 
