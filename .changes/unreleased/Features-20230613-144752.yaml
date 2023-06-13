@@ -1,0 +1,6 @@
+kind: Features
+body: add merge as a new incremental strategy for redshift
+time: 2023-06-13T14:47:52.054853-07:00
+custom:
+  Author: jiezhen-chen
+  Issue: "402"
