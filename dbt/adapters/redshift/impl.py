@@ -115,6 +115,22 @@ class RedshiftAdapter(SQLAdapter):
     def timestamp_add_sql(self, add_to: str, number: int = 1, interval: str = "hour") -> str:
         return f"{add_to} + interval '{number} {interval}'"
 
+    def _parse_relation_results(
+        self, database: str, schema: str, name: str, quote_policy: dict[str, bool], type: str
+    ):
+        try:
+            relation_type = self.Relation.get_relation_type(type.lower())
+        except ValueError:
+            relation_type = self.Relation.External
+        relation = self.Relation.create(
+            database=database,
+            schema=schema,
+            identifier=name,
+            quote_policy=quote_policy,
+            type=relation_type,
+        )
+        return relation
+
     def _get_cursor(self):
         return self.connections.get_thread_connection().handle.cursor()
 
@@ -140,19 +156,10 @@ class RedshiftAdapter(SQLAdapter):
         relations = []
         quote_policy = {"database": True, "schema": True, "identifier": True}
         for result in results:
-            try:
-                relation_type = self.Relation.get_relation_type(result["type"].lower())
-            except ValueError:
-                relation_type = self.Relation.External
-            relations.append(
-                self.Relation.create(
-                    database=result["database"],
-                    schema=result["schema"],
-                    identifier=result["name"],
-                    quote_policy=quote_policy,
-                    type=relation_type,
-                )
+            relation = self._parse_relation_results(
+                result["database"], result["schema"], result["name"], quote_policy, result["type"]
             )
+            relations.append(relation)
         return relations
 
     def _link_cached_database_relations(self, schemas: Set[str]):
