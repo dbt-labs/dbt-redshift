@@ -127,7 +127,9 @@ class RedshiftAdapter(SQLAdapter):
             table_name_pattern=None,
             types=["VIEW", "TABLE"],
         ):
-            results.append([table[0], table[1], table[2], table[3]])
+            results.append(
+                {"database": table[0], "schema": table[1], "name": table[2], "type": table[3]}
+            )
             # kinda feel like it might not be a good thing to do this by index
         return results
 
@@ -137,18 +139,18 @@ class RedshiftAdapter(SQLAdapter):
         results = self._get_tables(schema_relation.database, schema_relation.schema)
         relations = []
         quote_policy = {"database": True, "schema": True, "identifier": True}
-        for _database, _schema, name, _type in results:
+        for result in results:
             try:
-                _type = self.Relation.get_relation_type(_type.lower())
+                relation_type = self.Relation.get_relation_type(result["type"].lower())
             except ValueError:
-                _type = self.Relation.External
+                relation_type = self.Relation.External
             relations.append(
                 self.Relation.create(
-                    database=_database,
-                    schema=_schema,
-                    identifier=name,
+                    database=result["database"],
+                    schema=result["schema"],
+                    identifier=result["name"],
                     quote_policy=quote_policy,
-                    type=_type,
+                    type=relation_type,
                 )
             )
         return relations

@@ -21,7 +21,6 @@ import dbt.flags
 from dbt.helper_types import Port
 
 
-
 class SSLConfigError(CompilationError):
     def __init__(self, exc: ValidationError):
         self.exc = exc
@@ -184,6 +183,7 @@ class RedshiftCredentials(Credentials):
             "connect_timeout",
             "role",
             "retries",
+            "current_db_only",
             "autocommit",
         )
 

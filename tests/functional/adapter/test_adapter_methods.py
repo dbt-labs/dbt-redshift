@@ -86,7 +86,6 @@ class RedshiftAdapterMethod:
             "expected_type.sql": "select 1 as valid_type",
         }
 
-    @pytest.fixture(scope="class")
     def project_files(
         self,
         project_root,
@@ -102,21 +101,13 @@ class RedshiftAdapterMethod:
             "name": "adapter_methods",
         }
 
-    @pytest.fixture(scope="class")
-    def equal_tables(self):
-        return ["call_get_relation", "expected"]
-
-    @pytest.fixture(scope="class")
-    def equal_types(self):
-        return ["get_relation_type", "expected_type"]
-
-    def test_adapter_methods(self, project, equal_tables):
+    def test_adapter_methods(self, project):
         run_dbt(["compile"])  # trigger any compile-time issues
         result = run_dbt()
         assert len(result) == 7
 
         run_dbt(["test"])
-        check_relations_equal(project.adapter, equal_tables)
+        check_relations_equal(project.adapter, ["call_get_relation", "expected"])
         check_relations_equal(project.adapter, ["get_relation_type", "expected_type"])
 
 
