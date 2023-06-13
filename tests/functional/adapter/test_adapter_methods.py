@@ -102,7 +102,6 @@ class RedshiftAdapterMethod:
             "name": "adapter_methods",
         }
 
-    # snowflake need all tables in CAP name
     @pytest.fixture(scope="class")
     def equal_tables(self):
         return ["call_get_relation", "expected"]
