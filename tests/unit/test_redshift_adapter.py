@@ -76,7 +76,7 @@ class TestRedshiftAdapter(unittest.TestCase):
             auto_create=False,
             db_groups=[],
             timeout=None,
-            region="us-east-1",
+            region=None,
             database_metadata_current_db_only=False,
             **DEFAULT_SSL_CONFIG,
         )
@@ -95,7 +95,6 @@ class TestRedshiftAdapter(unittest.TestCase):
             port=5439,
             auto_create=False,
             db_groups=[],
-
             database_metadata_current_db_only=False,
             region=None,
             timeout=None,
@@ -144,6 +143,7 @@ class TestRedshiftAdapter(unittest.TestCase):
             db_groups=[],
             region=None,
             timeout=30,
+            database_metadata_current_db_only=False,
             **DEFAULT_SSL_CONFIG,
         )
 
@@ -314,6 +314,7 @@ class TestRedshiftAdapter(unittest.TestCase):
             timeout=None,
             ssl=False,
             sslmode=None,
+            database_metadata_current_db_only=False,
         )
 
     @mock.patch("redshift_connector.connect", Mock())
@@ -333,6 +334,7 @@ class TestRedshiftAdapter(unittest.TestCase):
             timeout=None,
             ssl=True,
             sslmode="verify-ca",
+            database_metadata_current_db_only=False,
         )
 
     @mock.patch("redshift_connector.connect", Mock())
@@ -352,6 +354,7 @@ class TestRedshiftAdapter(unittest.TestCase):
             timeout=None,
             ssl=True,
             sslmode="verify-full",
+            database_metadata_current_db_only=False,
         )
 
     @mock.patch("redshift_connector.connect", Mock())
@@ -371,6 +374,7 @@ class TestRedshiftAdapter(unittest.TestCase):
             timeout=None,
             ssl=True,
             sslmode="verify-ca",
+            database_metadata_current_db_only=False,
         )
 
     @mock.patch("redshift_connector.connect", Mock())
@@ -390,6 +394,7 @@ class TestRedshiftAdapter(unittest.TestCase):
             timeout=None,
             ssl=True,
             sslmode="verify-ca",
+            database_metadata_current_db_only=False,
         )
 
     @mock.patch("redshift_connector.connect", Mock())
@@ -603,11 +608,16 @@ class TestRedshiftAdapter(unittest.TestCase):
             ("apple", "banana", "cherry", "orange")
         ]
         results = self.adapter._get_tables(database="somedb", schema="someschema")
-        self.assertTrue(results == [["apple", "banana", "cherry", "orange"]])
+        self.assertTrue(results[0]["database"] == "apple")
+        self.assertTrue(results[0]["schema"] == "banana")
+        self.assertTrue(results[0]["name"] == "cherry")
+        self.assertTrue(results[0]["type"] == "orange")
 
     @mock.patch("dbt.adapters.redshift.impl.RedshiftAdapter._get_tables")
     def test_list_relations_without_caching(self, mock_get_tables):
-        mock_get_tables.return_value = [["somedb", "someschema", "sometb", "VIEW"]]
+        mock_get_tables.return_value = [
+            {"database": "somedb", "schema": "someschema", "name": "sometb", "type": "VIEW"}
+        ]
         mock_schema = mock.MagicMock(database="somedb", schema="someschema")
         results = self.adapter.list_relations_without_caching(mock_schema)
         self.assertTrue(results[0].database == "somedb")

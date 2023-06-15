@@ -149,7 +149,8 @@ class RedshiftAdapter(SQLAdapter):
             # kinda feel like it might not be a good thing to do this by index
         return results
 
-    def list_relations_without_caching(  # type: ignore
+    @available
+    def list_relations_without_caching(
         self, schema_relation: BaseRelation
     ) -> List[RedshiftRelation]:
         results = self._get_tables(schema_relation.database, schema_relation.schema)
