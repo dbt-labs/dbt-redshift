@@ -116,7 +116,7 @@ class RedshiftAdapter(SQLAdapter):
         return f"{add_to} + interval '{number} {interval}'"
 
     def _parse_relation_results(
-        self, database: str, schema: str, name: str, quote_policy: dict[str, bool], type: str
+        self, database: str, schema: str, name: str, quote_policy: Dict[str, bool], type: str
     ):
         try:
             relation_type = self.Relation.get_relation_type(type.lower())
