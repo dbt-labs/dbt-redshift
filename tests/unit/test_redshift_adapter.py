@@ -64,24 +64,7 @@ class TestRedshiftAdapter(unittest.TestCase):
         return self._adapter
 
     @mock.patch("redshift_connector.connect", Mock())
-    def test_implicit_database_conn(self):
-        connection = self.adapter.acquire_connection("dummy")
-        connection.handle
-        redshift_connector.connect.assert_called_once_with(
-            host="thishostshouldnotexist.test.us-east-1",
-            database="redshift",
-            user="root",
-            password="password",
-            port=5439,
-            auto_create=False,
-            db_groups=[],
-            timeout=None,
-            region="us-east-1",
-            **DEFAULT_SSL_CONFIG,
-        )
-
-    @mock.patch("redshift_connector.connect", Mock())
-    def test_explicit_database_conn(self):
+    def test_explicit_region_with_database_conn(self):
         self.config.method = "database"
 
         connection = self.adapter.acquire_connection("dummy")
@@ -94,7 +77,7 @@ class TestRedshiftAdapter(unittest.TestCase):
             port=5439,
             auto_create=False,
             db_groups=[],
-            region="us-east-1",
+            region=None,
             timeout=None,
             **DEFAULT_SSL_CONFIG,
         )
@@ -116,7 +99,7 @@ class TestRedshiftAdapter(unittest.TestCase):
             password="",
             user="",
             cluster_identifier="my_redshift",
-            region="us-east-1",
+            region=None,
             timeout=None,
             auto_create=False,
             db_groups=[],
@@ -138,7 +121,7 @@ class TestRedshiftAdapter(unittest.TestCase):
             port=5439,
             auto_create=False,
             db_groups=[],
-            region="us-east-1",
+            region=None,
             timeout=30,
             **DEFAULT_SSL_CONFIG,
         )
@@ -160,7 +143,7 @@ class TestRedshiftAdapter(unittest.TestCase):
             host="thishostshouldnotexist.test.us-east-1",
             database="redshift",
             cluster_identifier="my_redshift",
-            region="us-east-1",
+            region=None,
             auto_create=False,
             db_groups=[],
             db_user="root",
@@ -187,7 +170,7 @@ class TestRedshiftAdapter(unittest.TestCase):
             host="doesnotexist.1233.us-east-2.redshift-serverless.amazonaws.com",
             database="redshift",
             cluster_identifier=None,
-            region="us-east-2",
+            region=None,
             auto_create=False,
             db_groups=[],
             db_user="root",
@@ -229,66 +212,6 @@ class TestRedshiftAdapter(unittest.TestCase):
         )
 
     @mock.patch("redshift_connector.connect", Mock())
-    @mock.patch("boto3.Session", Mock())
-    def test_explicit_region_failure(self):
-        # Failure test with no region
-        self.config.credentials = self.config.credentials.replace(
-            method="iam",
-            iam_profile="test",
-            host="doesnotexist.1233_no_region",
-            region=None,
-        )
-
-        with self.assertRaises(dbt.exceptions.FailedToConnectError):
-            connection = self.adapter.acquire_connection("dummy")
-            connection.handle
-            redshift_connector.connect.assert_called_once_with(
-                iam=True,
-                host="doesnotexist.1233_no_region",
-                database="redshift",
-                cluster_identifier=None,
-                auto_create=False,
-                db_groups=[],
-                db_user="root",
-                password="",
-                user="",
-                profile="test",
-                timeout=None,
-                port=5439,
-                **DEFAULT_SSL_CONFIG,
-            )
-
-    @mock.patch("redshift_connector.connect", Mock())
-    @mock.patch("boto3.Session", Mock())
-    def test_explicit_invalid_region(self):
-        # Invalid region test
-        self.config.credentials = self.config.credentials.replace(
-            method="iam",
-            iam_profile="test",
-            host="doesnotexist.1233_no_region.us-not-a-region-1",
-            region=None,
-        )
-
-        with self.assertRaises(dbt.exceptions.FailedToConnectError):
-            connection = self.adapter.acquire_connection("dummy")
-            connection.handle
-            redshift_connector.connect.assert_called_once_with(
-                iam=True,
-                host="doesnotexist.1233_no_region",
-                database="redshift",
-                cluster_identifier=None,
-                auto_create=False,
-                db_groups=[],
-                db_user="root",
-                password="",
-                user="",
-                profile="test",
-                timeout=None,
-                port=5439,
-                **DEFAULT_SSL_CONFIG,
-            )
-
-    @mock.patch("redshift_connector.connect", Mock())
     def test_sslmode_disable(self):
         self.config.credentials.sslmode = "disable"
         connection = self.adapter.acquire_connection("dummy")
@@ -301,7 +224,7 @@ class TestRedshiftAdapter(unittest.TestCase):
             port=5439,
             auto_create=False,
             db_groups=[],
-            region="us-east-1",
+            region=None,
             timeout=None,
             ssl=False,
             sslmode=None,
@@ -320,7 +243,7 @@ class TestRedshiftAdapter(unittest.TestCase):
             port=5439,
             auto_create=False,
             db_groups=[],
-            region="us-east-1",
+            region=None,
             timeout=None,
             ssl=True,
             sslmode="verify-ca",
@@ -339,7 +262,7 @@ class TestRedshiftAdapter(unittest.TestCase):
             port=5439,
             auto_create=False,
             db_groups=[],
-            region="us-east-1",
+            region=None,
             timeout=None,
             ssl=True,
             sslmode="verify-full",
@@ -358,7 +281,7 @@ class TestRedshiftAdapter(unittest.TestCase):
             port=5439,
             auto_create=False,
             db_groups=[],
-            region="us-east-1",
+            region=None,
             timeout=None,
             ssl=True,
             sslmode="verify-ca",
@@ -377,7 +300,7 @@ class TestRedshiftAdapter(unittest.TestCase):
             port=5439,
             auto_create=False,
             db_groups=[],
-            region="us-east-1",
+            region=None,
             timeout=None,
             ssl=True,
             sslmode="verify-ca",
@@ -399,7 +322,7 @@ class TestRedshiftAdapter(unittest.TestCase):
                 host="doesnotexist.1233.us-east-2.redshift-srvrlss.amazonaws.com",
                 database="redshift",
                 cluster_identifier=None,
-                region="us-east-2",
+                region=None,
                 auto_create=False,
                 db_groups=[],
                 db_user="root",
