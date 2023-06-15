@@ -1,6 +1,0 @@
-kind: Under the Hood
-body: test constraint rendering of foreign key and unique constraints
-time: 2023-05-11T16:26:23.49096-04:00
-custom:
-  Author: michelleark
-  Issue: "7417"
