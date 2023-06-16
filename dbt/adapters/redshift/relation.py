@@ -22,7 +22,7 @@ from dbt.adapters.redshift.relation_configs import (
 @dataclass(frozen=True, eq=False, repr=False)
 class RedshiftRelation(BaseRelation):
     def __post_init__(self):
-        # Check for length of Postgres table/view names.
+        # Check for length of Redshift table/view names.
         # Check self.type to exclude test relation identifiers
         if (
             self.identifier is not None
