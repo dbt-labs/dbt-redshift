@@ -12,7 +12,7 @@ from dbt.events import AdapterLogger
 
 import dbt.exceptions
 
-from dbt.adapters.redshift import RedshiftConnectionManager, RedshiftRelation, RedshiftColumn
+from dbt.adapters.redshift import RedshiftConnectionManager, RedshiftRelation
 
 logger = AdapterLogger("Redshift")
 
@@ -33,7 +33,6 @@ class RedshiftAdapter(SQLAdapter):
     Relation = RedshiftRelation
     ConnectionManager = RedshiftConnectionManager
     connections: RedshiftConnectionManager
-    Column = RedshiftColumn  # type: ignore
 
     AdapterSpecificConfigs = RedshiftConfig  # type: ignore
 
