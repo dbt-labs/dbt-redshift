@@ -225,9 +225,9 @@ class RedshiftMaterializedViewConfigChangeCollection:
     def has_changes(self) -> bool:
         return any(
             {
-                self.backup.is_change if self.backup else False,
-                self.dist.is_change if self.dist else False,
-                self.sort.is_change if self.sort else False,
-                self.autorefresh.is_change if self.autorefresh else False,
+                self.backup if self.backup else False,
+                self.dist if self.dist else False,
+                self.sort if self.sort else False,
+                self.autorefresh if self.autorefresh else False,
             }
         )

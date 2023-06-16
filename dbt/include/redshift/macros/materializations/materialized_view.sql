@@ -128,16 +128,3 @@
 {% macro redshift__drop_materialized_view(relation) -%}
     drop materialized view if exists {{ relation }}
 {%- endmacro %}
-
-
-{% macro redshift__get_drop_relation_sql(relation) %}
-    {%- if relation.is_table -%}
-        drop table if exists {{ relation }} cascade
-    {%- elif relation.is_view -%}
-        drop view if exists {{ relation }} cascade
-    {%- elif relation.is_materialized_view -%}
-        drop materialized view if exists {{ relation }}
-    {%- else -%}
-        drop {{ relation.type }} if exists {{ relation }}
-    {%- endif -%}
-{% endmacro %}

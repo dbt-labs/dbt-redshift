@@ -45,6 +45,7 @@ class TestBasic(RedshiftBasicBase):
         # poll database
         table_start = get_row_count(project, "base_table")
         view_start = get_row_count(project, "base_materialized_view")
+        assert view_start == table_start
 
         # insert new record in table
         new_record = (2,)
@@ -60,6 +61,7 @@ class TestBasic(RedshiftBasicBase):
         # poll database
         table_end = get_row_count(project, "base_table")
         view_end = get_row_count(project, "base_materialized_view")
+        assert view_end == table_end
 
         # new records were inserted in the table but didn't show up in the view until it was refreshed
         assert table_start < table_mid == table_end
