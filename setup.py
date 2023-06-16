@@ -86,6 +86,8 @@ setup(
         f"dbt-postgres~={_core_version()}",
         "boto3~=1.26.26",
         "redshift-connector~=2.0.911",
+        # installed via dbt-core but referenced directly; don't pin to avoid version conflicts with dbt-core
+        "agate",
     ],
     zip_safe=False,
     classifiers=[
