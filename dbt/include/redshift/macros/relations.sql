@@ -27,10 +27,10 @@ with
     )
 
 select distinct
-    ref.schema_name as referenced_schema,
-    ref.relation_name as referenced_name,
     dep.schema_name as dependent_schema,
-    dep.relation_name as dependent_name
+    dep.relation_name as dependent_name,
+    ref.schema_name as referenced_schema,
+    ref.relation_name as referenced_name
 from dependency
 join relation ref
     on dependency.ref_relation_id = ref.relation_id
