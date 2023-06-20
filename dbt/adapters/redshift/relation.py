@@ -1,18 +1,33 @@
 from dataclasses import dataclass
+from typing import Optional
 
 from dbt.adapters.base.relation import BaseRelation
+from dbt.adapters.relation_configs import (
+    RelationConfigChangeAction,
+    RelationResults,
+)
 from dbt.context.providers import RuntimeConfigObject
 from dbt.exceptions import DbtRuntimeError
 
 from dbt.adapters.redshift.relation_configs import (
     RedshiftMaterializedViewConfig,
+    RedshiftMaterializedViewConfigChangeCollection,
+    RedshiftAutoRefreshConfigChange,
+    RedshiftBackupConfigChange,
+    RedshiftDistConfigChange,
+    RedshiftSortConfigChange,
+    RedshiftIncludePolicy,
+    RedshiftQuotePolicy,
 )
 
 
 @dataclass(frozen=True, eq=False, repr=False)
 class RedshiftRelation(BaseRelation):
+    include_policy = RedshiftIncludePolicy  # type: ignore
+    quote_policy = RedshiftQuotePolicy  # type: ignore
+
     def __post_init__(self):
-        # Check for length of Postgres table/view names.
+        # Check for length of Redshift table/view names.
         # Check self.type to exclude test relation identifiers
         if (
             self.identifier is not None
@@ -31,4 +46,47 @@ class RedshiftRelation(BaseRelation):
         self, runtime_config: RuntimeConfigObject
     ) -> RedshiftMaterializedViewConfig:
         materialized_view = RedshiftMaterializedViewConfig.from_model_node(runtime_config.model)
+        assert isinstance(materialized_view, RedshiftMaterializedViewConfig)
         return materialized_view
+
+    def get_materialized_view_config_change_collection(  # type: ignore
+        self, relation_results: RelationResults, runtime_config: RuntimeConfigObject
+    ) -> Optional[RedshiftMaterializedViewConfigChangeCollection]:
+        config_change_collection = RedshiftMaterializedViewConfigChangeCollection()
+
+        existing_materialized_view = RedshiftMaterializedViewConfig.from_relation_results(
+            relation_results
+        )
+        new_materialized_view = RedshiftMaterializedViewConfig.from_model_node(
+            runtime_config.model
+        )
+        assert isinstance(existing_materialized_view, RedshiftMaterializedViewConfig)
+        assert isinstance(new_materialized_view, RedshiftMaterializedViewConfig)
+
+        if new_materialized_view.autorefresh != existing_materialized_view.autorefresh:
+            config_change_collection.autorefresh = RedshiftAutoRefreshConfigChange(
+                action=RelationConfigChangeAction.alter,
+                context=new_materialized_view.autorefresh,
+            )
+
+        if new_materialized_view.backup != existing_materialized_view.backup:
+            config_change_collection.backup = RedshiftBackupConfigChange(
+                action=RelationConfigChangeAction.alter,
+                context=new_materialized_view.backup,
+            )
+
+        if new_materialized_view.dist != existing_materialized_view.dist:
+            config_change_collection.dist = RedshiftDistConfigChange(
+                action=RelationConfigChangeAction.alter,
+                context=new_materialized_view.dist,
+            )
+
+        if new_materialized_view.sort != existing_materialized_view.sort:
+            config_change_collection.sort = RedshiftSortConfigChange(
+                action=RelationConfigChangeAction.alter,
+                context=new_materialized_view.sort,
+            )
+
+        if config_change_collection.has_changes:
+            return config_change_collection
+        return None
