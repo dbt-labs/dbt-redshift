@@ -1,17 +1,18 @@
 from dataclasses import dataclass
 from typing import Optional, FrozenSet, Set
 
+import agate
 from dbt.adapters.relation_configs import (
-    RelationConfigBase,
     RelationConfigChange,
     RelationConfigChangeAction,
-    RelationResults,
     RelationConfigValidationMixin,
     RelationConfigValidationRule,
 )
 from dbt.contracts.graph.nodes import ModelNode
 from dbt.dataclass_schema import StrEnum
 from dbt.exceptions import DbtRuntimeError
+
+from dbt.adapters.redshift.relation_configs.base import RedshiftRelationConfigBase
 
 
 class RedshiftSortStyle(StrEnum):
@@ -29,7 +30,7 @@ class RedshiftSortStyle(StrEnum):
 
 
 @dataclass(frozen=True, eq=True, unsafe_hash=True)
-class RedshiftSortConfig(RelationConfigBase, RelationConfigValidationMixin):
+class RedshiftSortConfig(RedshiftRelationConfigBase, RelationConfigValidationMixin):
     """
     This config fallows the specs found here:
     https://docs.aws.amazon.com/redshift/latest/dg/r_CREATE_TABLE_NEW.html
@@ -129,13 +130,12 @@ class RedshiftSortConfig(RelationConfigBase, RelationConfigValidationMixin):
             if isinstance(sortkey, str):
                 sortkey = [sortkey]
 
-            # TODO: include the QuotePolicy instead of defaulting to lower()
-            config_dict.update({"sortkey": set(column.lower() for column in sortkey)})
+            config_dict.update({"sortkey": set(sortkey)})
 
         return config_dict
 
     @classmethod
-    def parse_relation_results(cls, relation_results: RelationResults) -> dict:
+    def parse_relation_results(cls, relation_results_entry: agate.Row) -> dict:
         """
         Translate agate objects from the database into a standard dictionary.
 
@@ -144,32 +144,19 @@ class RedshiftSortConfig(RelationConfigBase, RelationConfigValidationMixin):
             Processing of `sortstyle` has been omitted here, which means it's the default (compound).
 
         Args:
-            relation_results: the description of the sortkey and sortstyle from the database in this format:
+            relation_results_entry: the description of the sortkey and sortstyle from the database in this format:
 
-                {
-                    "sortkey": agate.Table(
-                        [
-                            agate.Row({"sortkey": "<column_name>"}),
-                            ...multiple, one per column in the sortkey
-                        ]
-                    )
-                    "sortstyle": agate.Table(
-                        agate.Row({"sortstyle": any("compound", "interleaved", "auto")}
-                    )
-                }
+                agate.Row({
+                    ...,
+                    "sortkey1": "<column_name>",
+                    ...
+                })
 
         Returns: a standard dictionary describing this `RedshiftSortConfig` instance
         """
-        config_dict = {}
-
-        if sortkey_table := relation_results.get("sortkey"):
-            # we shouldn't have to adjust the values from the database for the QuotePolicy
-            if sortkeys := {
-                sortkey_record.get("sortkey") for sortkey_record in sortkey_table.rows
-            }.difference({None}):
-                config_dict.update({"sortkey": sortkeys})
-
-        return config_dict
+        if sortkey := relation_results_entry.get("sortkey1"):
+            return {"sortkey": {sortkey}}
+        return {}
 
 
 @dataclass(frozen=True, eq=True, unsafe_hash=True)

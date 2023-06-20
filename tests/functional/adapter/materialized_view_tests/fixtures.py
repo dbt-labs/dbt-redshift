@@ -1,12 +1,12 @@
 import pytest
 
-from dbt.tests.util import relation_from_name
 from dbt.tests.adapter.materialized_view.base import Base
 from dbt.tests.adapter.materialized_view.on_configuration_change import (
     OnConfigurationChangeBase,
     get_model_file,
     set_model_file,
 )
+from dbt.tests.util import relation_from_name
 
 
 class RedshiftBasicBase(Base):
@@ -77,4 +77,4 @@ class RedshiftOnConfigurationChangeBase(OnConfigurationChangeBase):
 
     @pytest.fixture(scope="function")
     def update_auto_refresh_message(self, project):
-        return f"Applying UPDATE AUTO REFRESH to: {relation_from_name(project.adapter, 'base_materialized_view')}"
+        return f"Applying UPDATE AUTOREFRESH to: {relation_from_name(project.adapter, 'base_materialized_view')}"

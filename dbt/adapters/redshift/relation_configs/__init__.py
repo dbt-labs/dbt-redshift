@@ -12,3 +12,7 @@ from dbt.adapters.redshift.relation_configs.materialized_view import (  # noqa: 
     RedshiftBackupConfigChange,
     RedshiftMaterializedViewConfigChangeCollection,
 )
+from dbt.adapters.redshift.relation_configs.policies import (  # noqa: F401
+    RedshiftIncludePolicy,
+    RedshiftQuotePolicy,
+)

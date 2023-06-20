@@ -16,11 +16,16 @@ from dbt.adapters.redshift.relation_configs import (
     RedshiftBackupConfigChange,
     RedshiftDistConfigChange,
     RedshiftSortConfigChange,
+    RedshiftIncludePolicy,
+    RedshiftQuotePolicy,
 )
 
 
 @dataclass(frozen=True, eq=False, repr=False)
 class RedshiftRelation(BaseRelation):
+    include_policy = RedshiftIncludePolicy  # type: ignore
+    quote_policy = RedshiftQuotePolicy  # type: ignore
+
     def __post_init__(self):
         # Check for length of Redshift table/view names.
         # Check self.type to exclude test relation identifiers
@@ -41,6 +46,7 @@ class RedshiftRelation(BaseRelation):
         self, runtime_config: RuntimeConfigObject
     ) -> RedshiftMaterializedViewConfig:
         materialized_view = RedshiftMaterializedViewConfig.from_model_node(runtime_config.model)
+        assert isinstance(materialized_view, RedshiftMaterializedViewConfig)
         return materialized_view
 
     def get_materialized_view_config_change_collection(  # type: ignore
@@ -54,6 +60,8 @@ class RedshiftRelation(BaseRelation):
         new_materialized_view = RedshiftMaterializedViewConfig.from_model_node(
             runtime_config.model
         )
+        assert isinstance(existing_materialized_view, RedshiftMaterializedViewConfig)
+        assert isinstance(new_materialized_view, RedshiftMaterializedViewConfig)
 
         if new_materialized_view.autorefresh != existing_materialized_view.autorefresh:
             config_change_collection.autorefresh = RedshiftAutoRefreshConfigChange(
