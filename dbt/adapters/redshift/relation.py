@@ -46,6 +46,9 @@ class RedshiftRelation(BaseRelation):
                 f"is longer than {MAX_CHARACTERS_IN_IDENTIFIER} characters"
             )
 
+    def relation_max_name_length(self):
+        return MAX_CHARACTERS_IN_IDENTIFIER
+
     @classmethod
     def from_runtime_config(cls, runtime_config: RuntimeConfigObject) -> RelationConfigBase:
         model_node: ModelNode = runtime_config.model
