@@ -3,10 +3,13 @@ from typing import Optional
 
 from dbt.adapters.base.relation import BaseRelation
 from dbt.adapters.relation_configs import (
+    RelationConfigBase,
     RelationConfigChangeAction,
     RelationResults,
 )
 from dbt.context.providers import RuntimeConfigObject
+from dbt.contracts.graph.nodes import ModelNode
+from dbt.contracts.relation import RelationType
 from dbt.exceptions import DbtRuntimeError
 
 from dbt.adapters.redshift.relation_configs import (
@@ -18,6 +21,7 @@ from dbt.adapters.redshift.relation_configs import (
     RedshiftSortConfigChange,
     RedshiftIncludePolicy,
     RedshiftQuotePolicy,
+    MAX_CHARACTERS_IN_IDENTIFIER,
 )
 
 
@@ -25,6 +29,9 @@ from dbt.adapters.redshift.relation_configs import (
 class RedshiftRelation(BaseRelation):
     include_policy = RedshiftIncludePolicy  # type: ignore
     quote_policy = RedshiftQuotePolicy  # type: ignore
+    relation_configs = {
+        RelationType.MaterializedView.value: RedshiftMaterializedViewConfig,
+    }
 
     def __post_init__(self):
         # Check for length of Redshift table/view names.
@@ -32,25 +39,28 @@ class RedshiftRelation(BaseRelation):
         if (
             self.identifier is not None
             and self.type is not None
-            and len(self.identifier) > self.relation_max_name_length()
+            and len(self.identifier) > MAX_CHARACTERS_IN_IDENTIFIER
         ):
             raise DbtRuntimeError(
                 f"Relation name '{self.identifier}' "
-                f"is longer than {self.relation_max_name_length()} characters"
+                f"is longer than {MAX_CHARACTERS_IN_IDENTIFIER} characters"
             )
 
-    def relation_max_name_length(self):
-        return 127
+    @classmethod
+    def from_runtime_config(cls, runtime_config: RuntimeConfigObject) -> RelationConfigBase:
+        model_node: ModelNode = runtime_config.model
+        relation_type: str = model_node.config.materialized
 
-    def get_materialized_view_from_runtime_config(
-        self, runtime_config: RuntimeConfigObject
-    ) -> RedshiftMaterializedViewConfig:
-        materialized_view = RedshiftMaterializedViewConfig.from_model_node(runtime_config.model)
-        assert isinstance(materialized_view, RedshiftMaterializedViewConfig)
-        return materialized_view
+        if relation_config := cls.relation_configs.get(relation_type):
+            return relation_config.from_model_node(model_node)
 
-    def get_materialized_view_config_change_collection(  # type: ignore
-        self, relation_results: RelationResults, runtime_config: RuntimeConfigObject
+        raise DbtRuntimeError(
+            f"from_runtime_config() is not supported for the provided relation type: {relation_type}"
+        )
+
+    @staticmethod
+    def get_materialized_view_config_change_collection(
+        relation_results: RelationResults, runtime_config: RuntimeConfigObject
     ) -> Optional[RedshiftMaterializedViewConfigChangeCollection]:
         config_change_collection = RedshiftMaterializedViewConfigChangeCollection()
 

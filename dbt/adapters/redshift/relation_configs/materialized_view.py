@@ -18,6 +18,7 @@ from dbt.adapters.redshift.relation_configs.dist import (
     RedshiftDistStyle,
     RedshiftDistConfigChange,
 )
+from dbt.adapters.redshift.relation_configs.policies import MAX_CHARACTERS_IN_IDENTIFIER
 from dbt.adapters.redshift.relation_configs.sort import (
     RedshiftSortConfig,
     RedshiftSortConfigChange,
@@ -71,6 +72,13 @@ class RedshiftMaterializedViewConfig(RedshiftRelationConfigBase, RelationConfigV
     def validation_rules(self) -> Set[RelationConfigValidationRule]:
         # sort and dist rules get run by default with the mixin
         return {
+            RelationConfigValidationRule(
+                validation_check=len(self.mv_name or "") <= MAX_CHARACTERS_IN_IDENTIFIER,
+                validation_error=DbtRuntimeError(
+                    f"The materialized view name is more than {MAX_CHARACTERS_IN_IDENTIFIER} "
+                    f"characters: {self.mv_name}"
+                ),
+            ),
             RelationConfigValidationRule(
                 validation_check=self.dist.diststyle != RedshiftDistStyle.auto,
                 validation_error=DbtRuntimeError(
