@@ -14,7 +14,7 @@ from dbt.exceptions import DbtRuntimeError
 
 from dbt.adapters.redshift.relation_configs import (
     RedshiftMaterializedViewConfig,
-    RedshiftMaterializedViewConfigChangeCollection,
+    RedshiftMaterializedViewConfigChangeset,
     RedshiftAutoRefreshConfigChange,
     RedshiftBackupConfigChange,
     RedshiftDistConfigChange,
@@ -61,11 +61,11 @@ class RedshiftRelation(BaseRelation):
             f"from_runtime_config() is not supported for the provided relation type: {relation_type}"
         )
 
-    @staticmethod
-    def get_materialized_view_config_change_collection(
-        relation_results: RelationResults, runtime_config: RuntimeConfigObject
-    ) -> Optional[RedshiftMaterializedViewConfigChangeCollection]:
-        config_change_collection = RedshiftMaterializedViewConfigChangeCollection()
+    @classmethod
+    def materialized_view_config_changeset(
+        cls, relation_results: RelationResults, runtime_config: RuntimeConfigObject
+    ) -> Optional[RedshiftMaterializedViewConfigChangeset]:
+        config_change_collection = RedshiftMaterializedViewConfigChangeset()
 
         existing_materialized_view = RedshiftMaterializedViewConfig.from_relation_results(
             relation_results

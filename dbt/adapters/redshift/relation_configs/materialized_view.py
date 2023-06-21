@@ -239,7 +239,7 @@ class RedshiftBackupConfigChange(RelationConfigChange):
 
 
 @dataclass
-class RedshiftMaterializedViewConfigChangeCollection:
+class RedshiftMaterializedViewConfigChangeset:
     backup: Optional[RedshiftBackupConfigChange] = None
     dist: Optional[RedshiftDistConfigChange] = None
     sort: Optional[RedshiftSortConfigChange] = None
