@@ -77,7 +77,7 @@ class TestRedshiftAdapter(unittest.TestCase):
             db_groups=[],
             timeout=None,
             region=None,
-            database_metadata_current_db_only=False,
+            database_metadata_current_db_only=True,
             **DEFAULT_SSL_CONFIG,
         )
 
@@ -95,7 +95,7 @@ class TestRedshiftAdapter(unittest.TestCase):
             port=5439,
             auto_create=False,
             db_groups=[],
-            database_metadata_current_db_only=False,
+            database_metadata_current_db_only=True,
             region=None,
             timeout=None,
             **DEFAULT_SSL_CONFIG,
@@ -124,7 +124,7 @@ class TestRedshiftAdapter(unittest.TestCase):
             db_groups=[],
             profile=None,
             port=5439,
-            database_metadata_current_db_only=False,
+            database_metadata_current_db_only=True,
             **DEFAULT_SSL_CONFIG,
         )
 
@@ -143,7 +143,7 @@ class TestRedshiftAdapter(unittest.TestCase):
             db_groups=[],
             region=None,
             timeout=30,
-            database_metadata_current_db_only=False,
+            database_metadata_current_db_only=True,
             **DEFAULT_SSL_CONFIG,
         )
 
@@ -173,7 +173,7 @@ class TestRedshiftAdapter(unittest.TestCase):
             profile="test",
             timeout=None,
             port=5439,
-            database_metadata_current_db_only=False,
+            database_metadata_current_db_only=True,
             **DEFAULT_SSL_CONFIG,
         )
 
@@ -201,7 +201,7 @@ class TestRedshiftAdapter(unittest.TestCase):
             profile="test",
             timeout=None,
             port=5439,
-            database_metadata_current_db_only=False,
+            database_metadata_current_db_only=True,
             **DEFAULT_SSL_CONFIG,
         )
 
@@ -231,7 +231,7 @@ class TestRedshiftAdapter(unittest.TestCase):
             profile="test",
             timeout=None,
             port=5439,
-            database_metadata_current_db_only=False,
+            database_metadata_current_db_only=True,
             **DEFAULT_SSL_CONFIG,
         )
 
@@ -262,7 +262,7 @@ class TestRedshiftAdapter(unittest.TestCase):
                 profile="test",
                 timeout=None,
                 port=5439,
-                database_metadata_current_db_only=False,
+                database_metadata_current_db_only=True,
                 **DEFAULT_SSL_CONFIG,
             )
 
@@ -293,7 +293,7 @@ class TestRedshiftAdapter(unittest.TestCase):
                 profile="test",
                 timeout=None,
                 port=5439,
-                database_metadata_current_db_only=False,
+                database_metadata_current_db_only=True,
                 **DEFAULT_SSL_CONFIG,
             )
 
@@ -314,7 +314,7 @@ class TestRedshiftAdapter(unittest.TestCase):
             timeout=None,
             ssl=False,
             sslmode=None,
-            database_metadata_current_db_only=False,
+            database_metadata_current_db_only=True,
         )
 
     @mock.patch("redshift_connector.connect", Mock())
@@ -334,7 +334,7 @@ class TestRedshiftAdapter(unittest.TestCase):
             timeout=None,
             ssl=True,
             sslmode="verify-ca",
-            database_metadata_current_db_only=False,
+            database_metadata_current_db_only=True,
         )
 
     @mock.patch("redshift_connector.connect", Mock())
@@ -354,7 +354,7 @@ class TestRedshiftAdapter(unittest.TestCase):
             timeout=None,
             ssl=True,
             sslmode="verify-full",
-            database_metadata_current_db_only=False,
+            database_metadata_current_db_only=True,
         )
 
     @mock.patch("redshift_connector.connect", Mock())
@@ -374,7 +374,7 @@ class TestRedshiftAdapter(unittest.TestCase):
             timeout=None,
             ssl=True,
             sslmode="verify-ca",
-            database_metadata_current_db_only=False,
+            database_metadata_current_db_only=True,
         )
 
     @mock.patch("redshift_connector.connect", Mock())
@@ -394,7 +394,7 @@ class TestRedshiftAdapter(unittest.TestCase):
             timeout=None,
             ssl=True,
             sslmode="verify-ca",
-            database_metadata_current_db_only=False,
+            database_metadata_current_db_only=True,
         )
 
     @mock.patch("redshift_connector.connect", Mock())
@@ -421,7 +421,7 @@ class TestRedshiftAdapter(unittest.TestCase):
                 user="",
                 profile="test",
                 port=5439,
-                database_metadata_current_db_only=False,
+                database_metadata_current_db_only=True,
                 timeout=None,
                 **DEFAULT_SSL_CONFIG,
             )

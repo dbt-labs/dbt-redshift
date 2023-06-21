@@ -132,7 +132,7 @@ class RedshiftCredentials(Credentials):
     role: Optional[str] = None
     sslmode: Optional[UserSSLMode] = field(default_factory=UserSSLMode.default)
     retries: int = 1
-    current_db_only: Optional[bool] = False
+    current_db_only: Optional[bool] = True
     region: Optional[str] = None
     # opt-in by default per team deliberation on https://peps.python.org/pep-0249/#autocommit
     autocommit: Optional[bool] = True
