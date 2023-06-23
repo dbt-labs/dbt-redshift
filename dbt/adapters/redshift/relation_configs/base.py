@@ -19,7 +19,7 @@ from dbt.adapters.redshift.relation_configs.policies import (
 @dataclass(frozen=True, eq=True, unsafe_hash=True)
 class RedshiftRelationConfigBase(RelationConfigBase):
     """
-    This base class implements a few boilerplate methods and provides some light structure for Snowflake relations.
+    This base class implements a few boilerplate methods and provides some light structure for Redshift relations.
     """
 
     @classmethod

@@ -141,7 +141,7 @@ class RedshiftDistConfig(RedshiftRelationConfigBase, RelationConfigValidationMix
             return {"diststyle": diststyle.lower(), "distkey": distkey}
 
         else:
-            raise DbtRuntimeError(f"Unexpected dist format: {dist}")
+            raise DbtRuntimeError(f"Received an unexpected dist format from the database: {dist}")
 
 
 @dataclass(frozen=True, eq=True, unsafe_hash=True)
