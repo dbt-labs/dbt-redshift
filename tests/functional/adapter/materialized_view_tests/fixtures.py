@@ -6,7 +6,12 @@ from dbt.tests.adapter.materialized_view.on_configuration_change import (
     get_model_file,
     set_model_file,
 )
-from dbt.tests.util import relation_from_name
+from dbt.tests.util import relation_from_name, run_sql_with_adapter
+
+
+def refresh_materialized_view(project, name: str):
+    sql = f"refresh materialized view {relation_from_name(project.adapter, name)}"
+    run_sql_with_adapter(project.adapter, sql)
 
 
 class RedshiftBasicBase(Base):

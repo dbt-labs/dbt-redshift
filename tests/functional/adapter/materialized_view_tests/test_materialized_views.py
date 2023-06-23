@@ -16,6 +16,7 @@ from dbt.tests.adapter.materialized_view.on_configuration_change import (
 from tests.functional.adapter.materialized_view_tests.fixtures import (
     RedshiftBasicBase,
     RedshiftOnConfigurationChangeBase,
+    refresh_materialized_view,
 )
 
 
@@ -44,7 +45,7 @@ class TestBasic(RedshiftBasicBase):
             project, "base_materialized_view", RelationType.MaterializedView
         )
 
-    def test_updated_base_table_data_only_shows_in_materialized_view_after_rerun(self, project):
+    def test_updated_base_table_data_only_shows_in_materialized_view_after_refresh(self, project):
         # poll database
         table_start = get_row_count(project, "base_table")
         view_start = get_row_count(project, "base_materialized_view")
@@ -59,7 +60,7 @@ class TestBasic(RedshiftBasicBase):
         view_mid = get_row_count(project, "base_materialized_view")
 
         # refresh the materialized view
-        run_model("base_materialized_view")
+        refresh_materialized_view(project, "base_materialized_view")
 
         # poll database
         table_end = get_row_count(project, "base_table")
