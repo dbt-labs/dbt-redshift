@@ -89,18 +89,22 @@ class RedshiftDistConfig(RedshiftRelationConfigBase, RelationConfigValidationMix
         """
         dist = model_node.config.extra.get("dist", "")
 
-        if dist == "":
-            return {}
+        diststyle = dist.lower()
 
-        elif dist.lower() in (
+        if diststyle == "":
+            config = {}
+
+        elif diststyle in (
             RedshiftDistStyle.auto,
             RedshiftDistStyle.even,
             RedshiftDistStyle.all,
         ):
-            return {"diststyle": dist.lower()}
+            config = {"diststyle": diststyle}
 
         else:
-            return {"diststyle": RedshiftDistStyle.key, "distkey": dist}
+            config = {"diststyle": RedshiftDistStyle.key.value, "distkey": dist}
+
+        return config
 
     @classmethod
     def parse_relation_results(cls, relation_results_entry: agate.Row) -> dict:
@@ -116,32 +120,28 @@ class RedshiftDistConfig(RedshiftRelationConfigBase, RelationConfigValidationMix
 
         Returns: a standard dictionary describing this `RedshiftDistConfig` instance
         """
-        dist: str = relation_results_entry.get("diststyle", "")
+        dist: str = relation_results_entry.get("diststyle")
 
         try:
-            diststyle = dist.split("(")[0]  # covers `AUTO`, `ALL`, `KEY`, <null>, <unexpected>
-        except ValueError:
-            diststyle = dist  # covers `EVEN`, <unexpected>
+            # covers `AUTO`, `ALL`, `EVEN`, `KEY`, '', <unexpected>
+            diststyle = dist.split("(")[0].lower()
+        except AttributeError:
+            # covers None
+            diststyle = ""
 
-        if diststyle == "":
-            return {}
-
-        elif diststyle.lower() in [
-            RedshiftDistStyle.auto,
-            RedshiftDistStyle.all,
-            RedshiftDistStyle.even,
-        ]:
-            return {"diststyle": diststyle.lower()}
+        if dist == "":
+            config = {}
 
         elif diststyle == RedshiftDistStyle.key:
             open_paren = len("KEY(")
             close_paren = -len(")")
             distkey = dist[open_paren:close_paren]  # e.g. KEY(column1)
-
-            return {"diststyle": diststyle.lower(), "distkey": distkey}
+            config = {"diststyle": diststyle, "distkey": distkey}
 
         else:
-            raise DbtRuntimeError(f"Received an unexpected dist format from the database: {dist}")
+            config = {"diststyle": diststyle}
+
+        return config
 
 
 @dataclass(frozen=True, eq=True, unsafe_hash=True)
