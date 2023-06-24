@@ -1,4 +1,3 @@
-{# redshift should use default instead of postgres #}
 {% macro redshift__last_day(date, datepart) %}
     cast(
         {{dbt.dateadd('day', '-1',

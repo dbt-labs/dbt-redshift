@@ -1,0 +1,6 @@
+kind: Breaking Changes
+body: require latest version of redshift_connector driver
+time: 2023-06-14T14:47:43.90505-04:00
+custom:
+  Author: dataders
+  Issue: "492"

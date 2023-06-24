@@ -1,0 +1,7 @@
+kind: Breaking Changes
+body: sslmode behavior has changed. To connect without ssl, set sslmode = disable.
+  To connect using ssl, set sslmode to verify-ca, or verify-full.
+time: 2023-05-22T11:19:45.927903-07:00
+custom:
+  Author: jiezhen-chen
+  Issue: "429"
