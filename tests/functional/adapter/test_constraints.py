@@ -8,11 +8,12 @@ from dbt.tests.adapter.constraints.test_constraints import (
     BaseIncrementalConstraintsRuntimeDdlEnforcement,
     BaseIncrementalConstraintsRollback,
     BaseModelConstraintsRuntimeEnforcement,
+    BaseConstraintQuotedColumn,
 )
 
 _expected_sql_redshift = """
 create table <model_identifier> (
-    id integer not null primary key,
+    id integer not null primary key references <foreign_key_model_identifier> (id) unique,
     color text,
     date_day text
 ) ;
@@ -23,6 +24,7 @@ insert into <model_identifier>
         color,
         date_day from
     (
+        -- depends_on: <foreign_key_model_identifier>
         select
             'blue' as color,
             1 as id,
@@ -104,7 +106,8 @@ create table <model_identifier> (
     color text,
     date_day text,
     primary key (id),
-    constraint strange_uniqueness_requirement unique (color, date_day)
+    constraint strange_uniqueness_requirement unique (color, date_day),
+    foreign key (id) references <foreign_key_model_identifier> (id)
 ) ;
 insert into <model_identifier>
 (
@@ -113,11 +116,34 @@ insert into <model_identifier>
         color,
         date_day from
     (
+        -- depends_on: <foreign_key_model_identifier>
         select
-            1 as id,
             'blue' as color,
+            1 as id,
             '2019-01-01' as date_day
     ) as model_subq
 )
 ;
+"""
+
+
+class TestRedshiftConstraintQuotedColumn(BaseConstraintQuotedColumn):
+    @pytest.fixture(scope="class")
+    def expected_sql(self):
+        return """
+create table <model_identifier> (
+    id integer not null,
+    "from" text not null,
+    date_day text
+) ;
+insert into <model_identifier>
+(
+    select id, "from", date_day
+    from (
+        select
+          'blue' as "from",
+          1 as id,
+          '2019-01-01' as date_day
+    ) as model_subq
+);
 """
