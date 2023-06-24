@@ -1,12 +1,13 @@
-from dbt.adapters.redshift.connections import RedshiftConnectionManager  # noqa
-from dbt.adapters.redshift.connections import RedshiftCredentials
-from dbt.adapters.redshift.column import RedshiftColumn  # noqa
+from dbt.adapters.base import AdapterPlugin
+
+from dbt.adapters.redshift.connections import (  # noqa: F401
+    RedshiftConnectionManager,
+    RedshiftCredentials,
+)
 from dbt.adapters.redshift.relation import RedshiftRelation  # noqa: F401
 from dbt.adapters.redshift.impl import RedshiftAdapter
+from dbt.include import redshift
 
-
-from dbt.adapters.base import AdapterPlugin  # type: ignore
-from dbt.include import redshift  # type: ignore
 
 Plugin: AdapterPlugin = AdapterPlugin(
     adapter=RedshiftAdapter,  # type: ignore

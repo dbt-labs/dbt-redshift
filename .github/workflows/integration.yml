@@ -38,9 +38,6 @@ on:
         description: "branch of dbt-core to use in dev-requirements.txt"
         required: false
         type: string
-  # run this once per night to ensure no regressions from latest dbt-core changes
-  schedule:
-    - cron: '0 5 * * *' # 5 UTC
 
 # explicitly turn off permissions for `GITHUB_TOKEN`
 permissions: read-all
@@ -155,7 +152,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
 
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4.3.0
+        uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
 

@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 import sys
 
-if sys.version_info < (3, 7):
+if sys.version_info < (3, 8):
     print("Error: dbt does not support this version of Python.")
-    print("Please upgrade to Python 3.7 or higher.")
+    print("Please upgrade to Python 3.8 or higher.")
     sys.exit(1)
 
 
@@ -85,7 +85,9 @@ setup(
         f"dbt-core~={_core_version()}",
         f"dbt-postgres~={_core_version()}",
         "boto3~=1.26.26",
-        "redshift-connector~=2.0.910",
+        "redshift-connector~=2.0.911",
+        # installed via dbt-core but referenced directly; don't pin to avoid version conflicts with dbt-core
+        "agate",
     ],
     zip_safe=False,
     classifiers=[
@@ -94,11 +96,10 @@ setup(
         "Operating System :: Microsoft :: Windows",
         "Operating System :: MacOS :: MacOS X",
         "Operating System :: POSIX :: Linux",
-        "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
     ],
-    python_requires=">=3.7",
+    python_requires=">=3.8",
 )

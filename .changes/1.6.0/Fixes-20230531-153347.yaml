@@ -1,0 +1,7 @@
+kind: Fixes
+body: Get autocommit on by default to restore old semantics users had relied on prior
+  to 1.5. Add tests.
+time: 2023-05-31T15:33:47.180508-07:00
+custom:
+  Author: versusfacit
+  Issue: "425"
