@@ -225,7 +225,28 @@
 
 
 {% macro redshift__list_relations_without_caching(schema_relation) %}
-  {{ return(postgres__list_relations_without_caching(schema_relation)) }}
+  {% call statement('list_relations_without_caching', fetch_result=True) -%}
+    select
+      '{{ schema_relation.database }}' as database,
+      tablename as name,
+      schemaname as schema,
+      'table' as type
+    from pg_tables
+    where schemaname ilike '{{ schema_relation.schema }}'
+    union all
+    select
+      '{{ schema_relation.database }}' as database,
+      viewname as name,
+      schemaname as schema,
+      case
+        when definition ilike '%create materialized view%'
+          then 'materialized_view'
+        else 'view'
+      end as type
+    from pg_views
+    where schemaname ilike '{{ schema_relation.schema }}'
+  {% endcall %}
+  {{ return(load_result('list_relations_without_caching').table) }}
 {% endmacro %}
 
 
@@ -291,4 +312,13 @@
 
   {% endif %}
 
+{% endmacro %}
+
+
+{% macro redshift__get_drop_relation_sql(relation) %}
+    {%- if relation.is_materialized_view -%}
+        {{ redshift__drop_materialized_view(relation) }}
+    {%- else -%}
+        drop {{ relation.type }} if exists {{ relation }} cascade
+    {%- endif -%}
 {% endmacro %}

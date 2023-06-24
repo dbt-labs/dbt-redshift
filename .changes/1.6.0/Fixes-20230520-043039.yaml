@@ -1,0 +1,6 @@
+kind: Fixes
+body: Add a new connection param to reenable certain Redshift commands in macros.
+time: 2023-05-20T04:30:39.358755-07:00
+custom:
+  Author: versusfacit
+  Issue: "463"
