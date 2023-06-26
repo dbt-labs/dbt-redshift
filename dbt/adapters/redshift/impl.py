@@ -4,15 +4,15 @@ from collections import namedtuple
 
 from dbt.adapters.base import PythonJobHelper
 from dbt.adapters.base.impl import AdapterConfig, ConstraintSupport
-from dbt.adapters.sql import SQLAdapter
 from dbt.adapters.base.meta import available
+from dbt.adapters.sql import SQLAdapter
 from dbt.contracts.connection import AdapterResponse
 from dbt.contracts.graph.nodes import ConstraintType
 from dbt.events import AdapterLogger
-
 import dbt.exceptions
 
-from dbt.adapters.redshift import RedshiftConnectionManager, RedshiftRelation, RedshiftColumn
+from dbt.adapters.redshift import RedshiftConnectionManager, RedshiftRelation
+
 
 logger = AdapterLogger("Redshift")
 
@@ -27,13 +27,13 @@ class RedshiftConfig(AdapterConfig):
     sort: Optional[str] = None
     bind: Optional[bool] = None
     backup: Optional[bool] = True
+    autorefresh: Optional[bool] = False
 
 
 class RedshiftAdapter(SQLAdapter):
     Relation = RedshiftRelation
     ConnectionManager = RedshiftConnectionManager
     connections: RedshiftConnectionManager
-    Column = RedshiftColumn  # type: ignore
 
     AdapterSpecificConfigs = RedshiftConfig  # type: ignore
 
@@ -163,3 +163,7 @@ class RedshiftAdapter(SQLAdapter):
 
     def generate_python_submission_response(self, submission_result: Any) -> AdapterResponse:
         return super().generate_python_submission_response(submission_result)
+
+    def debug_query(self):
+        """Override for DebugTask method"""
+        self.execute("select 1 as id")
