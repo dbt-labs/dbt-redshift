@@ -238,7 +238,11 @@
       '{{ schema_relation.database }}' as database,
       viewname as name,
       schemaname as schema,
-      'view' as type
+      case
+        when definition ilike '%create materialized view%'
+          then 'materialized_view'
+        else 'view'
+      end as type
     from pg_views
     where schemaname ilike '{{ schema_relation.schema }}'
   {% endcall %}
@@ -308,4 +312,13 @@
 
   {% endif %}
 
+{% endmacro %}
+
+
+{% macro redshift__get_drop_relation_sql(relation) %}
+    {%- if relation.is_materialized_view -%}
+        {{ redshift__drop_materialized_view(relation) }}
+    {%- else -%}
+        drop {{ relation.type }} if exists {{ relation }} cascade
+    {%- endif -%}
 {% endmacro %}
