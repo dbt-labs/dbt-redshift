@@ -1,0 +1,6 @@
+kind: Fixes
+body: Remove dependent_projects argument from PartialProject call in unit tests
+time: 2023-06-28T12:32:27.637669-04:00
+custom:
+  Author: mikealfare
+  Issue: "7955"
