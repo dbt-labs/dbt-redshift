@@ -238,7 +238,11 @@
       '{{ schema_relation.database }}' as database,
       viewname as name,
       schemaname as schema,
-      'view' as type
+      case
+        when definition ilike '%create materialized view%'
+          then 'materialized_view'
+        else 'view'
+      end as type
     from pg_views
     where schemaname ilike '{{ schema_relation.schema }}'
   {% endcall %}
@@ -310,20 +314,11 @@
 
 {% endmacro %}
 
-{#
-  By using dollar-quoting like this, users can embed anything they want into their comments
-  (including nested dollar-quoting), as long as they do not use this exact dollar-quoting
-  label. It would be nice to just pick a new one but eventually you do have to give up.
-#}
-{% macro postgres_escape_comment(comment) -%}
-  {% if comment is not string %}
-    {% do exceptions.raise_compiler_error('cannot escape a non-string: ' ~ comment) %}
-  {% endif %}
-  {%- set magic = '$dbt_comment_literal_block$' -%}
-  {%- if magic in comment -%}
-    {%- do exceptions.raise_compiler_error('The string ' ~ magic ~ ' is not allowed in comments.') -%}
-  {%- endif -%}
-  {#- -- escape % until the underlying issue is fixed in redshift_connector -#}
-  {%- set comment = comment|replace("%", "%%") -%}
-  {{ magic }}{{ comment }}{{ magic }}
-{%- endmacro %}
+
+{% macro redshift__get_drop_relation_sql(relation) %}
+    {%- if relation.is_materialized_view -%}
+        {{ redshift__drop_materialized_view(relation) }}
+    {%- else -%}
+        drop {{ relation.type }} if exists {{ relation }} cascade
+    {%- endif -%}
+{% endmacro %}
