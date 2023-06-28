@@ -1,5 +1,3 @@
-from dbt.adapters.redshift.column import RedshiftColumn  # noqa
-
 from dbt.adapters.base import AdapterPlugin
 
 from dbt.adapters.redshift.connections import (  # noqa: F401
