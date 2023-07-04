@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 import sys
 
-if sys.version_info < (3, 7):
+if sys.version_info < (3, 8):
     print("Error: dbt does not support this version of Python.")
-    print("Please upgrade to Python 3.7 or higher.")
+    print("Please upgrade to Python 3.8 or higher.")
     sys.exit(1)
 
 
@@ -62,7 +62,8 @@ def _core_version(plugin_version: str = _plugin_version()) -> str:
         plugin_version: the version of this plugin, this is an argument in case we ever want to unit test this
     """
     try:
-        major, minor, plugin_patch = plugin_version.split(".")
+        # *_ may indicate a dev release which won't affect the core version needed
+        major, minor, plugin_patch, *_ = plugin_version.split(".", maxsplit=3)
     except ValueError:
         raise ValueError(f"Invalid version: {plugin_version}")
 
@@ -84,6 +85,9 @@ setup(
         f"dbt-core~={_core_version()}",
         f"dbt-postgres~={_core_version()}",
         "boto3~=1.26.26",
+        "redshift-connector~=2.0.911",
+        # installed via dbt-core but referenced directly; don't pin to avoid version conflicts with dbt-core
+        "agate",
     ],
     zip_safe=False,
     classifiers=[
@@ -92,11 +96,10 @@ setup(
         "Operating System :: Microsoft :: Windows",
         "Operating System :: MacOS :: MacOS X",
         "Operating System :: POSIX :: Linux",
-        "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
     ],
-    python_requires=">=3.7",
+    python_requires=">=3.8",
 )
