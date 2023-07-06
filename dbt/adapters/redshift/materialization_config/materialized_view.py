@@ -2,31 +2,32 @@ from dataclasses import dataclass
 from typing import Optional, Set
 
 import agate
-from dbt.adapters.relation_configs import (
+from dbt.adapters.materialization_config import (
     RelationResults,
     RelationConfigChange,
     RelationConfigValidationMixin,
     RelationConfigValidationRule,
+    MaterializationConfig,
 )
 from dbt.contracts.graph.nodes import ModelNode
 from dbt.contracts.relation import ComponentName
 from dbt.exceptions import DbtRuntimeError
 
-from dbt.adapters.redshift.relation_configs.base import RedshiftRelationConfigBase
-from dbt.adapters.redshift.relation_configs.dist import (
+from dbt.adapters.redshift.materialization_config.base import RedshiftRelationConfigBase
+from dbt.adapters.redshift.materialization_config.dist import (
     RedshiftDistConfig,
     RedshiftDistStyle,
     RedshiftDistConfigChange,
 )
-from dbt.adapters.redshift.relation_configs.policies import MAX_CHARACTERS_IN_IDENTIFIER
-from dbt.adapters.redshift.relation_configs.sort import (
+from dbt.adapters.redshift.materialization_config.policies import MAX_CHARACTERS_IN_IDENTIFIER
+from dbt.adapters.redshift.materialization_config.sort import (
     RedshiftSortConfig,
     RedshiftSortConfigChange,
 )
 
 
 @dataclass(frozen=True, eq=True, unsafe_hash=True)
-class RedshiftMaterializedViewConfig(RedshiftRelationConfigBase, RelationConfigValidationMixin):
+class RedshiftMaterializedViewConfig(MaterializationConfig, RelationConfigValidationMixin):
     """
     This config follow the specs found here:
     https://docs.aws.amazon.com/redshift/latest/dg/materialized-view-create-sql-command.html
@@ -51,9 +52,9 @@ class RedshiftMaterializedViewConfig(RedshiftRelationConfigBase, RelationConfigV
     There are currently no non-configurable parameters.
     """
 
-    mv_name: str
-    schema_name: str
-    database_name: str
+    name: str
+    schema: str
+    database: str
     query: str
     backup: bool = True
     dist: RedshiftDistConfig = RedshiftDistConfig(diststyle=RedshiftDistStyle.even)

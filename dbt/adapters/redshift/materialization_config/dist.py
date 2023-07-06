@@ -12,7 +12,7 @@ from dbt.contracts.graph.nodes import ModelNode
 from dbt.dataclass_schema import StrEnum
 from dbt.exceptions import DbtRuntimeError
 
-from dbt.adapters.redshift.relation_configs.base import RedshiftRelationConfigBase
+from dbt.adapters.redshift.materialization_config.base import RedshiftRelationConfigBase
 
 
 class RedshiftDistStyle(StrEnum):

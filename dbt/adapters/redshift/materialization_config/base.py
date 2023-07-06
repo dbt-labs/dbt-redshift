@@ -10,7 +10,7 @@ from dbt.adapters.relation_configs import (
 from dbt.contracts.graph.nodes import ModelNode
 from dbt.contracts.relation import ComponentName
 
-from dbt.adapters.redshift.relation_configs.policies import (
+from dbt.adapters.redshift.materialization_config.policies import (
     RedshiftIncludePolicy,
     RedshiftQuotePolicy,
 )
