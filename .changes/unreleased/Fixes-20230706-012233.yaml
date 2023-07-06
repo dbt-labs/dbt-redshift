@@ -1,0 +1,6 @@
+kind: Fixes
+body: Fixed unit test that broke following dbt clone work
+time: 2023-07-06T01:22:33.840137-04:00
+custom:
+  Author: mikealfare
+  Issue: "518"
