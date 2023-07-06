@@ -147,6 +147,7 @@ def mock_model():
         raw_sql="",
         description="",
         columns={},
+        defer_relation=None,
     )
 
 
