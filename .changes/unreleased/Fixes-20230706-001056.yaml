@@ -1,0 +1,6 @@
+kind: Fixes
+body: Fix regression in redshift-connector==2.0.912
+time: 2023-07-06T00:10:56.337407-04:00
+custom:
+  Author: mikealfare
+  Issue: "518"
