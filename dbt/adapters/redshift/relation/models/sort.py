@@ -1,18 +1,19 @@
+from copy import deepcopy
 from dataclasses import dataclass
 from typing import Optional, FrozenSet, Set
 
 import agate
-from dbt.adapters.relation_configs import (
-    RelationConfigChange,
-    RelationConfigChangeAction,
-    RelationConfigValidationMixin,
-    RelationConfigValidationRule,
+from dbt.adapters.relation.models import (
+    RelationChange,
+    RelationChangeAction,
+    RelationComponent,
 )
+from dbt.adapters.validation import ValidationMixin, ValidationRule
 from dbt.contracts.graph.nodes import ModelNode
 from dbt.dataclass_schema import StrEnum
 from dbt.exceptions import DbtRuntimeError
 
-from dbt.adapters.redshift.materialization_config.base import RedshiftRelationConfigBase
+from dbt.adapters.redshift.relation.models.policy import RedshiftRenderPolicy
 
 
 class RedshiftSortStyle(StrEnum):
@@ -30,7 +31,7 @@ class RedshiftSortStyle(StrEnum):
 
 
 @dataclass(frozen=True, eq=True, unsafe_hash=True)
-class RedshiftSortConfig(RedshiftRelationConfigBase, RelationConfigValidationMixin):
+class RedshiftSortRelation(RelationComponent, ValidationMixin):
     """
     This config fallows the specs found here:
     https://docs.aws.amazon.com/redshift/latest/dg/r_CREATE_TABLE_NEW.html
@@ -45,6 +46,9 @@ class RedshiftSortConfig(RedshiftRelationConfigBase, RelationConfigValidationMix
     sortstyle: Optional[RedshiftSortStyle] = None
     sortkey: Optional[FrozenSet[str]] = None
 
+    # configuration
+    render = RedshiftRenderPolicy
+
     def __post_init__(self):
         # maintains `frozen=True` while allowing for a variable default on `sort_type`
         if self.sortstyle is None and self.sortkey is None:
@@ -54,10 +58,10 @@ class RedshiftSortConfig(RedshiftRelationConfigBase, RelationConfigValidationMix
         super().__post_init__()
 
     @property
-    def validation_rules(self) -> Set[RelationConfigValidationRule]:
+    def validation_rules(self) -> Set[ValidationRule]:
         # index rules get run by default with the mixin
         return {
-            RelationConfigValidationRule(
+            ValidationRule(
                 validation_check=not (
                     self.sortstyle == RedshiftSortStyle.auto and self.sortkey is not None
                 ),
@@ -65,7 +69,7 @@ class RedshiftSortConfig(RedshiftRelationConfigBase, RelationConfigValidationMix
                     "A `RedshiftSortConfig` that specifies a `sortkey` does not support the `sortstyle` of `auto`."
                 ),
             ),
-            RelationConfigValidationRule(
+            ValidationRule(
                 validation_check=not (
                     self.sortstyle in (RedshiftSortStyle.compound, RedshiftSortStyle.interleaved)
                     and self.sortkey is None
@@ -74,7 +78,7 @@ class RedshiftSortConfig(RedshiftRelationConfigBase, RelationConfigValidationMix
                     "A `sortstyle` of `compound` or `interleaved` requires a `sortkey` to be provided."
                 ),
             ),
-            RelationConfigValidationRule(
+            ValidationRule(
                 validation_check=not (
                     self.sortstyle == RedshiftSortStyle.compound
                     and self.sortkey is not None
@@ -84,7 +88,7 @@ class RedshiftSortConfig(RedshiftRelationConfigBase, RelationConfigValidationMix
                     "A compound `sortkey` only supports 400 columns."
                 ),
             ),
-            RelationConfigValidationRule(
+            ValidationRule(
                 validation_check=not (
                     self.sortstyle == RedshiftSortStyle.interleaved
                     and self.sortkey is not None
@@ -97,12 +101,19 @@ class RedshiftSortConfig(RedshiftRelationConfigBase, RelationConfigValidationMix
         }
 
     @classmethod
-    def from_dict(cls, config_dict) -> "RedshiftSortConfig":
-        kwargs_dict = {
-            "sortstyle": config_dict.get("sortstyle"),
-            "sortkey": frozenset(column for column in config_dict.get("sortkey", {})),
-        }
-        sort: "RedshiftSortConfig" = super().from_dict(kwargs_dict)  # type: ignore
+    def from_dict(cls, config_dict) -> "RedshiftSortRelation":
+        # don't alter the incoming config
+        kwargs_dict = deepcopy(config_dict)
+
+        kwargs_dict.update(
+            {
+                "sortstyle": config_dict.get("sortstyle"),
+                "sortkey": frozenset(column for column in config_dict.get("sortkey", {})),
+            }
+        )
+
+        sort = super().from_dict(kwargs_dict)
+        assert isinstance(sort, RedshiftSortRelation)
         return sort
 
     @classmethod
@@ -135,7 +146,7 @@ class RedshiftSortConfig(RedshiftRelationConfigBase, RelationConfigValidationMix
         return config_dict
 
     @classmethod
-    def parse_relation_results(cls, relation_results_entry: agate.Row) -> dict:
+    def parse_describe_relation_results(cls, describe_relation_results: agate.Row) -> dict:
         """
         Translate agate objects from the database into a standard dictionary.
 
@@ -144,7 +155,7 @@ class RedshiftSortConfig(RedshiftRelationConfigBase, RelationConfigValidationMix
             Processing of `sortstyle` has been omitted here, which means it's the default (compound).
 
         Args:
-            relation_results_entry: the description of the sortkey and sortstyle from the database in this format:
+            describe_relation_results: the description of the sortkey and sortstyle from the database in this format:
 
                 agate.Row({
                     ...,
@@ -154,24 +165,24 @@ class RedshiftSortConfig(RedshiftRelationConfigBase, RelationConfigValidationMix
 
         Returns: a standard dictionary describing this `RedshiftSortConfig` instance
         """
-        if sortkey := relation_results_entry.get("sortkey1"):
+        if sortkey := describe_relation_results.get("sortkey1"):
             return {"sortkey": {sortkey}}
         return {}
 
 
 @dataclass(frozen=True, eq=True, unsafe_hash=True)
-class RedshiftSortConfigChange(RelationConfigChange, RelationConfigValidationMixin):
-    context: RedshiftSortConfig
+class RedshiftSortRelationChange(RelationChange, ValidationMixin):
+    context: RedshiftSortRelation
 
     @property
     def requires_full_refresh(self) -> bool:
         return True
 
     @property
-    def validation_rules(self) -> Set[RelationConfigValidationRule]:
+    def validation_rules(self) -> Set[ValidationRule]:
         return {
-            RelationConfigValidationRule(
-                validation_check=(self.action == RelationConfigChangeAction.alter),
+            ValidationRule(
+                validation_check=(self.action == RelationChangeAction.alter),
                 validation_error=DbtRuntimeError(
                     "Invalid operation, only `alter` changes are supported for `sortkey` / `sortstyle`."
                 ),

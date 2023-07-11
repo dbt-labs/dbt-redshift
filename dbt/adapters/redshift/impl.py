@@ -1,17 +1,20 @@
+from collections import namedtuple
 from dataclasses import dataclass
 from typing import Optional, Set, Any, Dict, Type
-from collections import namedtuple
 
 from dbt.adapters.base import PythonJobHelper
 from dbt.adapters.base.impl import AdapterConfig, ConstraintSupport
 from dbt.adapters.base.meta import available
+from dbt.adapters.relation.factory import RelationFactory
 from dbt.adapters.sql import SQLAdapter
 from dbt.contracts.connection import AdapterResponse
 from dbt.contracts.graph.nodes import ConstraintType
+from dbt.contracts.relation import RelationType
 from dbt.events import AdapterLogger
 import dbt.exceptions
 
 from dbt.adapters.redshift import RedshiftConnectionManager, RedshiftRelation
+from dbt.adapters.redshift.relation import models as relation_models
 
 
 logger = AdapterLogger("Redshift")
@@ -44,6 +47,19 @@ class RedshiftAdapter(SQLAdapter):
         ConstraintType.primary_key: ConstraintSupport.NOT_ENFORCED,
         ConstraintType.foreign_key: ConstraintSupport.NOT_ENFORCED,
     }
+
+    @property
+    def relation_factory(self):
+        return RelationFactory(
+            relation_models={
+                RelationType.MaterializedView: relation_models.RedshiftMaterializedViewRelation,
+            },
+            relation_changesets={
+                RelationType.MaterializedView: relation_models.RedshiftMaterializedViewRelationChangeset,
+            },
+            relation_can_be_renamed={RelationType.MaterializedView},
+            render_policy=relation_models.RedshiftRenderPolicy,
+        )
 
     @classmethod
     def date_function(cls):
