@@ -180,7 +180,7 @@ class RedshiftConnectMethodFactory:
         kwargs = {
             "host": self.credentials.host,
             "database": self.credentials.database,
-            "port": self.credentials.port if self.credentials.port else 5439,
+            "port": int(self.credentials.port) if self.credentials.port else int(5439),
             "auto_create": self.credentials.autocreate,
             "db_groups": self.credentials.db_groups,
             "region": self.credentials.region,
