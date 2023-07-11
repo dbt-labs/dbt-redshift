@@ -50,4 +50,3 @@ def test_basic(project):
     with pytest.raises(DbtRuntimeError) as excinfo:
         macro_func = project.adapter.get_incremental_strategy_macro(context, "insert_overwrite")
     assert "insert_overwrite" in str(excinfo.value)
-    
