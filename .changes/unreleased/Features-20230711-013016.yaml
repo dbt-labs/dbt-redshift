@@ -1,0 +1,6 @@
+kind: Features
+body: Add materialized view support with the new change management framework
+time: 2023-07-11T01:30:16.22273-04:00
+custom:
+  Author: mikealfare
+  Issue: dbt-labs/dbt-core#6911
