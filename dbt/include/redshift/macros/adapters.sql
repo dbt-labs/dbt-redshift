@@ -223,17 +223,6 @@
   {{ return(sql_convert_columns_in_relation(table)) }}
 {% endmacro %}
 
-
-
-{% macro redshift__information_schema_name(database) -%}
-  {{ return(postgres__information_schema_name(database)) }}
-{%- endmacro %}
-
-
-{% macro redshift__list_schemas(database) -%}
-  {{ return(postgres__list_schemas(database)) }}
-{%- endmacro %}
-
 {% macro redshift__list_relations_without_caching(schema_relation) %}
 
   {% call statement('list_relations_without_caching', fetch_result=True) -%}
@@ -260,6 +249,15 @@
   {% endcall %}
   {{ return(load_result('list_relations_without_caching').table) }}
 {% endmacro %}
+
+{% macro redshift__information_schema_name(database) -%}
+  {{ return(postgres__information_schema_name(database)) }}
+{%- endmacro %}
+
+
+{% macro redshift__list_schemas(database) -%}
+  {{ return(postgres__list_schemas(database)) }}
+{%- endmacro %}
 
 {% macro redshift__check_schema_exists(information_schema, schema) -%}
   {{ return(postgres__check_schema_exists(information_schema, schema)) }}
