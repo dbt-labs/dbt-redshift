@@ -232,7 +232,7 @@
         table_schema as schema,
         'table' as type
     from information_schema.tables
-    where table_schema = '{{ schema_relation.schema }}'
+    where table_schema ilike '{{ schema_relation.schema }}'
     and table_type = 'BASE TABLE'
     union all
     select
@@ -245,7 +245,7 @@
         else 'view'
       end as type
     from information_schema.views
-    where table_schema = '{{ schema_relation.schema }}'
+    where table_schema ilike '{{ schema_relation.schema }}'
   {% endcall %}
   {{ return(load_result('list_relations_without_caching').table) }}
 {% endmacro %}
