@@ -27,7 +27,10 @@ def relation_factory():
         relation_changesets={
             RelationType.MaterializedView: models.RedshiftMaterializedViewRelationChangeset,
         },
-        relation_can_be_renamed={RelationType.MaterializedView},
+        relation_can_be_renamed={
+            RelationType.Table,
+            RelationType.View,
+        },
         render_policy=models.RedshiftRenderPolicy,
     )
 
@@ -64,7 +67,6 @@ def view_ref(relation_factory):
 
 @pytest.fixture
 def materialized_view_describe_relation_results():
-    # TODO separate query and add in sort/dist info
     materialized_view_agate = agate.Table.from_object(
         [
             {

@@ -3,6 +3,9 @@ Uses the following fixtures in `unit/dbt_redshift_tests/conftest.py`:
 - `relation_factory`
 - `materialized_view_ref`
 """
+import pytest
+from dbt.exceptions import DbtRuntimeError
+
 from dbt.adapters.redshift.relation import models
 
 
@@ -11,17 +14,19 @@ def test_make_ref(materialized_view_ref):
     assert materialized_view_ref.schema_name == "my_schema"
     assert materialized_view_ref.database_name == "my_database"
     assert materialized_view_ref.type == "materialized_view"
-    assert materialized_view_ref.can_be_renamed is True
+    assert materialized_view_ref.can_be_renamed is False
 
 
 def test_make_backup_ref(relation_factory, materialized_view_ref):
-    backup_ref = relation_factory.make_backup_ref(materialized_view_ref)
-    assert backup_ref.name == '"my_materialized_view__dbt_backup"'
+    # materialized views cannot be renamed in redshift
+    with pytest.raises(DbtRuntimeError):
+        relation_factory.make_backup_ref(materialized_view_ref)
 
 
 def test_make_intermediate(relation_factory, materialized_view_ref):
-    intermediate_relation = relation_factory.make_intermediate(materialized_view_ref)
-    assert intermediate_relation.name == '"my_materialized_view__dbt_tmp"'
+    # materialized views cannot be renamed in redshift
+    with pytest.raises(DbtRuntimeError):
+        relation_factory.make_intermediate(materialized_view_ref)
 
 
 def test_make_from_describe_relation_results(relation_factory, materialized_view_relation):
