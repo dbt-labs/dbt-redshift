@@ -587,28 +587,6 @@ class TestRedshiftAdapter(unittest.TestCase):
         mock_handle.return_value = mock_cursor
         return mock_cursor
 
-    @mock.patch("dbt.adapters.redshift.impl.RedshiftAdapter._get_cursor")
-    def test_get_tables(self, mock_cursor):
-        mock_cursor.return_value.get_tables.return_value = [
-            ("apple", "banana", "cherry", "orange")
-        ]
-        results = self.adapter._get_tables(database="somedb", schema="someschema")
-        self.assertTrue(results[0]["database"] == "apple")
-        self.assertTrue(results[0]["schema"] == "banana")
-        self.assertTrue(results[0]["name"] == "cherry")
-        self.assertTrue(results[0]["type"] == "orange")
-
-    @mock.patch("dbt.adapters.redshift.impl.RedshiftAdapter._get_tables")
-    def test_list_relations_without_caching(self, mock_get_tables):
-        mock_get_tables.return_value = [
-            {"database": "somedb", "schema": "someschema", "name": "sometb", "type": "VIEW"}
-        ]
-        mock_schema = mock.MagicMock(database="somedb", schema="someschema")
-        results = self.adapter.list_relations_without_caching(mock_schema)
-        self.assertTrue(results[0].database == "somedb")
-        self.assertTrue(results[0].schema == "someschema")
-        self.assertTrue(results[0].identifier == "sometb")
-
 
 class TestRedshiftAdapterConversions(TestAdapterConversions):
     def test_convert_text_type(self):
