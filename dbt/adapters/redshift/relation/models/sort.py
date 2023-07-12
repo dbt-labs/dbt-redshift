@@ -1,5 +1,5 @@
 from copy import deepcopy
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Optional, FrozenSet, Set
 
 import agate
@@ -43,15 +43,16 @@ class RedshiftSortRelation(RelationComponent, ValidationMixin):
     - sort_key: the column(s) to use for the sort key; cannot be combined with `sort_type=auto`
     """
 
+    # attribution
     sortstyle: Optional[RedshiftSortStyle] = None
-    sortkey: Optional[FrozenSet[str]] = None
+    sortkey: Optional[FrozenSet[str]] = field(default_factory=frozenset)  # type: ignore
 
     # configuration
     render = RedshiftRenderPolicy
 
     def __post_init__(self):
         # maintains `frozen=True` while allowing for a variable default on `sort_type`
-        if self.sortstyle is None and self.sortkey is None:
+        if self.sortstyle is None and self.sortkey == frozenset():
             object.__setattr__(self, "sortstyle", RedshiftSortStyle.default())
         elif self.sortstyle is None:
             object.__setattr__(self, "sortstyle", RedshiftSortStyle.default_with_columns())
@@ -63,7 +64,7 @@ class RedshiftSortRelation(RelationComponent, ValidationMixin):
         return {
             ValidationRule(
                 validation_check=not (
-                    self.sortstyle == RedshiftSortStyle.auto and self.sortkey is not None
+                    self.sortstyle == RedshiftSortStyle.auto and self.sortkey != frozenset()
                 ),
                 validation_error=DbtRuntimeError(
                     "A `RedshiftSortConfig` that specifies a `sortkey` does not support the `sortstyle` of `auto`."
@@ -72,7 +73,7 @@ class RedshiftSortRelation(RelationComponent, ValidationMixin):
             ValidationRule(
                 validation_check=not (
                     self.sortstyle in (RedshiftSortStyle.compound, RedshiftSortStyle.interleaved)
-                    and self.sortkey is None
+                    and self.sortkey == frozenset()
                 ),
                 validation_error=DbtRuntimeError(
                     "A `sortstyle` of `compound` or `interleaved` requires a `sortkey` to be provided."
@@ -105,12 +106,11 @@ class RedshiftSortRelation(RelationComponent, ValidationMixin):
         # don't alter the incoming config
         kwargs_dict = deepcopy(config_dict)
 
-        kwargs_dict.update(
-            {
-                "sortstyle": config_dict.get("sortstyle"),
-                "sortkey": frozenset(column for column in config_dict.get("sortkey", {})),
-            }
-        )
+        if sortstyle := config_dict.get("sortstyle"):
+            kwargs_dict.update({"sortstyle": RedshiftSortStyle(sortstyle)})
+
+        if sortkey := config_dict.get("sortkey"):
+            kwargs_dict.update({"sortkey": frozenset(column for column in sortkey)})
 
         sort = super().from_dict(kwargs_dict)
         assert isinstance(sort, RedshiftSortRelation)
@@ -165,7 +165,7 @@ class RedshiftSortRelation(RelationComponent, ValidationMixin):
 
         Returns: a standard dictionary describing this `RedshiftSortConfig` instance
         """
-        if sortkey := describe_relation_results.get("sortkey1"):
+        if sortkey := describe_relation_results.get("sortkey"):
             return {"sortkey": {sortkey}}
         return {}
 

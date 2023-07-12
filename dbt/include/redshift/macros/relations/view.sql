@@ -3,8 +3,9 @@
 {%- endmacro -%}
 
 
+{# /* Redshift uses `table` here even for a view. Replacing this with `view` will break. */ #}
 {%- macro redshift__rename_view_template(view, new_name) -%}
-    alter view {{ view.fully_qualified_path }} rename to {{ new_name }}
+    alter table {{ view.fully_qualified_path }} rename to {{ new_name }}
 {%- endmacro -%}
 
 

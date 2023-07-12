@@ -1,4 +1,4 @@
-{%- macro redshift_drop_table_template(table) -%}
+{%- macro redshift__drop_table_template(table) -%}
     drop table if exists {{ table.fully_qualified_path }} cascade
 {%- endmacro -%}
 

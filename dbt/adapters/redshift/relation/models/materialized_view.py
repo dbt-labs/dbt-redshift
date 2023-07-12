@@ -5,10 +5,10 @@ from typing import Dict, Optional, Set
 import agate
 from dbt.adapters.relation.models import (
     MaterializedViewRelation,
+    MaterializedViewRelationChangeset,
     Relation,
     RelationChange,
     RelationChangeAction,
-    RelationChangeset,
 )
 from dbt.adapters.validation import ValidationMixin, ValidationRule
 from dbt.contracts.graph.nodes import ModelNode
@@ -61,16 +61,14 @@ class RedshiftMaterializedViewRelation(MaterializedViewRelation, ValidationMixin
     schema: RedshiftSchemaRelation
     query: str
     backup: Optional[bool] = True
-    dist: RedshiftDistRelation = RedshiftDistRelation(
-        diststyle=RedshiftDistStyle.even, render=RedshiftRenderPolicy
-    )
-    sort: RedshiftSortRelation = RedshiftSortRelation(render=RedshiftRenderPolicy)
+    dist: RedshiftDistRelation = RedshiftDistRelation.from_dict({"diststyle": "even"})
+    sort: RedshiftSortRelation = RedshiftSortRelation.from_dict({})
     autorefresh: Optional[bool] = False
 
     # configuration
     render = RedshiftRenderPolicy
     SchemaParser = RedshiftSchemaRelation  # type: ignore
-    can_be_renamed = True
+    can_be_renamed = False
 
     @property
     def validation_rules(self) -> Set[ValidationRule]:
@@ -119,8 +117,8 @@ class RedshiftMaterializedViewRelation(MaterializedViewRelation, ValidationMixin
 
         config_dict.update(
             {
-                "backup": model_node.config.get("backup"),
-                "autorefresh": model_node.config.get("auto_refresh"),
+                "backup": model_node.config.extra.get("backup"),
+                "autorefresh": model_node.config.extra.get("autorefresh"),
             }
         )
 
@@ -145,11 +143,11 @@ class RedshiftMaterializedViewRelation(MaterializedViewRelation, ValidationMixin
                 {
                     "materialized_view": agate.Table(
                         agate.Row({
-                            "database": "<database_name>",
-                            "schema": "<schema_name>",
-                            "table": "<name>",
-                            "diststyle": "<diststyle/distkey>",  # e.g. EVEN | KEY(column1) | AUTO(ALL) | AUTO(KEY(id)),
-                            "sortkey1": "<column_name>",
+                            "database_name": "<database_name>",
+                            "schema_name": "<schema_name>",
+                            "name": "<name>",
+                            "dist": "<diststyle/distkey>",  # e.g. EVEN | KEY(column1) | AUTO(ALL) | AUTO(KEY(id)),
+                            "sortkey": "<column_name>",
                             "autorefresh: any("t", "f"),
                         })
                     ),
@@ -162,32 +160,44 @@ class RedshiftMaterializedViewRelation(MaterializedViewRelation, ValidationMixin
 
         Returns: a standard dictionary describing this `RedshiftMaterializedViewConfig` instance
         """
+        # merge these because the base class assumes `query` is on the same record as `name`, `schema_name` and
+        # `database_name`
+        describe_relation_results = cls._combine_describe_relation_results_tables(
+            describe_relation_results
+        )
         config_dict = super().parse_describe_relation_results(describe_relation_results)
 
         materialized_view: agate.Row = describe_relation_results["materialized_view"].rows[0]
-        query: agate.Row = describe_relation_results["query"].rows[0]
-
         config_dict.update(
             {
-                "autorefresh": {"t": True, "f": False}.get(materialized_view.get("autorefresh")),
-                "query": cls._parse_query(query.get("definition")),
+                "autorefresh": materialized_view.get("autorefresh"),
+                "query": cls._parse_query(materialized_view.get("query")),
             }
         )
 
         # the default for materialized views differs from the default for diststyle in general
         # only set it if we got a value
-        if materialized_view.get("diststyle"):
+        if materialized_view.get("dist"):
             config_dict.update(
                 {"dist": RedshiftDistRelation.parse_describe_relation_results(materialized_view)}
             )
 
         # TODO: this only shows the first column in the sort key
-        if materialized_view.get("sortkey1"):
+        if materialized_view.get("sortkey"):
             config_dict.update(
                 {"sort": RedshiftSortRelation.parse_describe_relation_results(materialized_view)}
             )
 
         return config_dict
+
+    @classmethod
+    def _combine_describe_relation_results_tables(
+        cls, describe_relation_results: Dict[str, agate.Table]
+    ) -> Dict[str, agate.Table]:
+        materialized_view_table: agate.Table = describe_relation_results["materialized_view"]
+        query_table: agate.Table = describe_relation_results["query"]
+        combined_table: agate.Table = materialized_view_table.join(query_table, full_outer=True)
+        return {"materialized_view": combined_table}
 
     @classmethod
     def _parse_query(cls, query: str) -> str:
@@ -211,9 +221,10 @@ class RedshiftMaterializedViewRelation(MaterializedViewRelation, ValidationMixin
             select * from my_base_table
 
         """
-        open_paren = query.find("as (") + len("as (")
-        close_paren = query.find(");")
-        return query[open_paren:close_paren].strip()
+        return query
+        # open_paren = query.find("as (")
+        # close_paren = query.find(");")
+        # return query[open_paren:close_paren].strip()
 
 
 @dataclass(frozen=True, eq=True, unsafe_hash=True)
@@ -235,7 +246,7 @@ class RedshiftBackupRelationChange(RelationChange):
 
 
 @dataclass
-class RedshiftMaterializedViewRelationChangeset(RelationChangeset):
+class RedshiftMaterializedViewRelationChangeset(MaterializedViewRelationChangeset):
     backup: Optional[RedshiftBackupRelationChange] = None
     dist: Optional[RedshiftDistRelationChange] = None
     sort: Optional[RedshiftSortRelationChange] = None

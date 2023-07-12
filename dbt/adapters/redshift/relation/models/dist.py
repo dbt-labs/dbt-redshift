@@ -1,3 +1,4 @@
+from copy import deepcopy
 from dataclasses import dataclass
 from typing import Optional, Set
 
@@ -11,6 +12,8 @@ from dbt.adapters.validation import ValidationMixin, ValidationRule
 from dbt.contracts.graph.nodes import ModelNode
 from dbt.dataclass_schema import StrEnum
 from dbt.exceptions import DbtRuntimeError
+
+from dbt.adapters.redshift.relation.models.policy import RedshiftRenderPolicy
 
 
 class RedshiftDistStyle(StrEnum):
@@ -35,8 +38,12 @@ class RedshiftDistRelation(RelationComponent, ValidationMixin):
     - distkey: the column to use for the dist key if `dist_style` is `key`
     """
 
+    # attribution
     diststyle: Optional[RedshiftDistStyle] = RedshiftDistStyle.default()
     distkey: Optional[str] = None
+
+    # configuration
+    render = RedshiftRenderPolicy
 
     @property
     def validation_rules(self) -> Set[ValidationRule]:
@@ -64,11 +71,14 @@ class RedshiftDistRelation(RelationComponent, ValidationMixin):
 
     @classmethod
     def from_dict(cls, config_dict) -> "RedshiftDistRelation":
-        kwargs_dict = {
-            "diststyle": config_dict.get("diststyle"),
-            "distkey": config_dict.get("distkey"),
-        }
-        dist: "RedshiftDistRelation" = super().from_dict(kwargs_dict)  # type: ignore
+        # don't alter the incoming config
+        kwargs_dict = deepcopy(config_dict)
+
+        if diststyle := config_dict.get("diststyle"):
+            kwargs_dict.update({"diststyle": RedshiftDistStyle(diststyle)})
+
+        dist = super().from_dict(kwargs_dict)
+        assert isinstance(dist, RedshiftDistRelation)
         return dist
 
     @classmethod
@@ -118,7 +128,7 @@ class RedshiftDistRelation(RelationComponent, ValidationMixin):
 
         Returns: a standard dictionary describing this `RedshiftDistConfig` instance
         """
-        dist: str = describe_relation_results.get("diststyle")
+        dist: str = describe_relation_results.get("dist")
 
         try:
             # covers `AUTO`, `ALL`, `EVEN`, `KEY`, '', <unexpected>

@@ -43,8 +43,8 @@ def materialization_factory(relation_factory):
 
 
 @pytest.fixture
-def materialized_view_stub(relation_factory):
-    return relation_factory.make_stub(
+def materialized_view_ref(relation_factory):
+    return relation_factory.make_ref(
         name="my_materialized_view",
         schema_name="my_schema",
         database_name="my_database",
@@ -53,8 +53,8 @@ def materialized_view_stub(relation_factory):
 
 
 @pytest.fixture
-def view_stub(relation_factory):
-    return relation_factory.make_stub(
+def view_ref(relation_factory):
+    return relation_factory.make_ref(
         name="my_view",
         schema_name="my_schema",
         database_name="my_database",
@@ -71,11 +71,22 @@ def materialized_view_describe_relation_results():
                 "name": "my_materialized_view",
                 "schema_name": "my_schema",
                 "database_name": "my_database",
-                "query": "select 42 from meaning_of_life",
+                "dist": """KEY("id")""",
+                "sortkey": "other_id",
+                "autorefresh": "t",
             }
         ]
     )
-    return {"materialized_view": materialized_view_agate}
+
+    query_agate = agate.Table.from_object(
+        [
+            {
+                "query": "select 4 as id, 2 as other_id from meaning_of_life",
+            }
+        ]
+    )
+
+    return {"materialized_view": materialized_view_agate, "query": query_agate}
 
 
 @pytest.fixture
@@ -104,11 +115,11 @@ def materialized_view_model_node():
                 "quoting": {},
                 "column_types": {},
                 "tags": [],
-                # TODO replace this with sort/dist info
-                "indexes": [
-                    {"columns": ["id", "value"], "type": "hash"},
-                    {"columns": ["id"], "unique": True},
-                ],
+                "autorefresh": True,
+                "dist": "id",
+                "sort": ["other_id"],
+                "sort_type": "compound",
+                "backup": False,
             }
         ),
         tags=[],
@@ -175,8 +186,8 @@ def test_materialization_factory(materialization_factory):
     assert redshift_parser == models.RedshiftMaterializedViewRelation
 
 
-def test_materialized_view_stub(materialized_view_stub):
-    assert materialized_view_stub.name == "my_materialized_view"
+def test_materialized_view_ref(materialized_view_ref):
+    assert materialized_view_ref.name == "my_materialized_view"
 
 
 def test_materialized_view_model_node(materialized_view_model_node):

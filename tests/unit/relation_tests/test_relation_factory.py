@@ -1,58 +1,47 @@
 """
 Uses the following fixtures in `unit/dbt_redshift_tests/conftest.py`:
 - `relation_factory`
-- `materialized_view_stub`
+- `materialized_view_ref`
 """
-
-from dbt.contracts.relation import RelationType
-
-from dbt.adapters.postgres.relation import models
+from dbt.adapters.redshift.relation import models
 
 
-def test_make_stub(materialized_view_stub):
-    assert materialized_view_stub.name == "my_materialized_view"
-    assert materialized_view_stub.schema_name == "my_schema"
-    assert materialized_view_stub.database_name == "my_database"
-    assert materialized_view_stub.type == "materialized_view"
-    assert materialized_view_stub.can_be_renamed is True
+def test_make_ref(materialized_view_ref):
+    assert materialized_view_ref.name == "my_materialized_view"
+    assert materialized_view_ref.schema_name == "my_schema"
+    assert materialized_view_ref.database_name == "my_database"
+    assert materialized_view_ref.type == "materialized_view"
+    assert materialized_view_ref.can_be_renamed is True
 
 
-def test_make_backup_stub(relation_factory, materialized_view_stub):
-    backup_stub = relation_factory.make_backup_stub(materialized_view_stub)
-    assert backup_stub.name == '"my_materialized_view__dbt_backup"'
+def test_make_backup_ref(relation_factory, materialized_view_ref):
+    backup_ref = relation_factory.make_backup_ref(materialized_view_ref)
+    assert backup_ref.name == '"my_materialized_view__dbt_backup"'
 
 
-def test_make_intermediate(relation_factory, materialized_view_stub):
-    intermediate_relation = relation_factory.make_intermediate(materialized_view_stub)
+def test_make_intermediate(relation_factory, materialized_view_ref):
+    intermediate_relation = relation_factory.make_intermediate(materialized_view_ref)
     assert intermediate_relation.name == '"my_materialized_view__dbt_tmp"'
 
 
-def test_make_from_describe_relation_results(
-    relation_factory, materialized_view_describe_relation_results
-):
-    materialized_view = relation_factory.make_from_describe_relation_results(
-        materialized_view_describe_relation_results, RelationType.MaterializedView
-    )
-
-    assert materialized_view.name == "my_materialized_view"
-    assert materialized_view.schema_name == "my_schema"
-    assert materialized_view.database_name == "my_database"
-    assert materialized_view.query == "select 42 from meaning_of_life"
-
-    index_1 = models.RedshiftIndexRelation(
-        column_names=frozenset({"id", "value"}),
-        method=models.RedshiftIndexMethod.hash,
-        unique=False,
+def test_make_from_describe_relation_results(relation_factory, materialized_view_relation):
+    assert materialized_view_relation.name == "my_materialized_view"
+    assert materialized_view_relation.schema_name == "my_schema"
+    assert materialized_view_relation.database_name == "my_database"
+    assert materialized_view_relation.query == "select 4 as id, 2 as other_id from meaning_of_life"
+    sort = models.RedshiftSortRelation(
+        sortstyle=models.RedshiftSortStyle.compound,
+        sortkey=frozenset({"other_id"}),
         render=models.RedshiftRenderPolicy,
     )
-    index_2 = models.RedshiftIndexRelation(
-        column_names=frozenset({"id"}),
-        method=models.RedshiftIndexMethod.btree,
-        unique=True,
+    assert materialized_view_relation.sort == sort
+    dist = models.RedshiftDistRelation(
+        diststyle=models.RedshiftDistStyle.key,
+        distkey='"id"',
         render=models.RedshiftRenderPolicy,
     )
-    assert index_1 in materialized_view.indexes
-    assert index_2 in materialized_view.indexes
+    assert materialized_view_relation.dist == dist
+    assert materialized_view_relation.autorefresh is True
 
 
 def test_make_from_model_node(relation_factory, materialized_view_model_node):
@@ -62,18 +51,16 @@ def test_make_from_model_node(relation_factory, materialized_view_model_node):
     assert materialized_view.schema_name == "my_schema"
     assert materialized_view.database_name == "my_database"
     assert materialized_view.query == "select 42 from meaning_of_life"
-
-    index_1 = models.RedshiftIndexRelation(
-        column_names=frozenset({"id", "value"}),
-        method=models.RedshiftIndexMethod.hash,
-        unique=False,
+    sort = models.RedshiftSortRelation(
+        sortstyle=models.RedshiftSortStyle.compound,
+        sortkey=frozenset({"other_id"}),
         render=models.RedshiftRenderPolicy,
     )
-    index_2 = models.RedshiftIndexRelation(
-        column_names=frozenset({"id"}),
-        method=models.RedshiftIndexMethod.btree,
-        unique=True,
+    assert materialized_view.sort == sort
+    dist = models.RedshiftDistRelation(
+        diststyle=models.RedshiftDistStyle.key,
+        distkey="id",
         render=models.RedshiftRenderPolicy,
     )
-    assert index_1 in materialized_view.indexes
-    assert index_2 in materialized_view.indexes
+    assert materialized_view.dist == dist
+    assert materialized_view.autorefresh is True

@@ -51,10 +51,10 @@
         diststyle {{ materialized_view.dist.diststyle }}
         {% if materialized_view.dist.distkey %}distkey ({{ materialized_view.dist.distkey }}){% endif %}
         {% if materialized_view.sort.sortkey %}sortkey ({{ ','.join(materialized_view.sort.sortkey) }}){% endif %}
-        auto refresh {% if materialized_view.auto_refresh %}yes{% else %}no{% endif %}
+        auto refresh {% if materialized_view.autorefresh %}yes{% else %}no{% endif %}
     as (
         {{ materialized_view.query }}
-    );
+    )
 
 {% endmacro %}
 
@@ -67,11 +67,11 @@
 
     {%- set _materialized_view_sql -%}
         select
-            tb.database,
-            tb.schema,
-            tb.table,
-            tb.diststyle,
-            tb.sortkey1,
+            tb.database as database_name,
+            tb.schema as schema_name,
+            tb.table as name,
+            tb.diststyle as dist,
+            tb.sortkey1 as sortkey,
             mv.autorefresh
         from svv_table_info tb
         left join stv_mv_info mv
@@ -86,7 +86,7 @@
 
     {%- set _query_sql -%}
         select
-            vw.definition
+            vw.definition as query
         from pg_views vw
         where vw.viewname = '{{ materialized_view.name }}'
         and vw.schemaname = '{{ materialized_view.schema_name }}'
@@ -109,14 +109,8 @@
 {% endmacro %}
 
 
-{%- macro postgres__rename_materialized_view_template(materialized_view, new_name) -%}
-
-    {%- if adapter.is_relation_model(materialized_view) -%}
-        {%- set fully_qualified_path = materialized_view.fully_qualified_path -%}
-    {%- else -%}
-        {%- set fully_qualified_path = materialized_view -%}
-    {%- endif -%}
-
-    alter materialized view {{ fully_qualified_path }} rename to {{ new_name }}
-
+{%- macro redshift__rename_materialized_view_template(materialized_view, new_name) -%}
+    {{- exceptions.raise_compiler_error(
+        "Redshift does not support the renaming of materialized views. This macro was called by: " ~ materialized_view
+    ) -}}
 {%- endmacro -%}

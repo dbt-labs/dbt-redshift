@@ -57,7 +57,10 @@ class RedshiftAdapter(SQLAdapter):
             relation_changesets={
                 RelationType.MaterializedView: relation_models.RedshiftMaterializedViewRelationChangeset,
             },
-            relation_can_be_renamed={RelationType.MaterializedView},
+            relation_can_be_renamed={
+                RelationType.Table,
+                RelationType.View,
+            },
             render_policy=relation_models.RedshiftRenderPolicy,
         )
 
