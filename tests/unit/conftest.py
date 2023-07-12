@@ -86,7 +86,7 @@ def materialized_view_describe_relation_results():
         ]
     )
 
-    return {"materialized_view": materialized_view_agate, "query": query_agate}
+    return {"relation": materialized_view_agate, "query": query_agate}
 
 
 @pytest.fixture

@@ -94,7 +94,7 @@
     {%- endset %}
     {% set _query = run_query(_query_sql) %}
 
-    {% do return({'materialized_view': _materialized_view, 'query': _query}) %}
+    {% do return({'relation': _materialized_view, 'query': _query}) %}
 
 {% endmacro %}
 

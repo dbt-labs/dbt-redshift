@@ -167,7 +167,7 @@ class RedshiftMaterializedViewRelation(MaterializedViewRelation, ValidationMixin
         )
         config_dict = super().parse_describe_relation_results(describe_relation_results)
 
-        materialized_view: agate.Row = describe_relation_results["materialized_view"].rows[0]
+        materialized_view: agate.Row = describe_relation_results["relation"].rows[0]
         config_dict.update(
             {
                 "autorefresh": materialized_view.get("autorefresh"),
@@ -194,10 +194,10 @@ class RedshiftMaterializedViewRelation(MaterializedViewRelation, ValidationMixin
     def _combine_describe_relation_results_tables(
         cls, describe_relation_results: Dict[str, agate.Table]
     ) -> Dict[str, agate.Table]:
-        materialized_view_table: agate.Table = describe_relation_results["materialized_view"]
+        materialized_view_table: agate.Table = describe_relation_results["relation"]
         query_table: agate.Table = describe_relation_results["query"]
         combined_table: agate.Table = materialized_view_table.join(query_table, full_outer=True)
-        return {"materialized_view": combined_table}
+        return {"relation": combined_table}
 
     @classmethod
     def _parse_query(cls, query: str) -> str:
