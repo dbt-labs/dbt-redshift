@@ -132,7 +132,6 @@ class RedshiftCredentials(Credentials):
     role: Optional[str] = None
     sslmode: Optional[UserSSLMode] = field(default_factory=UserSSLMode.default)
     retries: int = 1
-    current_db_only: Optional[bool] = True
     region: Optional[str] = None
     # opt-in by default per team deliberation on https://peps.python.org/pep-0249/#autocommit
     autocommit: Optional[bool] = True
@@ -164,7 +163,6 @@ class RedshiftCredentials(Credentials):
             "connect_timeout",
             "role",
             "retries",
-            "current_db_only",
             "autocommit",
         )
 
@@ -184,12 +182,11 @@ class RedshiftConnectMethodFactory:
         kwargs = {
             "host": self.credentials.host,
             "database": self.credentials.database,
-            "port": self.credentials.port if self.credentials.port else 5439,
+            "port": int(self.credentials.port) if self.credentials.port else int(5439),
             "auto_create": self.credentials.autocreate,
             "db_groups": self.credentials.db_groups,
             "region": self.credentials.region,
             "timeout": self.credentials.connect_timeout,
-            "database_metadata_current_db_only": self.credentials.current_db_only,
         }
 
         redshift_ssl_config = RedshiftSSLConfig.parse(self.credentials.sslmode)

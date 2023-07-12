@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Optional, Set, Any, Dict, Type, List
+from typing import Optional, Set, Any, Dict, Type
 from collections import namedtuple
 from dbt.adapters.base import PythonJobHelper
 from dbt.adapters.base.impl import AdapterConfig, ConstraintSupport
@@ -8,7 +8,6 @@ from dbt.adapters.sql import SQLAdapter
 from dbt.contracts.connection import AdapterResponse
 from dbt.contracts.graph.nodes import ConstraintType
 from dbt.events import AdapterLogger
-from dbt.adapters.base.relation import BaseRelation
 
 
 import dbt.exceptions
@@ -115,52 +114,6 @@ class RedshiftAdapter(SQLAdapter):
 
     def timestamp_add_sql(self, add_to: str, number: int = 1, interval: str = "hour") -> str:
         return f"{add_to} + interval '{number} {interval}'"
-
-    def _parse_relation_results(
-        self, database: str, schema: str, name: str, quote_policy: Dict[str, bool], type: str
-    ):
-        try:
-            relation_type = self.Relation.get_relation_type(type.lower())
-        except ValueError:
-            relation_type = self.Relation.External
-        relation = self.Relation.create(
-            database=database,
-            schema=schema,
-            identifier=name,
-            quote_policy=quote_policy,
-            type=relation_type,
-        )
-        return relation
-
-    def _get_cursor(self):
-        return self.connections.get_thread_connection().handle.cursor()
-
-    def _get_tables(self, database: Optional[str], schema: Optional[str]):
-        cursor = self._get_cursor()
-        results = []
-        for table in cursor.get_tables(
-            catalog=database,
-            schema_pattern=schema,
-            table_name_pattern=None,
-            types=["VIEW", "TABLE"],
-        ):
-            results.append(
-                {"database": table[0], "schema": table[1], "name": table[2], "type": table[3]}
-            )
-        return results
-
-    def list_relations_without_caching(  # type: ignore
-        self, schema_relation: BaseRelation
-    ) -> List[RedshiftRelation]:
-        results = self._get_tables(schema_relation.database, schema_relation.schema)
-        relations = []
-        quote_policy = {"database": True, "schema": True, "identifier": True}
-        for result in results:
-            relation = self._parse_relation_results(
-                result["database"], result["schema"], result["name"], quote_policy, result["type"]
-            )
-            relations.append(relation)
-        return relations
 
     def _link_cached_database_relations(self, schemas: Set[str]):
         """
