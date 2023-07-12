@@ -120,11 +120,7 @@ def test_create_materialized_view(config_dict: dict, exception: Type[Exception])
 @pytest.mark.parametrize(
     "changes,is_empty,requires_full_refresh",
     [
-        (
-            {"autorefresh": "f"},
-            False,
-            False,
-        ),
+        ({"autorefresh": "f"}, False, False),
         ({"sort": RedshiftSortRelation.from_dict({"sortkey": "id"})}, False, True),
         ({}, True, False),
     ],
@@ -133,9 +129,6 @@ def test_create_materialized_view_changeset(
     materialized_view_relation, changes, is_empty, requires_full_refresh
 ):
     existing_materialized_view = replace(materialized_view_relation)
-
-    # pulled from `./dbt_postgres_tests/conftest.py`
-    # TODO update with sort/dist/autorefresh/backup stuff
     target_materialized_view = replace(existing_materialized_view, **changes)
 
     changeset = RedshiftMaterializedViewRelationChangeset.from_relations(

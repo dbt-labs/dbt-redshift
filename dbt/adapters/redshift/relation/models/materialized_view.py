@@ -1,17 +1,17 @@
 from copy import deepcopy
 from dataclasses import dataclass
-from typing import Dict, Optional, Set
+from typing import Dict, Optional, Set, Union
 
 import agate
 from dbt.adapters.relation.models import (
-    MaterializedViewRelation,
-    MaterializedViewRelationChangeset,
     Relation,
     RelationChange,
+    RelationChangeset,
     RelationChangeAction,
 )
 from dbt.adapters.validation import ValidationMixin, ValidationRule
 from dbt.contracts.graph.nodes import ModelNode
+from dbt.contracts.relation import RelationType
 from dbt.exceptions import DbtRuntimeError
 
 from dbt.adapters.redshift.relation.models.dist import (
@@ -31,7 +31,7 @@ from dbt.adapters.redshift.relation.models.sort import (
 
 
 @dataclass(frozen=True, eq=True, unsafe_hash=True)
-class RedshiftMaterializedViewRelation(MaterializedViewRelation, ValidationMixin):
+class RedshiftMaterializedViewRelation(Relation, ValidationMixin):
     """
     This config follow the specs found here:
     https://docs.aws.amazon.com/redshift/latest/dg/materialized-view-create-sql-command.html
@@ -66,9 +66,10 @@ class RedshiftMaterializedViewRelation(MaterializedViewRelation, ValidationMixin
     autorefresh: Optional[bool] = False
 
     # configuration
-    render = RedshiftRenderPolicy
-    SchemaParser = RedshiftSchemaRelation  # type: ignore
+    type = RelationType.MaterializedView
     can_be_renamed = False
+    SchemaParser = RedshiftSchemaRelation  # type: ignore
+    render = RedshiftRenderPolicy
 
     @property
     def validation_rules(self) -> Set[ValidationRule]:
@@ -246,7 +247,7 @@ class RedshiftBackupRelationChange(RelationChange):
 
 
 @dataclass
-class RedshiftMaterializedViewRelationChangeset(MaterializedViewRelationChangeset):
+class RedshiftMaterializedViewRelationChangeset(RelationChangeset):
     backup: Optional[RedshiftBackupRelationChange] = None
     dist: Optional[RedshiftDistRelationChange] = None
     sort: Optional[RedshiftSortRelationChange] = None
@@ -264,7 +265,15 @@ class RedshiftMaterializedViewRelationChangeset(MaterializedViewRelationChangese
                 f"    new: {target_relation}\n"
             )
 
-        config_dict = super().parse_relations(existing_relation, target_relation)
+        config_dict: Dict[
+            str,
+            Union[
+                RedshiftAutoRefreshRelationChange,
+                RedshiftBackupRelationChange,
+                RedshiftDistRelationChange,
+                RedshiftSortRelationChange,
+            ],
+        ] = {}
 
         if target_relation.autorefresh != existing_relation.autorefresh:
             config_dict.update(
