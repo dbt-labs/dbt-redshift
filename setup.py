@@ -85,7 +85,7 @@ setup(
         f"dbt-core~={_core_version()}",
         f"dbt-postgres~={_core_version()}",
         "boto3~=1.26.157",
-        # dbt-core uses these packages deeply, throughout the codebase, and there have been breaking changes in past patch releases (even though these are major-version-one).
+        # dbt-redshift depends deeply on this package. it does not follow SemVer, therefore there have been breaking changes in previous patch releases
         # Pin to the patch or minor version, and bump in each new minor version of dbt-redshift.
         "redshift-connector==2.0.913",
         # installed via dbt-core but referenced directly; don't pin to avoid version conflicts with dbt-core
