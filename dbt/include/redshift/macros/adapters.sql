@@ -116,32 +116,32 @@
   {{ return(sql_convert_columns_in_relation(table)) }}
 {% endmacro %}
 
-
 {% macro redshift__list_relations_without_caching(schema_relation) %}
+
   {% call statement('list_relations_without_caching', fetch_result=True) -%}
     select
-      '{{ schema_relation.database }}' as database,
-      tablename as name,
-      schemaname as schema,
-      'table' as type
-    from pg_tables
-    where schemaname ilike '{{ schema_relation.schema }}'
+        table_catalog as database,
+        table_name as name,
+        table_schema as schema,
+        'table' as type
+    from information_schema.tables
+    where table_schema ilike '{{ schema_relation.schema }}'
+    and table_type = 'BASE TABLE'
     union all
     select
-      '{{ schema_relation.database }}' as database,
-      viewname as name,
-      schemaname as schema,
+      table_catalog as database,
+      table_name as name,
+      table_schema as schema,
       case
-        when definition ilike '%create materialized view%'
+        when view_definition ilike '%create materialized view%'
           then 'materialized_view'
         else 'view'
       end as type
-    from pg_views
-    where schemaname ilike '{{ schema_relation.schema }}'
+    from information_schema.views
+    where table_schema ilike '{{ schema_relation.schema }}'
   {% endcall %}
   {{ return(load_result('list_relations_without_caching').table) }}
 {% endmacro %}
-
 
 {% macro redshift__information_schema_name(database) -%}
   {{ return(postgres__information_schema_name(database)) }}
