@@ -13,8 +13,6 @@
         {% endfor %}
     {% endif %}
 
-    {%- set source_cols_csv = get_quoted_csv_w_alias(dest_columns | map(attribute="name"), alias="DBT_INTERNAL_SOURCE.") -%}
-
     {%- set merge_update_columns = config.get('merge_update_columns') -%}
     {%- set merge_exclude_columns = config.get('merge_exclude_columns') -%}
     {%- set update_columns = get_merge_update_columns(merge_update_columns, merge_exclude_columns, dest_columns) -%}
@@ -52,20 +50,11 @@
         {% endfor %}
     {% endif %}
 
-    when not matched then insert values
-        ({{ source_cols_csv }})
-
-{% endmacro %}
-
-
-{% macro get_quoted_csv_w_alias(column_names, alias="") %}
-
-    {% set quoted = [] %}
-    {% for col in column_names -%}
-        {%- do quoted.append(alias ~ adapter.quote(col)) -%}
-    {%- endfor %}
-
-    {%- set cols_csv = quoted | join(', ') -%}
-    {{ return(cols_csv) }}
+    when not matched then insert values (
+        {% for column_name in update_columns -%}
+            DBT_INTERNAL_SOURCE.{{ column_name }}
+            {%- if not loop.last %}, {% endif %}
+        {% endfor %}
+    )
 
 {% endmacro %}
