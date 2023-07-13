@@ -1,6 +1,0 @@
-kind: Fixes
-body: hard pin dep on redshift_connector
-time: 2023-07-13T10:53:51.463072-04:00
-custom:
-  Author: dataders
-  Issue: 531 532
