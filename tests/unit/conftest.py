@@ -1,37 +1,38 @@
-from dataclasses import dataclass
-
 import agate
 import pytest
 
-from dbt.adapters.materialization.factory import MaterializationFactory
+from dbt.adapters.materialization import MaterializationFactory
 from dbt.adapters.materialization.models import (
     MaterializationType,
     MaterializedViewMaterialization,
 )
-from dbt.adapters.relation.factory import RelationFactory
+from dbt.adapters.relation import RelationFactory
 from dbt.contracts.files import FileHash
-from dbt.contracts.graph.model_config import OnConfigurationChangeOption
 from dbt.contracts.graph.nodes import DependsOn, ModelNode, NodeConfig
 from dbt.contracts.relation import RelationType
 from dbt.node_types import NodeType
 
-from dbt.adapters.redshift.relation import models
+from dbt.adapters.redshift.relation.models import (
+    RedshiftMaterializedViewRelation,
+    RedshiftMaterializedViewRelationChangeset,
+    RedshiftRenderPolicy,
+)
 
 
 @pytest.fixture
 def relation_factory():
     return RelationFactory(
         relation_models={
-            RelationType.MaterializedView: models.RedshiftMaterializedViewRelation,
+            RelationType.MaterializedView: RedshiftMaterializedViewRelation,
         },
         relation_changesets={
-            RelationType.MaterializedView: models.RedshiftMaterializedViewRelationChangeset,
+            RelationType.MaterializedView: RedshiftMaterializedViewRelationChangeset,
         },
         relation_can_be_renamed={
             RelationType.Table,
             RelationType.View,
         },
-        render_policy=models.RedshiftRenderPolicy,
+        render_policy=RedshiftRenderPolicy,
     )
 
 
@@ -66,32 +67,6 @@ def view_ref(relation_factory):
 
 
 @pytest.fixture
-def materialized_view_describe_relation_results():
-    materialized_view_agate = agate.Table.from_object(
-        [
-            {
-                "name": "my_materialized_view",
-                "schema_name": "my_schema",
-                "database_name": "my_database",
-                "dist": """KEY("id")""",
-                "sortkey": "other_id",
-                "autorefresh": "t",
-            }
-        ]
-    )
-
-    query_agate = agate.Table.from_object(
-        [
-            {
-                "query": "select 4 as id, 2 as other_id from meaning_of_life",
-            }
-        ]
-    )
-
-    return {"relation": materialized_view_agate, "query": query_agate}
-
-
-@pytest.fixture
 def materialized_view_model_node():
     return ModelNode(
         alias="my_materialized_view",
@@ -122,6 +97,7 @@ def materialized_view_model_node():
                 "sort": ["other_id"],
                 "sort_type": "compound",
                 "backup": False,
+                "on_configuration_change": "continue",
             }
         ),
         tags=[],
@@ -136,36 +112,35 @@ def materialized_view_model_node():
 
 
 @pytest.fixture
-def materialized_view_relation(relation_factory, materialized_view_describe_relation_results):
-    return relation_factory.make_from_describe_relation_results(
-        materialized_view_describe_relation_results, RelationType.MaterializedView
+def materialized_view_describe_relation_results():
+    materialized_view_agate = agate.Table.from_object(
+        [
+            {
+                "name": "my_materialized_view",
+                "schema_name": "my_schema",
+                "database_name": "my_database",
+                "dist": """KEY("id")""",
+                "sortkey": "other_id",
+                "autorefresh": "t",
+            }
+        ]
     )
+
+    query_agate = agate.Table.from_object(
+        [
+            {
+                "query": "select 4 as id, 2 as other_id from meaning_of_life",
+            }
+        ]
+    )
+
+    return {"relation": materialized_view_agate, "query": query_agate}
 
 
 @pytest.fixture
-def materialized_view_runtime_config(materialized_view_model_node):
-    """
-    This is not actually a `RuntimeConfigObject`. It's an object that has attribution that looks like
-    a boiled down version of a RuntimeConfigObject.
-
-    TODO: replace this with an actual `RuntimeConfigObject`
-    """
-
-    @dataclass()
-    class RuntimeConfigObject:
-        model: ModelNode
-        full_refresh: bool
-        grants: dict
-        on_configuration_change: OnConfigurationChangeOption
-
-        def get(self, attribute: str, default=None):
-            return getattr(self, attribute, default)
-
-    return RuntimeConfigObject(
-        model=materialized_view_model_node,
-        full_refresh=False,
-        grants={},
-        on_configuration_change=OnConfigurationChangeOption.Continue,
+def materialized_view_relation(relation_factory, materialized_view_describe_relation_results):
+    return relation_factory.make_from_describe_relation_results(
+        materialized_view_describe_relation_results, RelationType.MaterializedView
     )
 
 
@@ -176,16 +151,16 @@ Make sure the fixtures at least work, more thorough testing is done elsewhere
 
 def test_relation_factory(relation_factory):
     assert (
-        relation_factory._get_parser(RelationType.MaterializedView)
-        == models.RedshiftMaterializedViewRelation
+        relation_factory._get_relation_class(RelationType.MaterializedView)
+        == RedshiftMaterializedViewRelation
     )
 
 
 def test_materialization_factory(materialization_factory):
-    redshift_parser = materialization_factory.relation_factory._get_parser(
+    redshift_parser = materialization_factory.relation_factory._get_relation_class(
         RelationType.MaterializedView
     )
-    assert redshift_parser == models.RedshiftMaterializedViewRelation
+    assert redshift_parser == RedshiftMaterializedViewRelation
 
 
 def test_materialized_view_ref(materialized_view_ref):
@@ -194,12 +169,6 @@ def test_materialized_view_ref(materialized_view_ref):
 
 def test_materialized_view_model_node(materialized_view_model_node):
     assert materialized_view_model_node.name == "my_materialized_view"
-
-
-def test_materialized_view_runtime_config(materialized_view_runtime_config):
-    assert materialized_view_runtime_config.get("full_refresh", False) is False
-    assert materialized_view_runtime_config.get("on_configuration_change", "apply") == "continue"
-    assert materialized_view_runtime_config.model.name == "my_materialized_view"
 
 
 def test_materialized_view_relation(materialized_view_relation):

@@ -1,6 +1,6 @@
 from copy import deepcopy
 from dataclasses import dataclass, field
-from typing import Optional, FrozenSet, Set
+from typing import Any, Dict, Optional, FrozenSet, Set
 
 import agate
 from dbt.adapters.relation.models import (
@@ -9,7 +9,7 @@ from dbt.adapters.relation.models import (
     RelationComponent,
 )
 from dbt.adapters.validation import ValidationMixin, ValidationRule
-from dbt.contracts.graph.nodes import ModelNode
+from dbt.contracts.graph.nodes import ParsedNode
 from dbt.dataclass_schema import StrEnum
 from dbt.exceptions import DbtRuntimeError
 
@@ -102,7 +102,7 @@ class RedshiftSortRelation(RelationComponent, ValidationMixin):
         }
 
     @classmethod
-    def from_dict(cls, config_dict) -> "RedshiftSortRelation":
+    def from_dict(cls, config_dict: Dict[str, Any]) -> "RedshiftSortRelation":
         # don't alter the incoming config
         kwargs_dict = deepcopy(config_dict)
 
@@ -117,12 +117,12 @@ class RedshiftSortRelation(RelationComponent, ValidationMixin):
         return sort
 
     @classmethod
-    def parse_model_node(cls, model_node: ModelNode) -> dict:
+    def parse_node(cls, node: ParsedNode) -> Dict[str, Any]:
         """
         Translate ModelNode objects from the user-provided config into a standard dictionary.
 
         Args:
-            model_node: the description of the sortkey and sortstyle from the user in this format:
+            node: the description of the sortkey and sortstyle from the user in this format:
 
                 {
                     "sort_key": "<column_name>" or ["<column_name>"] or ["<column1_name>",...]
@@ -133,10 +133,10 @@ class RedshiftSortRelation(RelationComponent, ValidationMixin):
         """
         config_dict = {}
 
-        if sortstyle := model_node.config.extra.get("sort_type"):
+        if sortstyle := node.config.extra.get("sort_type"):
             config_dict.update({"sortstyle": sortstyle.lower()})
 
-        if sortkey := model_node.config.extra.get("sort"):
+        if sortkey := node.config.extra.get("sort"):
             # we allow users to specify the `sort_key` as a string if it's a single column
             if isinstance(sortkey, str):
                 sortkey = [sortkey]
@@ -146,7 +146,9 @@ class RedshiftSortRelation(RelationComponent, ValidationMixin):
         return config_dict
 
     @classmethod
-    def parse_describe_relation_results(cls, describe_relation_results: agate.Row) -> dict:
+    def parse_describe_relation_results(
+        cls, describe_relation_results: agate.Row
+    ) -> Dict[str, Any]:
         """
         Translate agate objects from the database into a standard dictionary.
 

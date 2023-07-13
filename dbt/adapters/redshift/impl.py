@@ -14,7 +14,11 @@ from dbt.events import AdapterLogger
 import dbt.exceptions
 
 from dbt.adapters.redshift import RedshiftConnectionManager, RedshiftRelation
-from dbt.adapters.redshift.relation import models as relation_models
+from dbt.adapters.redshift.relation.models import (
+    RedshiftMaterializedViewRelation,
+    RedshiftMaterializedViewRelationChangeset,
+    RedshiftRenderPolicy,
+)
 
 
 logger = AdapterLogger("Redshift")
@@ -49,19 +53,19 @@ class RedshiftAdapter(SQLAdapter):
     }
 
     @property
-    def relation_factory(self):
+    def relation_factory(self) -> RelationFactory:
         return RelationFactory(
             relation_models={
-                RelationType.MaterializedView: relation_models.RedshiftMaterializedViewRelation,
+                RelationType.MaterializedView: RedshiftMaterializedViewRelation,
             },
             relation_changesets={
-                RelationType.MaterializedView: relation_models.RedshiftMaterializedViewRelationChangeset,
+                RelationType.MaterializedView: RedshiftMaterializedViewRelationChangeset,
             },
             relation_can_be_renamed={
                 RelationType.Table,
                 RelationType.View,
             },
-            render_policy=relation_models.RedshiftRenderPolicy,
+            render_policy=RedshiftRenderPolicy,
         )
 
     @classmethod

@@ -1,6 +1,6 @@
 from copy import deepcopy
 from dataclasses import dataclass
-from typing import Dict, Optional, Set, Union
+from typing import Any, Dict, Optional, Set, Union
 
 import agate
 from dbt.adapters.relation.models import (
@@ -10,7 +10,7 @@ from dbt.adapters.relation.models import (
     RelationChangeAction,
 )
 from dbt.adapters.validation import ValidationMixin, ValidationRule
-from dbt.contracts.graph.nodes import ModelNode
+from dbt.contracts.graph.nodes import CompiledNode
 from dbt.contracts.relation import RelationType
 from dbt.exceptions import DbtRuntimeError
 
@@ -97,7 +97,7 @@ class RedshiftMaterializedViewRelation(Relation, ValidationMixin):
         }
 
     @classmethod
-    def from_dict(cls, config_dict) -> "RedshiftMaterializedViewRelation":
+    def from_dict(cls, config_dict: Dict[str, Any]) -> "RedshiftMaterializedViewRelation":
         # don't alter the incoming config
         kwargs_dict = deepcopy(config_dict)
 
@@ -113,28 +113,28 @@ class RedshiftMaterializedViewRelation(Relation, ValidationMixin):
         return materialized_view
 
     @classmethod
-    def parse_model_node(cls, model_node: ModelNode) -> dict:
-        config_dict = super().parse_model_node(model_node)
+    def parse_node(cls, node: CompiledNode) -> Dict[str, Any]:  # type: ignore
+        config_dict = super().parse_node(node)
 
         config_dict.update(
             {
-                "backup": model_node.config.extra.get("backup"),
-                "autorefresh": model_node.config.extra.get("autorefresh"),
+                "backup": node.config.extra.get("backup"),
+                "autorefresh": node.config.extra.get("autorefresh"),
             }
         )
 
-        if model_node.config.get("dist"):
-            config_dict.update({"dist": RedshiftDistRelation.parse_model_node(model_node)})
+        if node.config.get("dist"):
+            config_dict.update({"dist": RedshiftDistRelation.parse_node(node)})
 
-        if model_node.config.get("sort"):
-            config_dict.update({"sort": RedshiftSortRelation.parse_model_node(model_node)})
+        if node.config.get("sort"):
+            config_dict.update({"sort": RedshiftSortRelation.parse_node(node)})
 
         return config_dict
 
     @classmethod
     def parse_describe_relation_results(
         cls, describe_relation_results: Dict[str, agate.Table]
-    ) -> dict:
+    ) -> Dict[str, Any]:
         """
         Translate agate objects from the database into a standard dictionary.
 
@@ -254,7 +254,9 @@ class RedshiftMaterializedViewRelationChangeset(RelationChangeset):
     autorefresh: Optional[RedshiftAutoRefreshRelationChange] = None
 
     @classmethod
-    def parse_relations(cls, existing_relation: Relation, target_relation: Relation) -> dict:
+    def parse_relations(
+        cls, existing_relation: Relation, target_relation: Relation
+    ) -> Dict[str, Any]:
         try:
             assert isinstance(existing_relation, RedshiftMaterializedViewRelation)
             assert isinstance(target_relation, RedshiftMaterializedViewRelation)

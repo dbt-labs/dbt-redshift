@@ -50,7 +50,7 @@ def test_make_from_describe_relation_results(relation_factory, materialized_view
 
 
 def test_make_from_model_node(relation_factory, materialized_view_model_node):
-    materialized_view = relation_factory.make_from_model_node(materialized_view_model_node)
+    materialized_view = relation_factory.make_from_node(materialized_view_model_node)
 
     assert materialized_view.name == "my_materialized_view"
     assert materialized_view.schema_name == "my_schema"

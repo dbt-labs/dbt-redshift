@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Set
+from typing import Any, Dict, Set
 
 from dbt.adapters.relation.models import DatabaseRelation
 from dbt.adapters.validation import ValidationMixin, ValidationRule
@@ -36,7 +36,7 @@ class RedshiftDatabaseRelation(DatabaseRelation, ValidationMixin):
         }
 
     @classmethod
-    def from_dict(cls, config_dict) -> "RedshiftDatabaseRelation":
+    def from_dict(cls, config_dict: Dict[str, Any]) -> "RedshiftDatabaseRelation":
         database = super().from_dict(config_dict)
         assert isinstance(database, RedshiftDatabaseRelation)
         return database

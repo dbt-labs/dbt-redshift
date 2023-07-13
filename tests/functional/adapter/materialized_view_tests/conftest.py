@@ -1,20 +1,30 @@
 import pytest
 
 from dbt.adapters.relation.models import RelationRef
-from dbt.adapters.relation.factory import RelationFactory
+from dbt.adapters.relation import RelationFactory
 from dbt.contracts.relation import RelationType
 
-from dbt.adapters.redshift.relation import models as relation_models
+from dbt.adapters.redshift.relation.models import (
+    RedshiftMaterializedViewRelation,
+    RedshiftMaterializedViewRelationChangeset,
+    RedshiftRenderPolicy,
+)
 
 
 @pytest.fixture(scope="class")
 def relation_factory():
     return RelationFactory(
         relation_models={
-            RelationType.MaterializedView: relation_models.RedshiftMaterializedViewRelation,
+            RelationType.MaterializedView: RedshiftMaterializedViewRelation,
         },
-        relation_can_be_renamed={RelationType.Table, RelationType.View},
-        render_policy=relation_models.RedshiftRenderPolicy,
+        relation_changesets={
+            RelationType.MaterializedView: RedshiftMaterializedViewRelationChangeset,
+        },
+        relation_can_be_renamed={
+            RelationType.Table,
+            RelationType.View,
+        },
+        render_policy=RedshiftRenderPolicy,
     )
 
 

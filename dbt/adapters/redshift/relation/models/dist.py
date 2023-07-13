@@ -1,6 +1,6 @@
 from copy import deepcopy
 from dataclasses import dataclass
-from typing import Optional, Set
+from typing import Any, Dict, Optional, Set
 
 import agate
 from dbt.adapters.relation.models import (
@@ -9,7 +9,7 @@ from dbt.adapters.relation.models import (
     RelationComponent,
 )
 from dbt.adapters.validation import ValidationMixin, ValidationRule
-from dbt.contracts.graph.nodes import ModelNode
+from dbt.contracts.graph.nodes import ParsedNode
 from dbt.dataclass_schema import StrEnum
 from dbt.exceptions import DbtRuntimeError
 
@@ -70,7 +70,7 @@ class RedshiftDistRelation(RelationComponent, ValidationMixin):
         }
 
     @classmethod
-    def from_dict(cls, config_dict) -> "RedshiftDistRelation":
+    def from_dict(cls, config_dict: Dict[str, Any]) -> "RedshiftDistRelation":
         # don't alter the incoming config
         kwargs_dict = deepcopy(config_dict)
 
@@ -82,12 +82,12 @@ class RedshiftDistRelation(RelationComponent, ValidationMixin):
         return dist
 
     @classmethod
-    def parse_model_node(cls, model_node: ModelNode) -> dict:
+    def parse_node(cls, node: ParsedNode) -> Dict[str, Any]:
         """
         Translate ModelNode objects from the user-provided config into a standard dictionary.
 
         Args:
-            model_node: the description of the distkey and diststyle from the user in this format:
+            node: the description of the distkey and diststyle from the user in this format:
 
                 {
                     "dist": any("auto", "even", "all") or "<column_name>"
@@ -95,7 +95,7 @@ class RedshiftDistRelation(RelationComponent, ValidationMixin):
 
         Returns: a standard dictionary describing this `RedshiftDistConfig` instance
         """
-        dist = model_node.config.extra.get("dist", "")
+        dist = node.config.extra.get("dist", "")
 
         diststyle = dist.lower()
 
@@ -115,7 +115,9 @@ class RedshiftDistRelation(RelationComponent, ValidationMixin):
         return config
 
     @classmethod
-    def parse_describe_relation_results(cls, describe_relation_results: agate.Row) -> dict:
+    def parse_describe_relation_results(
+        cls, describe_relation_results: agate.Row
+    ) -> Dict[str, Any]:
         """
         Translate agate objects from the database into a standard dictionary.
 
