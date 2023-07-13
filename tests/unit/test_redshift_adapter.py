@@ -64,6 +64,23 @@ class TestRedshiftAdapter(unittest.TestCase):
         return self._adapter
 
     @mock.patch("redshift_connector.connect", Mock())
+    def test_implicit_database_conn(self):
+        connection = self.adapter.acquire_connection("dummy")
+        connection.handle
+        redshift_connector.connect.assert_called_once_with(
+            host="thishostshouldnotexist.test.us-east-1",
+            database="redshift",
+            user="root",
+            password="password",
+            port=5439,
+            auto_create=False,
+            db_groups=[],
+            timeout=None,
+            region=None,
+            **DEFAULT_SSL_CONFIG,
+        )
+
+    @mock.patch("redshift_connector.connect", Mock())
     def test_explicit_region_with_database_conn(self):
         self.config.method = "database"
 
@@ -210,6 +227,66 @@ class TestRedshiftAdapter(unittest.TestCase):
             port=5439,
             **DEFAULT_SSL_CONFIG,
         )
+
+    @mock.patch("redshift_connector.connect", Mock())
+    @mock.patch("boto3.Session", Mock())
+    def test_explicit_region_failure(self):
+        # Failure test with no region
+        self.config.credentials = self.config.credentials.replace(
+            method="iam",
+            iam_profile="test",
+            host="doesnotexist.1233_no_region",
+            region=None,
+        )
+
+        with self.assertRaises(dbt.exceptions.FailedToConnectError):
+            connection = self.adapter.acquire_connection("dummy")
+            connection.handle
+            redshift_connector.connect.assert_called_once_with(
+                iam=True,
+                host="doesnotexist.1233_no_region",
+                database="redshift",
+                cluster_identifier=None,
+                auto_create=False,
+                db_groups=[],
+                db_user="root",
+                password="",
+                user="",
+                profile="test",
+                timeout=None,
+                port=5439,
+                **DEFAULT_SSL_CONFIG,
+            )
+
+    @mock.patch("redshift_connector.connect", Mock())
+    @mock.patch("boto3.Session", Mock())
+    def test_explicit_invalid_region(self):
+        # Invalid region test
+        self.config.credentials = self.config.credentials.replace(
+            method="iam",
+            iam_profile="test",
+            host="doesnotexist.1233_no_region.us-not-a-region-1",
+            region=None,
+        )
+
+        with self.assertRaises(dbt.exceptions.FailedToConnectError):
+            connection = self.adapter.acquire_connection("dummy")
+            connection.handle
+            redshift_connector.connect.assert_called_once_with(
+                iam=True,
+                host="doesnotexist.1233_no_region",
+                database="redshift",
+                cluster_identifier=None,
+                auto_create=False,
+                db_groups=[],
+                db_user="root",
+                password="",
+                user="",
+                profile="test",
+                timeout=None,
+                port=5439,
+                **DEFAULT_SSL_CONFIG,
+            )
 
     @mock.patch("redshift_connector.connect", Mock())
     def test_sslmode_disable(self):
@@ -497,6 +574,18 @@ class TestRedshiftAdapter(unittest.TestCase):
         mock_add_query.assert_called_once_with(
             "select * from test3", True, bindings=None, abridge_sql_log=False
         )
+
+    @mock.patch.object(
+        dbt.adapters.redshift.connections.SQLConnectionManager, "get_thread_connection"
+    )
+    def mock_cursor(self, mock_get_thread_conn):
+        conn = mock.MagicMock
+        mock_get_thread_conn.return_value = conn
+        mock_handle = mock.MagicMock
+        conn.return_value = mock_handle
+        mock_cursor = mock.MagicMock
+        mock_handle.return_value = mock_cursor
+        return mock_cursor
 
 
 class TestRedshiftAdapterConversions(TestAdapterConversions):

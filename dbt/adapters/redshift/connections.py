@@ -32,7 +32,9 @@ class SSLConfigError(CompilationError):
 
 logger = AdapterLogger("Redshift")
 
+
 drop_lock: Lock = dbt.flags.MP_CONTEXT.Lock()  # type: ignore
+
 
 IAMDuration = NewType("IAMDuration", int)
 
