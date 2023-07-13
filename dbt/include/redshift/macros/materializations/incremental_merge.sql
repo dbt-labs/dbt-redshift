@@ -4,12 +4,17 @@
         {%- set incremental_predicates_list = [] + incremental_predicates -%}
         {%- for pred in incremental_predicates_list -%}
             {% if "DBT_INTERNAL_DEST." in pred %}
-                {%- set pred =  pred | replace("DBT_INTERNAL_DEST", target ) -%}
+                {%- set pred =  pred | replace("DBT_INTERNAL_DEST.", target ~ "." ) -%}
+            {% endif %}
+            {% if "dbt_internal_dest." in pred %}
+                {%- set pred =  pred | replace("dbt_internal_dest.", target ~ "." ) -%}
             {% endif %}
             {% do predicates.append(pred) %}
         {% endfor %}
     {% endif %}
-    {%- set dest_cols_csv = get_quoted_csv(dest_columns | map(attribute="name")) -%}
+
+    {%- set source_cols_csv = get_quoted_csv_w_alias(dest_columns | map(attribute="name"), alias="DBT_INTERNAL_SOURCE.") -%}
+
     {%- set merge_update_columns = config.get('merge_update_columns') -%}
     {%- set merge_exclude_columns = config.get('merge_exclude_columns') -%}
     {%- set update_columns = get_merge_update_columns(merge_update_columns, merge_exclude_columns, dest_columns) -%}
@@ -43,13 +48,24 @@
     when matched then update set
         {% for column_name in update_columns -%}
             {{ column_name }} = DBT_INTERNAL_SOURCE.{{ column_name }}
-            {%- if not loop.last %}, {%- endif %}
-        {%- endfor %}
+            {%- if not loop.last %}, {% endif %}
+        {% endfor %}
     {% endif %}
 
-    when not matched then insert
-        ({{ dest_cols_csv }})
-    values
-        ({{ dest_cols_csv }})
+    when not matched then insert values
+        ({{ source_cols_csv }})
+
+{% endmacro %}
+
+
+{% macro get_quoted_csv_w_alias(column_names, alias="") %}
+
+    {% set quoted = [] %}
+    {% for col in column_names -%}
+        {%- do quoted.append(alias ~ adapter.quote(col)) -%}
+    {%- endfor %}
+
+    {%- set cols_csv = quoted | join(', ') -%}
+    {{ return(cols_csv) }}
 
 {% endmacro %}
