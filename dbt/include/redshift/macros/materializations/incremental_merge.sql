@@ -1,23 +1,19 @@
-{# this macro is different from the default in the following ways
-    you can't alias the target table, so we gotta do string replacement
-#}
-
 {% macro redshift__get_merge_sql(target, source, unique_key, dest_columns, incremental_predicates=none) -%}
-
-    {%- set predicates = [] if incremental_predicates is none else [] + incremental_predicates -%}
+    {%- set predicates = [] -%}
+    {% if incremental_predicates is not none %}
+        {%- set incremental_predicates_list = [] + incremental_predicates -%}
+        {%- for pred in incremental_predicates_list -%}
+            {% if "DBT_INTERNAL_DEST." in pred %}
+                {%- set pred =  pred | replace("DBT_INTERNAL_DEST", target ) -%}
+            {% endif %}
+            {% do predicates.append(pred) %}
+        {% endfor %}
+    {% endif %}
     {%- set dest_cols_csv = get_quoted_csv(dest_columns | map(attribute="name")) -%}
     {%- set merge_update_columns = config.get('merge_update_columns') -%}
     {%- set merge_exclude_columns = config.get('merge_exclude_columns') -%}
     {%- set update_columns = get_merge_update_columns(merge_update_columns, merge_exclude_columns, dest_columns) -%}
     {%- set sql_header = config.get('sql_header', none) -%}
-
-    {# TODO that users cannot use "DBT_INTERNAL_DEST" as a column name or
-        for anything else that may surface within a predicate string
-        beyond it's intention as an alias for the target table
-     #}
-    {%- for pred in predicates -%}
-        {%- set pred = replace("DBT_INTERNAL_DEST", "{{ target }}") -%}
-    {%- endfor -%}
 
     {% if unique_key %}
         {% if unique_key is sequence and unique_key is not mapping and unique_key is not string %}
@@ -39,9 +35,7 @@
 
     {{ sql_header if sql_header is not none }}
 
-    {# postgres's implementation has an alias at the end of the below line
-        i.e. "as DBT_INTERNAL_DEST" #}
-    merge into {{ target }} 
+    merge into {{ target }}
         using {{ source }} as DBT_INTERNAL_SOURCE
         on {{"(" ~ predicates | join(") and (") ~ ")"}}
 
@@ -58,4 +52,4 @@
     values
         ({{ dest_cols_csv }})
 
-{% endmacro %
+{% endmacro %}
