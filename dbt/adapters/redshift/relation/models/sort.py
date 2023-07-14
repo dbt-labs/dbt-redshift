@@ -2,8 +2,8 @@ from copy import deepcopy
 from dataclasses import dataclass, field
 from typing import Any, Dict, Optional, FrozenSet, Set
 
-import agate
 from dbt.adapters.relation.models import (
+    DescribeRelationResults,
     RelationChange,
     RelationChangeAction,
     RelationComponent,
@@ -147,7 +147,7 @@ class RedshiftSortRelation(RelationComponent, ValidationMixin):
 
     @classmethod
     def parse_describe_relation_results(
-        cls, describe_relation_results: agate.Row
+        cls, describe_relation_results: DescribeRelationResults
     ) -> Dict[str, Any]:
         """
         Translate agate objects from the database into a standard dictionary.
@@ -167,7 +167,10 @@ class RedshiftSortRelation(RelationComponent, ValidationMixin):
 
         Returns: a standard dictionary describing this `RedshiftSortConfig` instance
         """
-        if sortkey := describe_relation_results.get("sortkey"):
+        describe_relation_results_entry = cls._parse_single_record_from_describe_relation_results(
+            describe_relation_results, "sort"
+        )
+        if sortkey := describe_relation_results_entry.get("sortkey"):
             return {"sortkey": {sortkey}}
         return {}
 

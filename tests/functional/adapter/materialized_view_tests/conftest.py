@@ -14,6 +14,7 @@ from dbt.adapters.redshift.relation.models import (
 @pytest.fixture(scope="class")
 def relation_factory():
     return RelationFactory(
+        relation_types=RelationType,
         relation_models={
             RelationType.MaterializedView: RedshiftMaterializedViewRelation,
         },

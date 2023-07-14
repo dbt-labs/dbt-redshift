@@ -7,7 +7,6 @@ from dbt.adapters.redshift.relation import models
 def test_make_from_runtime_config(materialization_factory, materialized_view_model_node):
     materialization = materialization_factory.make_from_node(
         node=materialized_view_model_node,
-        materialization_type=MaterializationType.MaterializedView,
         existing_relation_ref=None,
     )
     assert materialization.type == MaterializationType.MaterializedView

@@ -251,6 +251,7 @@ class TestOnConfigurationChangeFail(OnConfigurationChangeBase):
     def test_autorefresh_change_is_not_applied(self, project, my_materialized_view):
         assert query_autorefresh(project, my_materialized_view) is False
         swap_autorefresh(project, my_materialized_view)
+        # note the expected fail, versus the pass with the `continue` setting
         _, logs = run_dbt_and_capture(
             ["--debug", "run", "--models", my_materialized_view.name], expect_pass=False
         )

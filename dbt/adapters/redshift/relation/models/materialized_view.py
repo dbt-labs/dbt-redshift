@@ -4,13 +4,14 @@ from typing import Any, Dict, Optional, Set, Union
 
 import agate
 from dbt.adapters.relation.models import (
+    DescribeRelationResults,
     Relation,
     RelationChange,
     RelationChangeset,
     RelationChangeAction,
 )
 from dbt.adapters.validation import ValidationMixin, ValidationRule
-from dbt.contracts.graph.nodes import CompiledNode
+from dbt.contracts.graph.nodes import ParsedNode
 from dbt.contracts.relation import RelationType
 from dbt.exceptions import DbtRuntimeError
 
@@ -68,7 +69,7 @@ class RedshiftMaterializedViewRelation(Relation, ValidationMixin):
     # configuration
     type = RelationType.MaterializedView
     can_be_renamed = False
-    SchemaParser = RedshiftSchemaRelation  # type: ignore
+    SchemaParser = RedshiftSchemaRelation
     render = RedshiftRenderPolicy
 
     @property
@@ -113,7 +114,7 @@ class RedshiftMaterializedViewRelation(Relation, ValidationMixin):
         return materialized_view
 
     @classmethod
-    def parse_node(cls, node: CompiledNode) -> Dict[str, Any]:  # type: ignore
+    def parse_node(cls, node: ParsedNode) -> Dict[str, Any]:  # type: ignore
         config_dict = super().parse_node(node)
 
         config_dict.update(
@@ -133,7 +134,7 @@ class RedshiftMaterializedViewRelation(Relation, ValidationMixin):
 
     @classmethod
     def parse_describe_relation_results(
-        cls, describe_relation_results: Dict[str, agate.Table]
+        cls, describe_relation_results: DescribeRelationResults
     ) -> Dict[str, Any]:
         """
         Translate agate objects from the database into a standard dictionary.
@@ -163,12 +164,15 @@ class RedshiftMaterializedViewRelation(Relation, ValidationMixin):
         """
         # merge these because the base class assumes `query` is on the same record as `name`, `schema_name` and
         # `database_name`
+        assert isinstance(describe_relation_results, Dict)
         describe_relation_results = cls._combine_describe_relation_results_tables(
             describe_relation_results
         )
         config_dict = super().parse_describe_relation_results(describe_relation_results)
 
-        materialized_view: agate.Row = describe_relation_results["relation"].rows[0]
+        materialized_view = cls._parse_single_record_from_describe_relation_results(
+            describe_relation_results, "relation"
+        )
         config_dict.update(
             {
                 "autorefresh": materialized_view.get("autorefresh"),

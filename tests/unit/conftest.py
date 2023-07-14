@@ -22,6 +22,7 @@ from dbt.adapters.redshift.relation.models import (
 @pytest.fixture
 def relation_factory():
     return RelationFactory(
+        relation_types=RelationType,
         relation_models={
             RelationType.MaterializedView: RedshiftMaterializedViewRelation,
         },
@@ -151,13 +152,13 @@ Make sure the fixtures at least work, more thorough testing is done elsewhere
 
 def test_relation_factory(relation_factory):
     assert (
-        relation_factory._get_relation_class(RelationType.MaterializedView)
+        relation_factory._get_relation_model(RelationType.MaterializedView)
         == RedshiftMaterializedViewRelation
     )
 
 
 def test_materialization_factory(materialization_factory):
-    redshift_parser = materialization_factory.relation_factory._get_relation_class(
+    redshift_parser = materialization_factory.relation_factory._get_relation_model(
         RelationType.MaterializedView
     )
     assert redshift_parser == RedshiftMaterializedViewRelation
