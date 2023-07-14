@@ -173,12 +173,7 @@ class RedshiftMaterializedViewRelation(Relation, ValidationMixin):
         materialized_view = cls._parse_single_record_from_describe_relation_results(
             describe_relation_results, "relation"
         )
-        config_dict.update(
-            {
-                "autorefresh": materialized_view.get("autorefresh"),
-                "query": cls._parse_query(materialized_view.get("query")),
-            }
-        )
+        config_dict.update({"autorefresh": materialized_view.get("autorefresh")})
 
         # the default for materialized views differs from the default for diststyle in general
         # only set it if we got a value
@@ -203,33 +198,6 @@ class RedshiftMaterializedViewRelation(Relation, ValidationMixin):
         query_table: agate.Table = describe_relation_results["query"]
         combined_table: agate.Table = materialized_view_table.join(query_table, full_outer=True)
         return {"relation": combined_table}
-
-    @classmethod
-    def _parse_query(cls, query: str) -> str:
-        """
-        Get the select statement from the materialized view definition in Redshift.
-
-        Args:
-            query: the `create materialized view` statement from `pg_views`, for example:
-
-            create materialized view my_materialized_view
-                backup yes
-                diststyle even
-                sortkey (id)
-                auto refresh no
-            as (
-                select * from my_base_table
-            );
-
-        Returns: the `select ...` statement, for example:
-
-            select * from my_base_table
-
-        """
-        return query
-        # open_paren = query.find("as (")
-        # close_paren = query.find(");")
-        # return query[open_paren:close_paren].strip()
 
 
 @dataclass(frozen=True, eq=True, unsafe_hash=True)
