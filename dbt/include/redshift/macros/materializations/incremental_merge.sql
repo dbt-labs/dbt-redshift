@@ -50,7 +50,13 @@
         {% endfor %}
     {% endif %}
 
-    when not matched then insert values (
+    when not matched then insert (
+        {% for column_name in update_columns -%}
+            {{ column_name }}
+            {%- if not loop.last %}, {% endif %}
+        {% endfor %}
+    )
+    values (
         {% for column_name in update_columns -%}
             DBT_INTERNAL_SOURCE.{{ column_name }}
             {%- if not loop.last %}, {% endif %}
