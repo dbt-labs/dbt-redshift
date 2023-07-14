@@ -28,7 +28,7 @@ class RedshiftConfig(AdapterConfig):
     sort: Optional[str] = None
     bind: Optional[bool] = None
     backup: Optional[bool] = True
-    autorefresh: Optional[bool] = False
+    auto_refresh: Optional[bool] = False
 
 
 class RedshiftAdapter(SQLAdapter):

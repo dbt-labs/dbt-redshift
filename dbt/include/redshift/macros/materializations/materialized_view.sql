@@ -35,7 +35,7 @@
         diststyle {{ materialized_view.dist.diststyle }}
         {% if materialized_view.dist.distkey %}distkey ({{ materialized_view.dist.distkey }}){% endif %}
         {% if materialized_view.sort.sortkey %}sortkey ({{ ','.join(materialized_view.sort.sortkey) }}){% endif %}
-        auto refresh {% if materialized_view.auto_refresh %}yes{% else %}no{% endif %}
+        auto refresh {% if materialized_view.autorefresh %}yes{% else %}no{% endif %}
     as (
         {{ materialized_view.query }}
     );

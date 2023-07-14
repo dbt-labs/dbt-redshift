@@ -1,239 +1,268 @@
 import pytest
 
 from dbt.contracts.graph.model_config import OnConfigurationChangeOption
-from dbt.contracts.relation import RelationType
-from dbt.contracts.results import RunStatus
-from dbt.tests.adapter.materialized_view.base import (
-    run_model,
-    assert_model_exists_and_is_correct_type,
-    insert_record,
-    get_row_count,
+from dbt.tests.util import (
+    assert_message_in_logs,
+    get_model_file,
+    run_dbt,
+    run_dbt_and_capture,
+    set_model_file,
 )
-from dbt.tests.adapter.materialized_view.on_configuration_change import (
-    assert_proper_scenario,
+from tests.functional.adapter.materialized_view_tests.files import (
+    MY_MATERIALIZED_VIEW,
+    MY_SEED,
+    MY_TABLE,
+    MY_VIEW,
+)
+from tests.functional.adapter.materialized_view_tests.utils import (
+    query_autorefresh,
+    query_relation_type,
+    query_row_count,
+    query_sort,
+    swap_autorefresh,
+    swap_materialized_view_to_table,
+    swap_materialized_view_to_view,
+    swap_sortkey,
 )
 
-from tests.functional.adapter.materialized_view_tests.fixtures import (
-    RedshiftBasicBase,
-    RedshiftOnConfigurationChangeBase,
-    refresh_materialized_view,
+
+@pytest.fixture(scope="class", autouse=True)
+def seeds():
+    return {"my_seed.csv": MY_SEED}
+
+
+@pytest.fixture(scope="class", autouse=True)
+def models():
+    yield {
+        "my_table.sql": MY_TABLE,
+        "my_view.sql": MY_VIEW,
+        "my_materialized_view.sql": MY_MATERIALIZED_VIEW,
+    }
+
+
+@pytest.fixture(scope="class", autouse=True)
+def setup(project):
+    run_dbt(["seed"])
+    yield
+
+
+def test_materialized_view_create(project, my_materialized_view):
+    assert query_relation_type(project, my_materialized_view) is None
+    run_dbt(["run", "--models", my_materialized_view.identifier])
+    assert query_relation_type(project, my_materialized_view) == "materialized_view"
+
+
+def test_materialized_view_create_idempotent(project, my_materialized_view):
+    assert query_relation_type(project, my_materialized_view) is None
+    run_dbt(["run", "--models", my_materialized_view.identifier])
+    assert query_relation_type(project, my_materialized_view) == "materialized_view"
+    run_dbt(["run", "--models", my_materialized_view.identifier])
+    assert query_relation_type(project, my_materialized_view) == "materialized_view"
+
+
+def test_materialized_view_full_refresh(project, my_materialized_view):
+    run_dbt(["run", "--models", my_materialized_view.identifier])
+    _, logs = run_dbt_and_capture(
+        ["--debug", "run", "--models", my_materialized_view.identifier, "--full-refresh"]
+    )
+    assert query_relation_type(project, my_materialized_view) == "materialized_view"
+    assert_message_in_logs(f"Applying REPLACE to: {my_materialized_view}", logs)
+
+
+def test_materialized_view_replaces_table(project, my_materialized_view, my_table):
+    run_dbt(["run", "--models", my_table.identifier])
+    sql = f"""
+        alter table {my_table}
+        rename to {my_materialized_view.identifier}
+    """
+    project.run_sql(sql)
+    assert query_relation_type(project, my_materialized_view) == "table"
+    run_dbt(["run", "--models", my_materialized_view.identifier])
+    assert query_relation_type(project, my_materialized_view) == "materialized_view"
+
+
+def test_materialized_view_replaces_view(project, my_materialized_view, my_view):
+    run_dbt(["run", "--models", my_view.identifier])
+    sql = f"""
+        alter table {my_view}
+        rename to {my_materialized_view.identifier}
+    """
+    project.run_sql(sql)
+    assert query_relation_type(project, my_materialized_view) == "view"
+    run_dbt(["run", "--models", my_materialized_view.identifier])
+    assert query_relation_type(project, my_materialized_view) == "materialized_view"
+
+
+@pytest.mark.skip(
+    "The current implementation does not support overwriting materialized views with tables."
 )
+def test_table_replaces_materialized_view(project, my_materialized_view):
+    run_dbt(["run", "--models", my_materialized_view.identifier])
+    assert query_relation_type(project, my_materialized_view) == "materialized_view"
+    swap_materialized_view_to_table(project, my_materialized_view)
+    run_dbt(["run", "--models", my_materialized_view.identifier])
+    assert query_relation_type(project, my_materialized_view) == "table"
 
 
-class TestBasic(RedshiftBasicBase):
-    def test_relation_is_materialized_view_on_initial_creation(self, project):
-        assert_model_exists_and_is_correct_type(
-            project, "base_materialized_view", RelationType.MaterializedView
+@pytest.mark.skip(
+    "The current implementation does not support overwriting materialized views with views."
+)
+def test_view_replaces_materialized_view(project, my_materialized_view, my_view):
+    run_dbt(["run", "--models", my_materialized_view.identifier])
+    assert query_relation_type(project, my_materialized_view) == "materialized_view"
+    swap_materialized_view_to_view(project, my_materialized_view)
+    run_dbt(["run", "--models", my_materialized_view.identifier])
+    assert query_relation_type(project, my_materialized_view) == "view"
+
+
+def test_materialized_view_only_updates_after_refresh(project, my_materialized_view, my_seed):
+    run_dbt(["run", "--models", my_materialized_view.identifier])
+
+    # poll database
+    table_start = query_row_count(project, my_seed)
+    view_start = query_row_count(project, my_materialized_view)
+
+    # insert new record in table
+    project.run_sql(f"insert into {my_seed} (id, value) values (4, 400);")
+
+    # poll database
+    table_mid = query_row_count(project, my_seed)
+    view_mid = query_row_count(project, my_materialized_view)
+
+    # refresh the materialized view
+    project.run_sql(f"refresh materialized view {my_materialized_view};")
+
+    # poll database
+    table_end = query_row_count(project, my_seed)
+    view_end = query_row_count(project, my_materialized_view)
+
+    # new records were inserted in the table but didn't show up in the view until it was refreshed
+    assert table_start < table_mid == table_end
+    assert view_start == view_mid < view_end
+
+
+class OnConfigurationChangeBase:
+    @pytest.fixture(scope="class", autouse=True)
+    def models(self):
+        yield {"my_materialized_view.sql": MY_MATERIALIZED_VIEW}
+
+    @pytest.fixture(scope="function", autouse=True)
+    def setup(self, project, my_materialized_view):
+        run_dbt(["seed"])
+
+        # make sure the model in the data reflects the files each time
+        run_dbt(["run", "--models", my_materialized_view.identifier, "--full-refresh"])
+
+        # the tests touch these files, store their contents in memory
+        initial_model = get_model_file(project, my_materialized_view)
+
+        yield
+
+        # and then reset them after the test runs
+        set_model_file(project, my_materialized_view, initial_model)
+
+
+class TestOnConfigurationChangeApply(OnConfigurationChangeBase):
+    @pytest.fixture(scope="class")
+    def project_config_update(self):
+        return {"models": {"on_configuration_change": OnConfigurationChangeOption.Apply.value}}
+
+    def test_autorefresh_change_is_applied_with_alter(self, project, my_materialized_view):
+        assert query_autorefresh(project, my_materialized_view) is False
+        swap_autorefresh(project, my_materialized_view)
+        _, logs = run_dbt_and_capture(
+            ["--debug", "run", "--models", my_materialized_view.identifier]
         )
-        assert_model_exists_and_is_correct_type(project, "base_table", RelationType.Table)
+        assert query_autorefresh(project, my_materialized_view) is True
+        assert_message_in_logs(f"Applying ALTER to: {my_materialized_view}", logs)
+        assert_message_in_logs(f"Applying UPDATE AUTOREFRESH to: {my_materialized_view}", logs)
+        assert_message_in_logs(f"Applying REPLACE to: {my_materialized_view}", logs, False)
 
-    def test_relation_is_materialized_view_when_rerun(self, project):
-        run_model("base_materialized_view")
-        assert_model_exists_and_is_correct_type(
-            project, "base_materialized_view", RelationType.MaterializedView
+    def test_sort_change_is_applied_with_replace(self, project, my_materialized_view):
+        assert query_sort(project, my_materialized_view) == "id"
+        swap_sortkey(project, my_materialized_view)
+        _, logs = run_dbt_and_capture(
+            ["--debug", "run", "--models", my_materialized_view.identifier]
         )
+        assert query_sort(project, my_materialized_view) == "value"
+        assert_message_in_logs(f"Applying ALTER to: {my_materialized_view}", logs)
+        assert_message_in_logs(f"Applying REPLACE to: {my_materialized_view}", logs)
 
-    def test_relation_is_materialized_view_on_full_refresh(self, project):
-        run_model("base_materialized_view", full_refresh=True)
-        assert_model_exists_and_is_correct_type(
-            project, "base_materialized_view", RelationType.MaterializedView
-        )
-
-    def test_relation_is_materialized_view_on_update(self, project):
-        run_model("base_materialized_view", run_args=["--vars", "quoting: {identifier: True}"])
-        assert_model_exists_and_is_correct_type(
-            project, "base_materialized_view", RelationType.MaterializedView
-        )
-
-    def test_updated_base_table_data_only_shows_in_materialized_view_after_refresh(self, project):
-        # poll database
-        table_start = get_row_count(project, "base_table")
-        view_start = get_row_count(project, "base_materialized_view")
-        assert view_start == table_start
-
-        # insert new record in table
-        new_record = (2,)
-        insert_record(project, new_record, "base_table", ["base_column"])
-
-        # poll database
-        table_mid = get_row_count(project, "base_table")
-        view_mid = get_row_count(project, "base_materialized_view")
-
-        # refresh the materialized view
-        refresh_materialized_view(project, "base_materialized_view")
-
-        # poll database
-        table_end = get_row_count(project, "base_table")
-        view_end = get_row_count(project, "base_materialized_view")
-        assert view_end == table_end
-
-        # new records were inserted in the table but didn't show up in the view until it was refreshed
-        assert table_start < table_mid == table_end
-        assert view_start == view_mid < view_end
-
-
-class TestOnConfigurationChangeApply(RedshiftOnConfigurationChangeBase):
-    def test_full_refresh_takes_precedence_over_any_configuration_changes(
-        self,
-        configuration_changes_apply,
-        configuration_changes_refresh,
-        replace_message,
-        configuration_change_message,
+    def test_autorefresh_change_is_applied_with_replace_when_run_with_sort_change(
+        self, project, my_materialized_view
     ):
-        results, logs = run_model("base_materialized_view", full_refresh=True)
-        assert_proper_scenario(
-            OnConfigurationChangeOption.Apply,
-            results,
-            logs,
-            RunStatus.Success,
-            messages_in_logs=[replace_message],
-            messages_not_in_logs=[configuration_change_message],
+        assert query_autorefresh(project, my_materialized_view) is False
+        swap_autorefresh(project, my_materialized_view)
+        swap_sortkey(project, my_materialized_view)
+        _, logs = run_dbt_and_capture(
+            ["--debug", "run", "--models", my_materialized_view.identifier]
         )
-
-    def test_model_is_refreshed_with_no_configuration_changes(
-        self, refresh_message, configuration_change_message
-    ):
-        results, logs = run_model("base_materialized_view")
-        assert_proper_scenario(
-            OnConfigurationChangeOption.Apply,
-            results,
+        assert query_autorefresh(project, my_materialized_view) is True
+        assert_message_in_logs(f"Applying ALTER to: {my_materialized_view}", logs)
+        assert_message_in_logs(f"Applying REPLACE to: {my_materialized_view}", logs)
+        assert_message_in_logs(
+            f"Applying UPDATE AUTOREFRESH to: {my_materialized_view}",
             logs,
-            RunStatus.Success,
-            messages_in_logs=[refresh_message, configuration_change_message],
-        )
-
-    def test_model_applies_changes_with_small_configuration_changes(
-        self, configuration_changes_apply, alter_message, update_auto_refresh_message
-    ):
-        results, logs = run_model("base_materialized_view")
-        assert_proper_scenario(
-            OnConfigurationChangeOption.Apply,
-            results,
-            logs,
-            RunStatus.Success,
-            messages_in_logs=[alter_message, update_auto_refresh_message],
-        )
-
-    def test_model_rebuilds_with_large_configuration_changes(
-        self, configuration_changes_refresh, alter_message, replace_message
-    ):
-        results, logs = run_model("base_materialized_view")
-        assert_proper_scenario(
-            OnConfigurationChangeOption.Apply,
-            results,
-            logs,
-            RunStatus.Success,
-            messages_in_logs=[alter_message, replace_message],
-        )
-
-    def test_model_only_rebuilds_with_large_configuration_changes(
-        self,
-        configuration_changes_apply,
-        configuration_changes_refresh,
-        alter_message,
-        replace_message,
-        update_auto_refresh_message,
-    ):
-        results, logs = run_model("base_materialized_view")
-        assert_proper_scenario(
-            OnConfigurationChangeOption.Apply,
-            results,
-            logs,
-            RunStatus.Success,
-            messages_in_logs=[alter_message, replace_message],
-            messages_not_in_logs=[update_auto_refresh_message],
+            False,
         )
 
 
-class TestOnConfigurationChangeContinue(RedshiftOnConfigurationChangeBase):
+class TestOnConfigurationChangeContinue(OnConfigurationChangeBase):
     @pytest.fixture(scope="class")
     def project_config_update(self):
         return {"models": {"on_configuration_change": OnConfigurationChangeOption.Continue.value}}
 
-    def test_full_refresh_takes_precedence_over_any_configuration_changes(
-        self,
-        configuration_changes_apply,
-        configuration_changes_refresh,
-        replace_message,
-        configuration_change_message,
-    ):
-        results, logs = run_model("base_materialized_view", full_refresh=True)
-        assert_proper_scenario(
-            OnConfigurationChangeOption.Continue,
-            results,
-            logs,
-            RunStatus.Success,
-            messages_in_logs=[replace_message],
-            messages_not_in_logs=[configuration_change_message],
+    def test_autorefresh_change_is_not_applied(self, project, my_materialized_view):
+        assert query_autorefresh(project, my_materialized_view) is False
+        swap_autorefresh(project, my_materialized_view)
+        _, logs = run_dbt_and_capture(
+            ["--debug", "run", "--models", my_materialized_view.identifier]
         )
-
-    def test_model_is_refreshed_with_no_configuration_changes(
-        self, refresh_message, configuration_change_message
-    ):
-        results, logs = run_model("base_materialized_view")
-        assert_proper_scenario(
-            OnConfigurationChangeOption.Continue,
-            results,
+        assert query_autorefresh(project, my_materialized_view) is False
+        assert_message_in_logs(
+            f"Configuration changes were identified and `on_configuration_change` was set"
+            f" to `continue` for `{my_materialized_view}`",
             logs,
-            RunStatus.Success,
-            messages_in_logs=[refresh_message, configuration_change_message],
         )
-
-    def test_model_is_skipped_with_configuration_changes(
-        self, configuration_changes_apply, configuration_change_continue_message
-    ):
-        results, logs = run_model("base_materialized_view")
-        assert_proper_scenario(
-            OnConfigurationChangeOption.Continue,
-            results,
+        assert_message_in_logs(f"Applying ALTER to: {my_materialized_view}", logs, False)
+        assert_message_in_logs(
+            f"Applying UPDATE AUTOREFRESH to: {my_materialized_view}",
             logs,
-            RunStatus.Success,
-            messages_in_logs=[configuration_change_continue_message],
+            False,
         )
+        assert_message_in_logs(f"Applying REPLACE to: {my_materialized_view}", logs, False)
+
+    def test_full_refresh_still_occurs_with_changes(self, project, my_materialized_view):
+        run_dbt(["run", "--models", my_materialized_view.identifier, "--full-refresh"])
+        assert query_relation_type(project, my_materialized_view) == "materialized_view"
 
 
-class TestOnConfigurationChangeFail(RedshiftOnConfigurationChangeBase):
+class TestOnConfigurationChangeFail(OnConfigurationChangeBase):
     @pytest.fixture(scope="class")
     def project_config_update(self):
         return {"models": {"on_configuration_change": OnConfigurationChangeOption.Fail.value}}
 
-    def test_full_refresh_takes_precedence_over_any_configuration_changes(
-        self,
-        configuration_changes_apply,
-        configuration_changes_refresh,
-        replace_message,
-        configuration_change_message,
-    ):
-        results, logs = run_model("base_materialized_view", full_refresh=True)
-        assert_proper_scenario(
-            OnConfigurationChangeOption.Fail,
-            results,
-            logs,
-            RunStatus.Success,
-            messages_in_logs=[replace_message],
-            messages_not_in_logs=[configuration_change_message],
+    def test_autorefresh_change_is_not_applied(self, project, my_materialized_view):
+        assert query_autorefresh(project, my_materialized_view) is False
+        swap_autorefresh(project, my_materialized_view)
+        # note the expected fail, versus the pass with the `continue` setting
+        _, logs = run_dbt_and_capture(
+            ["--debug", "run", "--models", my_materialized_view.identifier], expect_pass=False
         )
+        assert query_autorefresh(project, my_materialized_view) is False
+        assert_message_in_logs(
+            f"Configuration changes were identified and `on_configuration_change` was set"
+            f" to `fail` for `{my_materialized_view}`",
+            logs,
+        )
+        assert_message_in_logs(f"Applying ALTER to: {my_materialized_view}", logs, False)
+        assert_message_in_logs(
+            f"Applying UPDATE AUTOREFRESH to: {my_materialized_view}",
+            logs,
+            False,
+        )
+        assert_message_in_logs(f"Applying REPLACE to: {my_materialized_view}", logs, False)
 
-    def test_model_is_refreshed_with_no_configuration_changes(
-        self, refresh_message, configuration_change_message
-    ):
-        results, logs = run_model("base_materialized_view")
-        assert_proper_scenario(
-            OnConfigurationChangeOption.Fail,
-            results,
-            logs,
-            RunStatus.Success,
-            messages_in_logs=[refresh_message, configuration_change_message],
-        )
-
-    def test_run_fails_with_configuration_changes(
-        self, configuration_changes_apply, configuration_change_fail_message
-    ):
-        results, logs = run_model("base_materialized_view", expect_pass=False)
-        assert_proper_scenario(
-            OnConfigurationChangeOption.Fail,
-            results,
-            logs,
-            RunStatus.Error,
-            messages_in_logs=[configuration_change_fail_message],
-        )
+    def test_full_refresh_still_occurs_with_changes(self, project, my_materialized_view):
+        run_dbt(["run", "--models", my_materialized_view.identifier, "--full-refresh"])
+        assert query_relation_type(project, my_materialized_view) == "materialized_view"
