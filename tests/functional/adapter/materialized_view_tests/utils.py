@@ -1,35 +1,12 @@
 from typing import Optional
 
-from dbt.tests.util import get_model_file, set_model_file
+from dbt.adapters.base.relation import BaseRelation
 
 from dbt.adapters.redshift.relation import RedshiftRelation
 
 
-def swap_sortkey(project, my_materialized_view):
-    initial_model = get_model_file(project, my_materialized_view)
-    new_model = initial_model.replace("sort=['id']", "sort=['value']")
-    set_model_file(project, my_materialized_view, new_model)
-
-
-def swap_autorefresh(project, my_materialized_view):
-    initial_model = get_model_file(project, my_materialized_view)
-    new_model = initial_model.replace("dist='id'", "dist='id', auto_refresh=True")
-    set_model_file(project, my_materialized_view, new_model)
-
-
-def swap_materialized_view_to_table(project, my_materialized_view):
-    initial_model = get_model_file(project, my_materialized_view)
-    new_model = initial_model.replace("materialized='materialized_view'", "materialized='table'")
-    set_model_file(project, my_materialized_view, new_model)
-
-
-def swap_materialized_view_to_view(project, my_materialized_view):
-    initial_model = get_model_file(project, my_materialized_view)
-    new_model = initial_model.replace("materialized='materialized_view'", "materialized='view'")
-    set_model_file(project, my_materialized_view, new_model)
-
-
-def query_relation_type(project, relation: RedshiftRelation) -> Optional[str]:
+def query_relation_type(project, relation: BaseRelation) -> Optional[str]:
+    assert isinstance(relation, RedshiftRelation)
     sql = f"""
     select
         'table' as relation_type
@@ -56,17 +33,24 @@ def query_relation_type(project, relation: RedshiftRelation) -> Optional[str]:
         return results[0][0]
 
 
-def query_row_count(project, relation: RedshiftRelation) -> int:
-    sql = f"select count(*) from {relation}"
-    return project.run_sql(sql, fetch="one")[0]
-
-
-def query_sort(project, relation: RedshiftRelation) -> bool:
+def query_sort(project, relation: RedshiftRelation) -> str:
     sql = f"""
         select
             tb.sortkey1 as sortkey
         from svv_table_info tb
-        where tb.table ilike '{ relation.name }'
+        where tb.table ilike '{ relation.identifier }'
+        and tb.schema ilike '{ relation.schema }'
+        and tb.database ilike '{ relation.database }'
+    """
+    return project.run_sql(sql, fetch="one")[0]
+
+
+def query_dist(project, relation: RedshiftRelation) -> str:
+    sql = f"""
+        select
+            tb.diststyle
+        from svv_table_info tb
+        where tb.table ilike '{ relation.identifier }'
         and tb.schema ilike '{ relation.schema }'
         and tb.database ilike '{ relation.database }'
     """
@@ -78,7 +62,7 @@ def query_autorefresh(project, relation: RedshiftRelation) -> bool:
         select
             case mv.autorefresh when 't' then True when 'f' then False end as autorefresh
         from stv_mv_info mv
-        where trim(mv.name) ilike '{ relation.name }'
+        where trim(mv.name) ilike '{ relation.identifier }'
         and trim(mv.schema) ilike '{ relation.schema }'
         and trim(mv.db_name) ilike '{ relation.database }'
     """
