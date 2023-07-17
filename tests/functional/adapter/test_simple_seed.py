@@ -53,6 +53,24 @@ seeds:
 """.lstrip()
 
 
+properties__schema_yml = """
+version: 2
+
+seeds:
+  - name: seed_dist_all
+    config:
+      dist: all
+"""
+
+
+seeds__dist_all_csv = """
+seed_id,weekday
+1,Saturday
+2,Sunday
+3,Monday
+""".lstrip()
+
+
 class TestSimpleSeedColumnOverride(BaseSimpleSeedColumnOverride):
     @pytest.fixture(scope="class")
     def schema(self):
@@ -82,3 +100,23 @@ class TestSimpleSeedColumnOverride(BaseSimpleSeedColumnOverride):
         assert len(seed_results) == 2
         test_results = run_dbt(["test"])
         assert len(test_results) == 10
+
+
+class BaseSimpleSeedDiststyleAll:
+    @pytest.fixture(scope="class")
+    def models(self):
+        return {
+            "schema.yml": properties__schema_yml,
+        }
+
+    @pytest.fixture(scope="class")
+    def seeds(self):
+        return {"seed_dist_all.csv": seeds__dist_all_csv}
+
+    def test_simple_seed_with_diststyle_all(self, project):
+        seed_results = run_dbt(["seed", "--show"])
+        assert len(seed_results) == 1
+
+
+class TestSimpleSeedDiststyleAll(BaseSimpleSeedDiststyleAll):
+    pass
