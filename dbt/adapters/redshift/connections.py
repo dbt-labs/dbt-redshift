@@ -252,8 +252,9 @@ class RedshiftConnectionManager(SQLConnectionManager):
     def _get_backend_pid(self):
         sql = "select pg_backend_pid()"
         _, cursor = self.add_query(sql)
+
         res = cursor.fetchone()
-        return res
+        return res[0]
 
     def cancel(self, connection: Connection):
         try:
@@ -265,9 +266,8 @@ class RedshiftConnectionManager(SQLConnectionManager):
             raise
 
         sql = f"select pg_terminate_backend({pid})"
-        _, cursor = self.add_query(sql)
-        res = cursor.fetchone()
-        logger.debug(f"Cancel query '{connection.name}': {res}")
+        cursor = connection.handle.cursor()
+        cursor.execute(sql)
 
     @classmethod
     def get_response(cls, cursor: redshift_connector.Cursor) -> AdapterResponse:
