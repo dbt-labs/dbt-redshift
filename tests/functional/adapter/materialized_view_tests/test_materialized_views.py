@@ -1,239 +1,135 @@
+from typing import Optional, Tuple
+
 import pytest
 
-from dbt.contracts.graph.model_config import OnConfigurationChangeOption
-from dbt.contracts.relation import RelationType
-from dbt.contracts.results import RunStatus
-from dbt.tests.adapter.materialized_view.base import (
-    run_model,
-    assert_model_exists_and_is_correct_type,
-    insert_record,
-    get_row_count,
+from dbt.adapters.base.relation import BaseRelation
+
+from dbt.tests.adapter.materialized_view.basic import MaterializedViewBasic
+from dbt.tests.adapter.materialized_view.changes import (
+    MaterializedViewChanges,
+    MaterializedViewChangesApplyMixin,
+    MaterializedViewChangesContinueMixin,
+    MaterializedViewChangesFailMixin,
 )
-from dbt.tests.adapter.materialized_view.on_configuration_change import (
-    assert_proper_scenario,
+from dbt.tests.adapter.materialized_view.files import MY_TABLE, MY_VIEW
+from dbt.tests.util import get_model_file, set_model_file
+
+from tests.functional.adapter.materialized_view_tests.utils import (
+    query_autorefresh,
+    query_dist,
+    query_relation_type,
+    query_sort,
 )
 
-from tests.functional.adapter.materialized_view_tests.fixtures import (
-    RedshiftBasicBase,
-    RedshiftOnConfigurationChangeBase,
-    refresh_materialized_view,
-)
+
+MY_MATERIALIZED_VIEW = """
+{{ config(
+    materialized='materialized_view',
+    sort_type='compound',
+    sort=['id'],
+    dist='id',
+) }}
+select * from {{ ref('my_seed') }}
+"""
 
 
-class TestBasic(RedshiftBasicBase):
-    def test_relation_is_materialized_view_on_initial_creation(self, project):
-        assert_model_exists_and_is_correct_type(
-            project, "base_materialized_view", RelationType.MaterializedView
+class TestRedshiftMaterializedViewsBasic(MaterializedViewBasic):
+    @pytest.fixture(scope="class", autouse=True)
+    def models(self):
+        yield {
+            "my_table.sql": MY_TABLE,
+            "my_view.sql": MY_VIEW,
+            "my_materialized_view.sql": MY_MATERIALIZED_VIEW,
+        }
+
+    @staticmethod
+    def insert_record(project, table: BaseRelation, record: Tuple[int, int]):
+        my_id, value = record
+        project.run_sql(f"insert into {table} (id, value) values ({my_id}, {value})")
+
+    @staticmethod
+    def refresh_materialized_view(project, materialized_view: BaseRelation):
+        sql = f"refresh materialized view {materialized_view}"
+        project.run_sql(sql)
+
+    @staticmethod
+    def query_row_count(project, relation: BaseRelation) -> int:
+        sql = f"select count(*) from {relation}"
+        return project.run_sql(sql, fetch="one")[0]
+
+    @staticmethod
+    def query_relation_type(project, relation: BaseRelation) -> Optional[str]:
+        return query_relation_type(project, relation)
+
+    @pytest.mark.skip(
+        "The current implementation does not support overwriting materialized views with tables."
+    )
+    def test_table_replaces_materialized_view(self, project, my_materialized_view):
+        super().test_table_replaces_materialized_view(project, my_materialized_view)
+
+    @pytest.mark.skip(
+        "The current implementation does not support overwriting materialized views with views."
+    )
+    def test_view_replaces_materialized_view(self, project, my_materialized_view):
+        super().test_view_replaces_materialized_view(project, my_materialized_view)
+
+
+class RedshiftMaterializedViewChanges(MaterializedViewChanges):
+    @pytest.fixture(scope="class", autouse=True)
+    def models(self):
+        yield {
+            "my_table.sql": MY_TABLE,
+            "my_view.sql": MY_VIEW,
+            "my_materialized_view.sql": MY_MATERIALIZED_VIEW,
+        }
+
+    @staticmethod
+    def query_relation_type(project, relation: BaseRelation) -> Optional[str]:
+        return query_relation_type(project, relation)
+
+    @staticmethod
+    def check_start_state(project, materialized_view):
+        assert query_autorefresh(project, materialized_view) is False
+        assert query_sort(project, materialized_view) == "id"
+        assert query_dist(project, materialized_view) == "KEY(id)"
+
+    @staticmethod
+    def change_config_via_alter(project, materialized_view):
+        initial_model = get_model_file(project, materialized_view)
+        new_model = initial_model.replace("dist='id',", "dist='id', auto_refresh=True")
+        set_model_file(project, materialized_view, new_model)
+
+    @staticmethod
+    def check_state_alter_change_is_applied(project, materialized_view):
+        assert query_autorefresh(project, materialized_view) is True
+
+    @staticmethod
+    def change_config_via_replace(project, materialized_view):
+        initial_model = get_model_file(project, materialized_view)
+        new_model = initial_model.replace("dist='id',", "").replace(
+            "sort=['id']", "sort=['value']"
         )
-        assert_model_exists_and_is_correct_type(project, "base_table", RelationType.Table)
+        set_model_file(project, materialized_view, new_model)
 
-    def test_relation_is_materialized_view_when_rerun(self, project):
-        run_model("base_materialized_view")
-        assert_model_exists_and_is_correct_type(
-            project, "base_materialized_view", RelationType.MaterializedView
-        )
-
-    def test_relation_is_materialized_view_on_full_refresh(self, project):
-        run_model("base_materialized_view", full_refresh=True)
-        assert_model_exists_and_is_correct_type(
-            project, "base_materialized_view", RelationType.MaterializedView
-        )
-
-    def test_relation_is_materialized_view_on_update(self, project):
-        run_model("base_materialized_view", run_args=["--vars", "quoting: {identifier: True}"])
-        assert_model_exists_and_is_correct_type(
-            project, "base_materialized_view", RelationType.MaterializedView
-        )
-
-    def test_updated_base_table_data_only_shows_in_materialized_view_after_refresh(self, project):
-        # poll database
-        table_start = get_row_count(project, "base_table")
-        view_start = get_row_count(project, "base_materialized_view")
-        assert view_start == table_start
-
-        # insert new record in table
-        new_record = (2,)
-        insert_record(project, new_record, "base_table", ["base_column"])
-
-        # poll database
-        table_mid = get_row_count(project, "base_table")
-        view_mid = get_row_count(project, "base_materialized_view")
-
-        # refresh the materialized view
-        refresh_materialized_view(project, "base_materialized_view")
-
-        # poll database
-        table_end = get_row_count(project, "base_table")
-        view_end = get_row_count(project, "base_materialized_view")
-        assert view_end == table_end
-
-        # new records were inserted in the table but didn't show up in the view until it was refreshed
-        assert table_start < table_mid == table_end
-        assert view_start == view_mid < view_end
+    @staticmethod
+    def check_state_replace_change_is_applied(project, materialized_view):
+        assert query_sort(project, materialized_view) == "value"
+        assert query_dist(project, materialized_view) == "EVEN"
 
 
-class TestOnConfigurationChangeApply(RedshiftOnConfigurationChangeBase):
-    def test_full_refresh_takes_precedence_over_any_configuration_changes(
-        self,
-        configuration_changes_apply,
-        configuration_changes_refresh,
-        replace_message,
-        configuration_change_message,
-    ):
-        results, logs = run_model("base_materialized_view", full_refresh=True)
-        assert_proper_scenario(
-            OnConfigurationChangeOption.Apply,
-            results,
-            logs,
-            RunStatus.Success,
-            messages_in_logs=[replace_message],
-            messages_not_in_logs=[configuration_change_message],
-        )
-
-    def test_model_is_refreshed_with_no_configuration_changes(
-        self, refresh_message, configuration_change_message
-    ):
-        results, logs = run_model("base_materialized_view")
-        assert_proper_scenario(
-            OnConfigurationChangeOption.Apply,
-            results,
-            logs,
-            RunStatus.Success,
-            messages_in_logs=[refresh_message, configuration_change_message],
-        )
-
-    def test_model_applies_changes_with_small_configuration_changes(
-        self, configuration_changes_apply, alter_message, update_auto_refresh_message
-    ):
-        results, logs = run_model("base_materialized_view")
-        assert_proper_scenario(
-            OnConfigurationChangeOption.Apply,
-            results,
-            logs,
-            RunStatus.Success,
-            messages_in_logs=[alter_message, update_auto_refresh_message],
-        )
-
-    def test_model_rebuilds_with_large_configuration_changes(
-        self, configuration_changes_refresh, alter_message, replace_message
-    ):
-        results, logs = run_model("base_materialized_view")
-        assert_proper_scenario(
-            OnConfigurationChangeOption.Apply,
-            results,
-            logs,
-            RunStatus.Success,
-            messages_in_logs=[alter_message, replace_message],
-        )
-
-    def test_model_only_rebuilds_with_large_configuration_changes(
-        self,
-        configuration_changes_apply,
-        configuration_changes_refresh,
-        alter_message,
-        replace_message,
-        update_auto_refresh_message,
-    ):
-        results, logs = run_model("base_materialized_view")
-        assert_proper_scenario(
-            OnConfigurationChangeOption.Apply,
-            results,
-            logs,
-            RunStatus.Success,
-            messages_in_logs=[alter_message, replace_message],
-            messages_not_in_logs=[update_auto_refresh_message],
-        )
+class TestRedshiftMaterializedViewChangesApply(
+    RedshiftMaterializedViewChanges, MaterializedViewChangesApplyMixin
+):
+    pass
 
 
-class TestOnConfigurationChangeContinue(RedshiftOnConfigurationChangeBase):
-    @pytest.fixture(scope="class")
-    def project_config_update(self):
-        return {"models": {"on_configuration_change": OnConfigurationChangeOption.Continue.value}}
-
-    def test_full_refresh_takes_precedence_over_any_configuration_changes(
-        self,
-        configuration_changes_apply,
-        configuration_changes_refresh,
-        replace_message,
-        configuration_change_message,
-    ):
-        results, logs = run_model("base_materialized_view", full_refresh=True)
-        assert_proper_scenario(
-            OnConfigurationChangeOption.Continue,
-            results,
-            logs,
-            RunStatus.Success,
-            messages_in_logs=[replace_message],
-            messages_not_in_logs=[configuration_change_message],
-        )
-
-    def test_model_is_refreshed_with_no_configuration_changes(
-        self, refresh_message, configuration_change_message
-    ):
-        results, logs = run_model("base_materialized_view")
-        assert_proper_scenario(
-            OnConfigurationChangeOption.Continue,
-            results,
-            logs,
-            RunStatus.Success,
-            messages_in_logs=[refresh_message, configuration_change_message],
-        )
-
-    def test_model_is_skipped_with_configuration_changes(
-        self, configuration_changes_apply, configuration_change_continue_message
-    ):
-        results, logs = run_model("base_materialized_view")
-        assert_proper_scenario(
-            OnConfigurationChangeOption.Continue,
-            results,
-            logs,
-            RunStatus.Success,
-            messages_in_logs=[configuration_change_continue_message],
-        )
+class TestRedshiftMaterializedViewChangesContinue(
+    RedshiftMaterializedViewChanges, MaterializedViewChangesContinueMixin
+):
+    pass
 
 
-class TestOnConfigurationChangeFail(RedshiftOnConfigurationChangeBase):
-    @pytest.fixture(scope="class")
-    def project_config_update(self):
-        return {"models": {"on_configuration_change": OnConfigurationChangeOption.Fail.value}}
-
-    def test_full_refresh_takes_precedence_over_any_configuration_changes(
-        self,
-        configuration_changes_apply,
-        configuration_changes_refresh,
-        replace_message,
-        configuration_change_message,
-    ):
-        results, logs = run_model("base_materialized_view", full_refresh=True)
-        assert_proper_scenario(
-            OnConfigurationChangeOption.Fail,
-            results,
-            logs,
-            RunStatus.Success,
-            messages_in_logs=[replace_message],
-            messages_not_in_logs=[configuration_change_message],
-        )
-
-    def test_model_is_refreshed_with_no_configuration_changes(
-        self, refresh_message, configuration_change_message
-    ):
-        results, logs = run_model("base_materialized_view")
-        assert_proper_scenario(
-            OnConfigurationChangeOption.Fail,
-            results,
-            logs,
-            RunStatus.Success,
-            messages_in_logs=[refresh_message, configuration_change_message],
-        )
-
-    def test_run_fails_with_configuration_changes(
-        self, configuration_changes_apply, configuration_change_fail_message
-    ):
-        results, logs = run_model("base_materialized_view", expect_pass=False)
-        assert_proper_scenario(
-            OnConfigurationChangeOption.Fail,
-            results,
-            logs,
-            RunStatus.Error,
-            messages_in_logs=[configuration_change_fail_message],
-        )
+class TestRedshiftMaterializedViewChangesFail(
+    RedshiftMaterializedViewChanges, MaterializedViewChangesFailMixin
+):
+    pass
