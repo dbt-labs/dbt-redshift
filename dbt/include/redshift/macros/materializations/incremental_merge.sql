@@ -16,6 +16,7 @@
     {%- set merge_update_columns = config.get('merge_update_columns') -%}
     {%- set merge_exclude_columns = config.get('merge_exclude_columns') -%}
     {%- set update_columns = get_merge_update_columns(merge_update_columns, merge_exclude_columns, dest_columns) -%}
+    {%- set insert_columns = get_merge_update_columns(none, none, dest_columns) -%}
     {%- set sql_header = config.get('sql_header', none) -%}
 
     {% if unique_key %}
@@ -51,13 +52,13 @@
     {% endif %}
 
     when not matched then insert (
-        {% for column_name in update_columns -%}
+        {% for column_name in insert_columns -%}
             {{ column_name }}
             {%- if not loop.last %}, {% endif %}
         {% endfor %}
     )
     values (
-        {% for column_name in update_columns -%}
+        {% for column_name in insert_columns -%}
             DBT_INTERNAL_SOURCE.{{ column_name }}
             {%- if not loop.last %}, {% endif %}
         {% endfor %}
