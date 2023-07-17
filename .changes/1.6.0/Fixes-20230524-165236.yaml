@@ -1,6 +1,0 @@
-kind: Fixes
-body: Use smaller default batch size for seeds
-time: 2023-05-24T16:52:36.915348-06:00
-custom:
-  Author: dbeatty10
-  Issue: "347"
