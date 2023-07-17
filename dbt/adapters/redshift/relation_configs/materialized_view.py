@@ -122,8 +122,8 @@ class RedshiftMaterializedViewConfig(RedshiftRelationConfigBase, RelationConfigV
             "mv_name": model_node.identifier,
             "schema_name": model_node.schema,
             "database_name": model_node.database,
-            "backup": model_node.config.get("backup"),
-            "autorefresh": model_node.config.get("auto_refresh"),
+            "backup": model_node.config.extra.get("backup"),
+            "autorefresh": model_node.config.extra.get("auto_refresh"),
         }
 
         if query := model_node.compiled_code:
@@ -174,7 +174,7 @@ class RedshiftMaterializedViewConfig(RedshiftRelationConfigBase, RelationConfigV
             "mv_name": materialized_view.get("table"),
             "schema_name": materialized_view.get("schema"),
             "database_name": materialized_view.get("database"),
-            "autorefresh": {"t": True, "f": False}.get(materialized_view.get("autorefresh")),
+            "autorefresh": materialized_view.get("autorefresh"),
             "query": cls._parse_query(query.get("definition")),
         }
 
