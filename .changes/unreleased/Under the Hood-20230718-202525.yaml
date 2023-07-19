@@ -1,0 +1,6 @@
+kind: Under the Hood
+body: Refactor jinja templates and relation models in support of new relation framework
+time: 2023-07-18T20:25:25.131268-04:00
+custom:
+  Author: mikealfare
+  Issue: "8128"
