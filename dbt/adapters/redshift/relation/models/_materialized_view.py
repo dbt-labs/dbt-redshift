@@ -1,32 +1,28 @@
 from dataclasses import dataclass
-from typing import Optional, Set
+from typing import Any, Dict, Optional, Set
 
 import agate
-from dbt.adapters.relation_configs import (
-    RelationResults,
-    RelationConfigChange,
-    RelationConfigValidationMixin,
-    RelationConfigValidationRule,
-)
+from dbt.adapters.relation.models import DescribeRelationResults, RelationChange
+from dbt.adapters.validation import ValidationMixin, ValidationRule
 from dbt.contracts.graph.nodes import ModelNode
 from dbt.contracts.relation import ComponentName
 from dbt.exceptions import DbtRuntimeError
 
-from dbt.adapters.redshift.relation_configs.base import RedshiftRelationConfigBase
-from dbt.adapters.redshift.relation_configs.dist import (
-    RedshiftDistConfig,
+from dbt.adapters.redshift.relation.models._base import RedshiftRelationComponent
+from dbt.adapters.redshift.relation.models._dist import (
+    RedshiftDistRelation,
+    RedshiftDistRelationChange,
     RedshiftDistStyle,
-    RedshiftDistConfigChange,
 )
-from dbt.adapters.redshift.relation_configs.policies import MAX_CHARACTERS_IN_IDENTIFIER
-from dbt.adapters.redshift.relation_configs.sort import (
-    RedshiftSortConfig,
-    RedshiftSortConfigChange,
+from dbt.adapters.redshift.relation.models._policy import MAX_CHARACTERS_IN_IDENTIFIER
+from dbt.adapters.redshift.relation.models._sort import (
+    RedshiftSortRelation,
+    RedshiftSortRelationChange,
 )
 
 
 @dataclass(frozen=True, eq=True, unsafe_hash=True)
-class RedshiftMaterializedViewConfig(RedshiftRelationConfigBase, RelationConfigValidationMixin):
+class RedshiftMaterializedViewRelation(RedshiftRelationComponent, ValidationMixin):
     """
     This config follow the specs found here:
     https://docs.aws.amazon.com/redshift/latest/dg/materialized-view-create-sql-command.html
@@ -56,8 +52,8 @@ class RedshiftMaterializedViewConfig(RedshiftRelationConfigBase, RelationConfigV
     database_name: str
     query: str
     backup: bool = True
-    dist: RedshiftDistConfig = RedshiftDistConfig(diststyle=RedshiftDistStyle.even)
-    sort: RedshiftSortConfig = RedshiftSortConfig()
+    dist: RedshiftDistRelation = RedshiftDistRelation(diststyle=RedshiftDistStyle.even)
+    sort: RedshiftSortRelation = RedshiftSortRelation()
     autorefresh: bool = False
 
     @property
@@ -69,23 +65,23 @@ class RedshiftMaterializedViewConfig(RedshiftRelationConfigBase, RelationConfigV
         )
 
     @property
-    def validation_rules(self) -> Set[RelationConfigValidationRule]:
+    def validation_rules(self) -> Set[ValidationRule]:
         # sort and dist rules get run by default with the mixin
         return {
-            RelationConfigValidationRule(
+            ValidationRule(
                 validation_check=len(self.mv_name or "") <= MAX_CHARACTERS_IN_IDENTIFIER,
                 validation_error=DbtRuntimeError(
                     f"The materialized view name is more than {MAX_CHARACTERS_IN_IDENTIFIER} "
                     f"characters: {self.mv_name}"
                 ),
             ),
-            RelationConfigValidationRule(
+            ValidationRule(
                 validation_check=self.dist.diststyle != RedshiftDistStyle.auto,
                 validation_error=DbtRuntimeError(
                     "Redshift materialized views do not support a `diststyle` of `auto`."
                 ),
             ),
-            RelationConfigValidationRule(
+            ValidationRule(
                 validation_check=len(self.mv_name if self.mv_name else "") <= 127,
                 validation_error=DbtRuntimeError(
                     "Redshift does not support object names longer than 127 characters."
@@ -94,7 +90,7 @@ class RedshiftMaterializedViewConfig(RedshiftRelationConfigBase, RelationConfigV
         }
 
     @classmethod
-    def from_dict(cls, config_dict) -> "RedshiftMaterializedViewConfig":
+    def from_dict(cls, config_dict: Dict[str, Any]) -> "RedshiftMaterializedViewRelation":
         kwargs_dict = {
             "mv_name": cls._render_part(ComponentName.Identifier, config_dict.get("mv_name")),
             "schema_name": cls._render_part(ComponentName.Schema, config_dict.get("schema_name")),
@@ -108,42 +104,45 @@ class RedshiftMaterializedViewConfig(RedshiftRelationConfigBase, RelationConfigV
 
         # this preserves the materialized view-specific default of `even` over the general default of `auto`
         if dist := config_dict.get("dist"):
-            kwargs_dict.update({"dist": RedshiftDistConfig.from_dict(dist)})
+            kwargs_dict.update({"dist": RedshiftDistRelation.from_dict(dist)})
 
         if sort := config_dict.get("sort"):
-            kwargs_dict.update({"sort": RedshiftSortConfig.from_dict(sort)})
+            kwargs_dict.update({"sort": RedshiftSortRelation.from_dict(sort)})
 
-        materialized_view: "RedshiftMaterializedViewConfig" = super().from_dict(kwargs_dict)  # type: ignore
+        materialized_view = super().from_dict(kwargs_dict)
+        assert isinstance(materialized_view, RedshiftMaterializedViewRelation)
         return materialized_view
 
     @classmethod
-    def parse_model_node(cls, model_node: ModelNode) -> dict:
+    def parse_node(cls, node: ModelNode) -> Dict[str, Any]:
         config_dict = {
-            "mv_name": model_node.identifier,
-            "schema_name": model_node.schema,
-            "database_name": model_node.database,
-            "backup": model_node.config.extra.get("backup"),
-            "autorefresh": model_node.config.extra.get("auto_refresh"),
+            "mv_name": node.identifier,
+            "schema_name": node.schema,
+            "database_name": node.database,
+            "backup": node.config.extra.get("backup"),
+            "autorefresh": node.config.extra.get("auto_refresh"),
         }
 
-        if query := model_node.compiled_code:
+        if query := node.compiled_code:
             config_dict.update({"query": query.strip()})
 
-        if model_node.config.get("dist"):
-            config_dict.update({"dist": RedshiftDistConfig.parse_model_node(model_node)})
+        if node.config.get("dist"):
+            config_dict.update({"dist": RedshiftDistRelation.parse_node(node)})
 
-        if model_node.config.get("sort"):
-            config_dict.update({"sort": RedshiftSortConfig.parse_model_node(model_node)})
+        if node.config.get("sort"):
+            config_dict.update({"sort": RedshiftSortRelation.parse_node(node)})
 
         return config_dict
 
     @classmethod
-    def parse_relation_results(cls, relation_results: RelationResults) -> dict:
+    def parse_describe_relation_results(
+        cls, describe_relation_results: DescribeRelationResults
+    ) -> Dict[str, Any]:
         """
         Translate agate objects from the database into a standard dictionary.
 
         Args:
-            relation_results: the description of the materialized view from the database in this format:
+            describe_relation_results: the description of the materialized view from the database in this format:
 
                 {
                     "materialized_view": agate.Table(
@@ -166,9 +165,9 @@ class RedshiftMaterializedViewConfig(RedshiftRelationConfigBase, RelationConfigV
         Returns: a standard dictionary describing this `RedshiftMaterializedViewConfig` instance
         """
         materialized_view: agate.Row = cls._get_first_row(
-            relation_results.get("materialized_view")
+            describe_relation_results.get("materialized_view")
         )
-        query: agate.Row = cls._get_first_row(relation_results.get("query"))
+        query: agate.Row = cls._get_first_row(describe_relation_results.get("query"))
 
         config_dict = {
             "mv_name": materialized_view.get("table"),
@@ -182,13 +181,13 @@ class RedshiftMaterializedViewConfig(RedshiftRelationConfigBase, RelationConfigV
         # only set it if we got a value
         if materialized_view.get("diststyle"):
             config_dict.update(
-                {"dist": RedshiftDistConfig.parse_relation_results(materialized_view)}
+                {"dist": RedshiftDistRelation.parse_describe_relation_results(materialized_view)}
             )
 
         # TODO: this only shows the first column in the sort key
         if materialized_view.get("sortkey1"):
             config_dict.update(
-                {"sort": RedshiftSortConfig.parse_relation_results(materialized_view)}
+                {"sort": RedshiftSortRelation.parse_describe_relation_results(materialized_view)}
             )
 
         return config_dict
@@ -221,7 +220,7 @@ class RedshiftMaterializedViewConfig(RedshiftRelationConfigBase, RelationConfigV
 
 
 @dataclass(frozen=True, eq=True, unsafe_hash=True)
-class RedshiftAutoRefreshConfigChange(RelationConfigChange):
+class RedshiftAutoRefreshRelationChange(RelationChange):
     context: Optional[bool] = None
 
     @property
@@ -230,7 +229,7 @@ class RedshiftAutoRefreshConfigChange(RelationConfigChange):
 
 
 @dataclass(frozen=True, eq=True, unsafe_hash=True)
-class RedshiftBackupConfigChange(RelationConfigChange):
+class RedshiftBackupRelationChange(RelationChange):
     context: Optional[bool] = None
 
     @property
@@ -239,11 +238,11 @@ class RedshiftBackupConfigChange(RelationConfigChange):
 
 
 @dataclass
-class RedshiftMaterializedViewConfigChangeset:
-    backup: Optional[RedshiftBackupConfigChange] = None
-    dist: Optional[RedshiftDistConfigChange] = None
-    sort: Optional[RedshiftSortConfigChange] = None
-    autorefresh: Optional[RedshiftAutoRefreshConfigChange] = None
+class RedshiftMaterializedViewRelationChangeset:
+    backup: Optional[RedshiftBackupRelationChange] = None
+    dist: Optional[RedshiftDistRelationChange] = None
+    sort: Optional[RedshiftSortRelationChange] = None
+    autorefresh: Optional[RedshiftAutoRefreshRelationChange] = None
 
     @property
     def requires_full_refresh(self) -> bool:

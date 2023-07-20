@@ -1,23 +1,20 @@
 from dataclasses import dataclass
-from typing import Optional
+from typing import Any, Dict, Optional
 
 import agate
 from dbt.adapters.base.relation import Policy
-from dbt.adapters.relation_configs import (
-    RelationConfigBase,
-    RelationResults,
-)
+from dbt.adapters.relation.models import RelationComponent, DescribeRelationResults
 from dbt.contracts.graph.nodes import ModelNode
 from dbt.contracts.relation import ComponentName
 
-from dbt.adapters.redshift.relation_configs.policies import (
+from dbt.adapters.redshift.relation.models._policy import (
     RedshiftIncludePolicy,
     RedshiftQuotePolicy,
 )
 
 
 @dataclass(frozen=True, eq=True, unsafe_hash=True)
-class RedshiftRelationConfigBase(RelationConfigBase):
+class RedshiftRelationComponent(RelationComponent):
     """
     This base class implements a few boilerplate methods and provides some light structure for Redshift relations.
     """
@@ -31,27 +28,35 @@ class RedshiftRelationConfigBase(RelationConfigBase):
         return RedshiftQuotePolicy()
 
     @classmethod
-    def from_model_node(cls, model_node: ModelNode) -> "RelationConfigBase":
-        relation_config = cls.parse_model_node(model_node)
+    def from_dict(cls, config_dict: Dict[str, Any]) -> "RedshiftRelationComponent":
+        relation = super().from_dict(config_dict)
+        assert isinstance(relation, RedshiftRelationComponent)
+        return relation
+
+    @classmethod
+    def from_node(cls, node: ModelNode) -> "RedshiftRelationComponent":
+        relation_config = cls.parse_node(node)
         relation = cls.from_dict(relation_config)
         return relation
 
     @classmethod
-    def parse_model_node(cls, model_node: ModelNode) -> dict:
-        raise NotImplementedError(
-            "`parse_model_node()` needs to be implemented on this RelationConfigBase instance"
-        )
+    def parse_node(cls, node: ModelNode) -> Dict[str, Any]:
+        raise NotImplementedError(f"`parse_node()` needs to be implemented on {cls.__name__}")
 
     @classmethod
-    def from_relation_results(cls, relation_results: RelationResults) -> "RelationConfigBase":
-        relation_config = cls.parse_relation_results(relation_results)
+    def from_describe_relation_results(
+        cls, describe_relation_results: DescribeRelationResults
+    ) -> "RedshiftRelationComponent":
+        relation_config = cls.parse_describe_relation_results(describe_relation_results)
         relation = cls.from_dict(relation_config)
         return relation
 
     @classmethod
-    def parse_relation_results(cls, relation_results: RelationResults) -> dict:
+    def parse_describe_relation_results(
+        cls, describe_relation_results: DescribeRelationResults
+    ) -> Dict[str, Any]:
         raise NotImplementedError(
-            "`parse_relation_results()` needs to be implemented on this RelationConfigBase instance"
+            f"`parse_describe_relation_results()` needs to be implemented on {cls.__name__}"
         )
 
     @classmethod

@@ -1,18 +1,18 @@
 from dataclasses import dataclass
-from typing import Optional, Set
+from typing import Any, Dict, Optional, Set
 
 import agate
-from dbt.adapters.relation_configs import (
-    RelationConfigChange,
-    RelationConfigChangeAction,
-    RelationConfigValidationMixin,
-    RelationConfigValidationRule,
+from dbt.adapters.relation.models import (
+    DescribeRelationResults,
+    RelationChange,
+    RelationChangeAction,
 )
+from dbt.adapters.validation import ValidationMixin, ValidationRule
 from dbt.contracts.graph.nodes import ModelNode
 from dbt.dataclass_schema import StrEnum
 from dbt.exceptions import DbtRuntimeError
 
-from dbt.adapters.redshift.relation_configs.base import RedshiftRelationConfigBase
+from dbt.adapters.redshift.relation.models._base import RedshiftRelationComponent
 
 
 class RedshiftDistStyle(StrEnum):
@@ -27,7 +27,7 @@ class RedshiftDistStyle(StrEnum):
 
 
 @dataclass(frozen=True, eq=True, unsafe_hash=True)
-class RedshiftDistConfig(RedshiftRelationConfigBase, RelationConfigValidationMixin):
+class RedshiftDistRelation(RedshiftRelationComponent, ValidationMixin):
     """
     This config fallows the specs found here:
     https://docs.aws.amazon.com/redshift/latest/dg/r_CREATE_TABLE_NEW.html
@@ -41,10 +41,10 @@ class RedshiftDistConfig(RedshiftRelationConfigBase, RelationConfigValidationMix
     distkey: Optional[str] = None
 
     @property
-    def validation_rules(self) -> Set[RelationConfigValidationRule]:
+    def validation_rules(self) -> Set[ValidationRule]:
         # index rules get run by default with the mixin
         return {
-            RelationConfigValidationRule(
+            ValidationRule(
                 validation_check=not (
                     self.diststyle == RedshiftDistStyle.key and self.distkey is None
                 ),
@@ -52,7 +52,7 @@ class RedshiftDistConfig(RedshiftRelationConfigBase, RelationConfigValidationMix
                     "A `RedshiftDistConfig` that specifies a `diststyle` of `key` must provide a value for `distkey`."
                 ),
             ),
-            RelationConfigValidationRule(
+            ValidationRule(
                 validation_check=not (
                     self.diststyle
                     in (RedshiftDistStyle.auto, RedshiftDistStyle.even, RedshiftDistStyle.all)
@@ -65,21 +65,22 @@ class RedshiftDistConfig(RedshiftRelationConfigBase, RelationConfigValidationMix
         }
 
     @classmethod
-    def from_dict(cls, config_dict) -> "RedshiftDistConfig":
+    def from_dict(cls, config_dict) -> "RedshiftDistRelation":
         kwargs_dict = {
             "diststyle": config_dict.get("diststyle"),
             "distkey": config_dict.get("distkey"),
         }
-        dist: "RedshiftDistConfig" = super().from_dict(kwargs_dict)  # type: ignore
+        dist = super().from_dict(kwargs_dict)
+        assert isinstance(dist, RedshiftDistRelation)
         return dist
 
     @classmethod
-    def parse_model_node(cls, model_node: ModelNode) -> dict:
+    def parse_node(cls, node: ModelNode) -> Dict[str, Any]:
         """
         Translate ModelNode objects from the user-provided config into a standard dictionary.
 
         Args:
-            model_node: the description of the distkey and diststyle from the user in this format:
+            node: the description of the distkey and diststyle from the user in this format:
 
                 {
                     "dist": any("auto", "even", "all") or "<column_name>"
@@ -87,7 +88,7 @@ class RedshiftDistConfig(RedshiftRelationConfigBase, RelationConfigValidationMix
 
         Returns: a standard dictionary describing this `RedshiftDistConfig` instance
         """
-        dist = model_node.config.extra.get("dist", "")
+        dist = node.config.extra.get("dist", "")
 
         diststyle = dist.lower()
 
@@ -107,12 +108,14 @@ class RedshiftDistConfig(RedshiftRelationConfigBase, RelationConfigValidationMix
         return config
 
     @classmethod
-    def parse_relation_results(cls, relation_results_entry: agate.Row) -> dict:
+    def parse_describe_relation_results(
+        cls, describe_relation_results: DescribeRelationResults
+    ) -> Dict[str, Any]:
         """
         Translate agate objects from the database into a standard dictionary.
 
         Args:
-            relation_results_entry: the description of the distkey and diststyle from the database in this format:
+            describe_relation_results: the description of the distkey and diststyle from the database in this format:
 
                 agate.Row({
                     "diststyle": "<diststyle/distkey>",  # e.g. EVEN | KEY(column1) | AUTO(ALL) | AUTO(KEY(id))
@@ -120,7 +123,8 @@ class RedshiftDistConfig(RedshiftRelationConfigBase, RelationConfigValidationMix
 
         Returns: a standard dictionary describing this `RedshiftDistConfig` instance
         """
-        dist: str = relation_results_entry.get("diststyle")
+        assert isinstance(describe_relation_results, agate.Row)
+        dist: str = describe_relation_results.get("diststyle")
 
         try:
             # covers `AUTO`, `ALL`, `EVEN`, `KEY`, '', <unexpected>
@@ -145,18 +149,18 @@ class RedshiftDistConfig(RedshiftRelationConfigBase, RelationConfigValidationMix
 
 
 @dataclass(frozen=True, eq=True, unsafe_hash=True)
-class RedshiftDistConfigChange(RelationConfigChange, RelationConfigValidationMixin):
-    context: RedshiftDistConfig
+class RedshiftDistRelationChange(RelationChange, ValidationMixin):
+    context: RedshiftDistRelation
 
     @property
     def requires_full_refresh(self) -> bool:
         return True
 
     @property
-    def validation_rules(self) -> Set[RelationConfigValidationRule]:
+    def validation_rules(self) -> Set[ValidationRule]:
         return {
-            RelationConfigValidationRule(
-                validation_check=(self.action == RelationConfigChangeAction.alter),
+            ValidationRule(
+                validation_check=(self.action == RelationChangeAction.alter),
                 validation_error=DbtRuntimeError(
                     "Invalid operation, only `alter` changes are supported for `distkey` / `diststyle`."
                 ),

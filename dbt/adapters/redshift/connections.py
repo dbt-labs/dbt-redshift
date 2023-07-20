@@ -1,20 +1,20 @@
-import re
-from multiprocessing import Lock
 from contextlib import contextmanager
-from typing import NewType, Tuple, Union, Optional, List
 from dataclasses import dataclass, field
+from multiprocessing import Lock
+import re
+from typing import List, NewType, Optional, Tuple, Union
 
 import agate
-import sqlparse
 import redshift_connector
 from redshift_connector.utils.oids import get_datatype_name
+import sqlparse
 
 from dbt.adapters.sql import SQLConnectionManager
 from dbt.contracts.connection import AdapterResponse, Connection, Credentials
 from dbt.contracts.util import Replaceable
-from dbt.dataclass_schema import FieldEncoder, dbtClassMixin, StrEnum, ValidationError
+from dbt.dataclass_schema import FieldEncoder, StrEnum, ValidationError, dbtClassMixin
 from dbt.events import AdapterLogger
-from dbt.exceptions import DbtRuntimeError, CompilationError
+from dbt.exceptions import CompilationError, DbtRuntimeError
 import dbt.flags
 from dbt.helper_types import Port
 

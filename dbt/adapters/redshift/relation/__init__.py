@@ -2,26 +2,26 @@ from dataclasses import dataclass
 from typing import Optional
 
 from dbt.adapters.base.relation import BaseRelation
-from dbt.adapters.relation_configs import (
-    RelationConfigBase,
-    RelationConfigChangeAction,
-    RelationResults,
+from dbt.adapters.relation.models import (
+    DescribeRelationResults,
+    RelationChangeAction,
+    RelationComponent,
 )
 from dbt.context.providers import RuntimeConfigObject
 from dbt.contracts.graph.nodes import ModelNode
 from dbt.contracts.relation import RelationType
 from dbt.exceptions import DbtRuntimeError
 
-from dbt.adapters.redshift.relation_configs import (
-    RedshiftMaterializedViewConfig,
-    RedshiftMaterializedViewConfigChangeset,
-    RedshiftAutoRefreshConfigChange,
-    RedshiftBackupConfigChange,
-    RedshiftDistConfigChange,
-    RedshiftSortConfigChange,
-    RedshiftIncludePolicy,
-    RedshiftQuotePolicy,
+from dbt.adapters.redshift.relation.models import (
     MAX_CHARACTERS_IN_IDENTIFIER,
+    RedshiftAutoRefreshRelationChange,
+    RedshiftBackupRelationChange,
+    RedshiftDistRelationChange,
+    RedshiftIncludePolicy,
+    RedshiftMaterializedViewRelation,
+    RedshiftMaterializedViewRelationChangeset,
+    RedshiftQuotePolicy,
+    RedshiftSortRelationChange,
 )
 
 
@@ -30,7 +30,7 @@ class RedshiftRelation(BaseRelation):
     include_policy = RedshiftIncludePolicy  # type: ignore
     quote_policy = RedshiftQuotePolicy  # type: ignore
     relation_configs = {
-        RelationType.MaterializedView.value: RedshiftMaterializedViewConfig,
+        RelationType.MaterializedView.value: RedshiftMaterializedViewRelation,
     }
 
     def __post_init__(self):
@@ -50,12 +50,12 @@ class RedshiftRelation(BaseRelation):
         return MAX_CHARACTERS_IN_IDENTIFIER
 
     @classmethod
-    def from_runtime_config(cls, runtime_config: RuntimeConfigObject) -> RelationConfigBase:
+    def from_runtime_config(cls, runtime_config: RuntimeConfigObject) -> RelationComponent:
         model_node: ModelNode = runtime_config.model
         relation_type: str = model_node.config.materialized
 
         if relation_config := cls.relation_configs.get(relation_type):
-            return relation_config.from_model_node(model_node)
+            return relation_config.from_node(model_node)
 
         raise DbtRuntimeError(
             f"from_runtime_config() is not supported for the provided relation type: {relation_type}"
@@ -63,40 +63,42 @@ class RedshiftRelation(BaseRelation):
 
     @classmethod
     def materialized_view_config_changeset(
-        cls, relation_results: RelationResults, runtime_config: RuntimeConfigObject
-    ) -> Optional[RedshiftMaterializedViewConfigChangeset]:
-        config_change_collection = RedshiftMaterializedViewConfigChangeset()
+        cls,
+        describe_relation_results: DescribeRelationResults,
+        runtime_config: RuntimeConfigObject,
+    ) -> Optional[RedshiftMaterializedViewRelationChangeset]:
+        config_change_collection = RedshiftMaterializedViewRelationChangeset()
 
-        existing_materialized_view = RedshiftMaterializedViewConfig.from_relation_results(
-            relation_results
+        existing_materialized_view = (
+            RedshiftMaterializedViewRelation.from_describe_relation_results(
+                describe_relation_results
+            )
         )
-        new_materialized_view = RedshiftMaterializedViewConfig.from_model_node(
-            runtime_config.model
-        )
-        assert isinstance(existing_materialized_view, RedshiftMaterializedViewConfig)
-        assert isinstance(new_materialized_view, RedshiftMaterializedViewConfig)
+        new_materialized_view = RedshiftMaterializedViewRelation.from_node(runtime_config.model)
+        assert isinstance(existing_materialized_view, RedshiftMaterializedViewRelation)
+        assert isinstance(new_materialized_view, RedshiftMaterializedViewRelation)
 
         if new_materialized_view.autorefresh != existing_materialized_view.autorefresh:
-            config_change_collection.autorefresh = RedshiftAutoRefreshConfigChange(
-                action=RelationConfigChangeAction.alter,
+            config_change_collection.autorefresh = RedshiftAutoRefreshRelationChange(
+                action=RelationChangeAction.alter,
                 context=new_materialized_view.autorefresh,
             )
 
         if new_materialized_view.backup != existing_materialized_view.backup:
-            config_change_collection.backup = RedshiftBackupConfigChange(
-                action=RelationConfigChangeAction.alter,
+            config_change_collection.backup = RedshiftBackupRelationChange(
+                action=RelationChangeAction.alter,
                 context=new_materialized_view.backup,
             )
 
         if new_materialized_view.dist != existing_materialized_view.dist:
-            config_change_collection.dist = RedshiftDistConfigChange(
-                action=RelationConfigChangeAction.alter,
+            config_change_collection.dist = RedshiftDistRelationChange(
+                action=RelationChangeAction.alter,
                 context=new_materialized_view.dist,
             )
 
         if new_materialized_view.sort != existing_materialized_view.sort:
-            config_change_collection.sort = RedshiftSortConfigChange(
-                action=RelationConfigChangeAction.alter,
+            config_change_collection.sort = RedshiftSortRelationChange(
+                action=RelationChangeAction.alter,
                 context=new_materialized_view.sort,
             )
 
