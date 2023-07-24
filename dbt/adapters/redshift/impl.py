@@ -3,15 +3,17 @@ from typing import Optional, Set, Any, Dict, Type, List
 from collections import namedtuple
 from dbt.adapters.base import PythonJobHelper
 from dbt.adapters.base.impl import AdapterConfig, ConstraintSupport
-from dbt.adapters.sql import SQLAdapter
 from dbt.adapters.base.meta import available
+from dbt.adapters.sql import SQLAdapter
 from dbt.contracts.connection import AdapterResponse
 from dbt.contracts.graph.nodes import ConstraintType
 from dbt.events import AdapterLogger
 
+
 import dbt.exceptions
 
-from dbt.adapters.redshift import RedshiftConnectionManager, RedshiftRelation, RedshiftColumn
+from dbt.adapters.redshift import RedshiftConnectionManager, RedshiftRelation
+
 
 logger = AdapterLogger("Redshift")
 
@@ -26,13 +28,13 @@ class RedshiftConfig(AdapterConfig):
     sort: Optional[str] = None
     bind: Optional[bool] = None
     backup: Optional[bool] = True
+    auto_refresh: Optional[bool] = False
 
 
 class RedshiftAdapter(SQLAdapter):
     Relation = RedshiftRelation  # type: ignore
     ConnectionManager = RedshiftConnectionManager
     connections: RedshiftConnectionManager
-    Column = RedshiftColumn  # type: ignore
 
     AdapterSpecificConfigs = RedshiftConfig  # type: ignore
 
@@ -108,7 +110,7 @@ class RedshiftAdapter(SQLAdapter):
         """The set of standard builtin strategies which this adapter supports out-of-the-box.
         Not used to validate custom strategies defined by end users.
         """
-        return ["append", "delete+insert"]
+        return ["append", "delete+insert", "merge"]
 
     def timestamp_add_sql(self, add_to: str, number: int = 1, interval: str = "hour") -> str:
         return f"{add_to} + interval '{number} {interval}'"
@@ -177,3 +179,7 @@ class RedshiftAdapter(SQLAdapter):
 
     def generate_python_submission_response(self, submission_result: Any) -> AdapterResponse:
         return super().generate_python_submission_response(submission_result)
+
+    def debug_query(self):
+        """Override for DebugTask method"""
+        self.execute("select 1 as id")

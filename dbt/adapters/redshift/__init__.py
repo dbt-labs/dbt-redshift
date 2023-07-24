@@ -5,6 +5,7 @@ from dbt.adapters.redshift.connections import (  # noqa: F401
     RedshiftConnectionManager,
     RedshiftCredentials,
 )
+
 from dbt.adapters.redshift.relation import RedshiftRelation  # noqa: F401
 from dbt.adapters.redshift.impl import RedshiftAdapter
 from dbt.include import redshift
