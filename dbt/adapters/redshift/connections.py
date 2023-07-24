@@ -7,17 +7,27 @@ from dataclasses import dataclass, field
 import agate
 import sqlparse
 import redshift_connector
-import urllib.request
-import json
 from redshift_connector.utils.oids import get_datatype_name
 
 from dbt.adapters.sql import SQLConnectionManager
 from dbt.contracts.connection import AdapterResponse, Connection, Credentials
+from dbt.contracts.util import Replaceable
+from dbt.dataclass_schema import FieldEncoder, dbtClassMixin, StrEnum, ValidationError
 from dbt.events import AdapterLogger
-import dbt.exceptions
+from dbt.exceptions import DbtRuntimeError, CompilationError
 import dbt.flags
-from dbt.dataclass_schema import FieldEncoder, dbtClassMixin, StrEnum
 from dbt.helper_types import Port
+
+
+class SSLConfigError(CompilationError):
+    def __init__(self, exc: ValidationError):
+        self.exc = exc
+        super().__init__(msg=self.get_message())
+
+    def get_message(self) -> str:
+        validator_msg = self.validator_error_message(self.exc)
+        msg = f"Could not parse SSL config: {validator_msg}"
+        return msg
 
 
 logger = AdapterLogger("Redshift")
@@ -38,26 +48,69 @@ class IAMDurationEncoder(FieldEncoder):
 dbtClassMixin.register_field_encoders({IAMDuration: IAMDurationEncoder()})
 
 
-def _get_aws_regions():
-    # Extract the prefixes from the AWS IP ranges JSON to determine the available regions
-    url = "https://ip-ranges.amazonaws.com/ip-ranges.json"
-    response = urllib.request.urlopen(url)
-    data = json.loads(response.read().decode())
-    regions = set()
-
-    for prefix in data["prefixes"]:
-        if prefix["service"] == "AMAZON":
-            regions.add(prefix["region"])
-
-    return regions
-
-
-_AVAILABLE_AWS_REGIONS = _get_aws_regions()
-
-
 class RedshiftConnectionMethod(StrEnum):
     DATABASE = "database"
     IAM = "iam"
+
+
+class UserSSLMode(StrEnum):
+    disable = "disable"
+    allow = "allow"
+    prefer = "prefer"
+    require = "require"
+    verify_ca = "verify-ca"
+    verify_full = "verify-full"
+
+    @classmethod
+    def default(cls) -> "UserSSLMode":
+        # default for `psycopg2`, which aligns with dbt-redshift 1.4 and provides backwards compatibility
+        return cls.prefer
+
+
+class RedshiftSSLMode(StrEnum):
+    verify_ca = "verify-ca"
+    verify_full = "verify-full"
+
+
+SSL_MODE_TRANSLATION = {
+    UserSSLMode.disable: None,
+    UserSSLMode.allow: RedshiftSSLMode.verify_ca,
+    UserSSLMode.prefer: RedshiftSSLMode.verify_ca,
+    UserSSLMode.require: RedshiftSSLMode.verify_ca,
+    UserSSLMode.verify_ca: RedshiftSSLMode.verify_ca,
+    UserSSLMode.verify_full: RedshiftSSLMode.verify_full,
+}
+
+
+@dataclass
+class RedshiftSSLConfig(dbtClassMixin, Replaceable):  # type: ignore
+    ssl: bool = True
+    sslmode: Optional[RedshiftSSLMode] = SSL_MODE_TRANSLATION[UserSSLMode.default()]
+
+    @classmethod
+    def parse(cls, user_sslmode: UserSSLMode) -> "RedshiftSSLConfig":
+        try:
+            raw_redshift_ssl = {
+                "ssl": user_sslmode != UserSSLMode.disable,
+                "sslmode": SSL_MODE_TRANSLATION[user_sslmode],
+            }
+            cls.validate(raw_redshift_ssl)
+        except ValidationError as exc:
+            raise SSLConfigError(exc)
+
+        redshift_ssl = cls.from_dict(raw_redshift_ssl)
+
+        if redshift_ssl.ssl:
+            message = (
+                f"Establishing connection using ssl with `sslmode` set to '{user_sslmode}'."
+                f"To connect without ssl, set `sslmode` to 'disable'."
+            )
+        else:
+            message = "Establishing connection without ssl."
+
+        logger.debug(message)
+
+        return redshift_ssl
 
 
 @dataclass
@@ -75,12 +128,14 @@ class RedshiftCredentials(Credentials):
     autocreate: bool = False
     db_groups: List[str] = field(default_factory=list)
     ra3_node: Optional[bool] = False
-    connect_timeout: int = 30
+    connect_timeout: Optional[int] = None
     role: Optional[str] = None
-    sslmode: Optional[str] = None
+    sslmode: Optional[UserSSLMode] = field(default_factory=UserSSLMode.default)
     retries: int = 1
-    region: Optional[str] = None  # if not provided, will be determined from host
     current_db_only: Optional[bool] = False
+    region: Optional[str] = None
+    # opt-in by default per team deliberation on https://peps.python.org/pep-0249/#autocommit
+    autocommit: Optional[bool] = True
 
     _ALIASES = {"dbname": "database", "pass": "password"}
 
@@ -91,27 +146,30 @@ class RedshiftCredentials(Credentials):
     def _connection_keys(self):
         return (
             "host",
-            "port",
             "user",
+            "port",
             "database",
-            "schema",
             "method",
             "cluster_id",
             "iam_profile",
+            "schema",
             "sslmode",
             "region",
+            "sslmode",
+            "region",
+            "iam_profile",
+            "autocreate",
+            "db_groups",
+            "ra3_node",
+            "connect_timeout",
+            "role",
+            "retries",
+            "autocommit",
         )
 
     @property
     def unique_field(self) -> str:
         return self.host
-
-
-def _is_valid_region(region):
-    if region is None or len(region) == 0:
-        logger.warning("Couldn't determine AWS regions. Skipping validation to avoid blocking.")
-        return True
-    return region in _AVAILABLE_AWS_REGIONS
 
 
 class RedshiftConnectMethodFactory:
@@ -125,33 +183,16 @@ class RedshiftConnectMethodFactory:
         kwargs = {
             "host": self.credentials.host,
             "database": self.credentials.database,
-            "port": self.credentials.port if self.credentials.port else 5439,
+            "port": int(self.credentials.port) if self.credentials.port else int(5439),
             "auto_create": self.credentials.autocreate,
             "db_groups": self.credentials.db_groups,
             "region": self.credentials.region,
             "timeout": self.credentials.connect_timeout,
             "database_metadata_current_db_only": self.credentials.current_db_only,
         }
-        if kwargs["region"] is None:
-            logger.debug("No region provided, attempting to determine from host.")
-            try:
-                region_value = self.credentials.host.split(".")[2]
-            except IndexError:
-                raise dbt.exceptions.FailedToConnectError(
-                    "No region provided and unable to determine region from host: "
-                    "{}".format(self.credentials.host)
-                )
 
-            kwargs["region"] = region_value
-
-        # Validate the set region
-        if not _is_valid_region(kwargs["region"]):
-            raise dbt.exceptions.FailedToConnectError(
-                "Invalid region provided: {}".format(kwargs["region"])
-            )
-
-        if self.credentials.sslmode:
-            kwargs["sslmode"] = self.credentials.sslmode
+        redshift_ssl_config = RedshiftSSLConfig.parse(self.credentials.sslmode)
+        kwargs.update(redshift_ssl_config.to_dict())
 
         # Support missing 'method' for backwards compatibility
         if method == RedshiftConnectionMethod.DATABASE or method is None:
@@ -169,6 +210,8 @@ class RedshiftConnectMethodFactory:
                     password=self.credentials.password,
                     **kwargs,
                 )
+                if self.credentials.autocommit:
+                    c.autocommit = True
                 if self.credentials.role:
                     c.cursor().execute("set role {}".format(self.credentials.role))
                 return c
@@ -191,6 +234,8 @@ class RedshiftConnectMethodFactory:
                     profile=self.credentials.iam_profile,
                     **kwargs,
                 )
+                if self.credentials.autocommit:
+                    c.autocommit = True
                 if self.credentials.role:
                     c.cursor().execute("set role {}".format(self.credentials.role))
                 return c
@@ -310,6 +355,7 @@ class RedshiftConnectionManager(SQLConnectionManager):
         fetch: bool = False,
         limit: Optional[int] = None,
     ) -> Tuple[AdapterResponse, agate.Table]:
+        sql = self._add_query_comment(sql)
         _, cursor = self.add_query(sql, auto_begin)
         response = self.get_response(cursor)
         if fetch:
@@ -342,7 +388,7 @@ class RedshiftConnectionManager(SQLConnectionManager):
         if cursor is None:
             conn = self.get_thread_connection()
             conn_name = conn.name if conn and conn.name else "<None>"
-            raise dbt.exceptions.DbtRuntimeError(f"Tried to run invalid SQL: {sql} on {conn_name}")
+            raise DbtRuntimeError(f"Tried to run invalid SQL: {sql} on {conn_name}")
 
         return connection, cursor
 
