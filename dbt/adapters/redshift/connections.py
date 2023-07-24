@@ -155,9 +155,6 @@ class RedshiftCredentials(Credentials):
             "schema",
             "sslmode",
             "region",
-            "sslmode",
-            "region",
-            "iam_profile",
             "autocreate",
             "db_groups",
             "ra3_node",
@@ -165,6 +162,7 @@ class RedshiftCredentials(Credentials):
             "role",
             "retries",
             "autocommit",
+            "current_db_only",
         )
 
     @property
