@@ -587,6 +587,32 @@ class TestRedshiftAdapter(unittest.TestCase):
         mock_handle.return_value = mock_cursor
         return mock_cursor
 
+    @mock.patch("dbt.adapters.redshift.impl.RedshiftAdapter._get_cursor")
+    def test_get_columns_in_relation_char(self, mock_cursor):
+        mock_relation = mock.MagicMock(database="somedb", schema="someschema", identifier="iden")
+        mock_cursor.return_value.get_columns.return_value = [
+            ("TABLE_CAT", "TABLE_SCHEM", "TABLE_NAME", "char_column", 12, "char", 10, 10, None)
+        ]
+        result = self.adapter.get_columns_in_relation(mock_relation)
+        self.assertTrue(result[0].column == "char_column")
+        self.assertTrue(result[0].dtype == "char")
+        self.assertTrue(result[0].char_size == 10)
+        self.assertTrue(result[0].numeric_scale is None)
+        self.assertTrue(result[0].numeric_precision is None)
+
+    @mock.patch("dbt.adapters.redshift.impl.RedshiftAdapter._get_cursor")
+    def test_get_columns_in_relation_int(self, mock_cursor):
+        mock_relation = mock.MagicMock(database="somedb", schema="someschema", identifier="iden")
+        mock_cursor.return_value.get_columns.return_value = [
+            ("TABLE_CAT", "TABLE_SCHEM", "TABLE_NAME", "int_column", 4, "integer", 10, 10, 20)
+        ]
+        result = self.adapter.get_columns_in_relation(mock_relation)
+        self.assertTrue(result[0].column == "int_column")
+        self.assertTrue(result[0].dtype == "integer")
+        self.assertTrue(result[0].char_size is None)
+        self.assertTrue(result[0].numeric_scale == 20)
+        self.assertTrue(result[0].numeric_precision == 10)
+
 
 class TestRedshiftAdapterConversions(TestAdapterConversions):
     def test_convert_text_type(self):
