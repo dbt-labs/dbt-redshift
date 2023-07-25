@@ -1,0 +1,6 @@
+kind: Under the Hood
+body: use redshift driver api calls instead of hard coding get_columns
+time: 2023-07-25T14:16:28.492828-07:00
+custom:
+  Author: jiezhen-chen
+  Issue: "555"
