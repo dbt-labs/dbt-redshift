@@ -16,6 +16,20 @@ select 1 as id limit {{ limit_query }}
 
 """
 
+tests__get_columns_invalid = """
+{% set model = ref('model_regression') %}
+{% set relation = api.Relation.create(database=model.database, schema=model.schema, identifier=model.identifier) %}
+{% set cols = adapter.get_columns_in_relation(relation) %}
+{%- if ( (cols[0].dtype == 'int4') and (cols[0].column == 'id') ) -%}
+    {% set limit_query = 0 %}
+{% else %}
+    {% set limit_query = 1 %}
+{% endif %}
+
+select 1 as id limit {{ limit_query }}
+
+"""
+
 models__upstream_sql = """
 select 1 as id
 
@@ -72,7 +86,10 @@ select 0 as valid_type
 class RedshiftAdapterMethod:
     @pytest.fixture(scope="class")
     def tests(self):
-        return {"get_relation_invalid.sql": tests__get_relation_invalid}
+        return {
+            "get_relation_invalid.sql": tests__get_relation_invalid,
+            "get_columns_invalid.sql": tests__get_columns_invalid,
+        }
 
     @pytest.fixture(scope="class")
     def models(self):
