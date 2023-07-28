@@ -121,27 +121,24 @@ class RedshiftAdapter(SQLAdapter):
 
     def get_columns_in_relation(self, relation):
         cursor = self._get_cursor()
-        results = []
-        if relation.identifier:
-            columns = cursor.get_columns(
-                catalog=relation.database,
-                schema_pattern=relation.schema,
-                tablename_pattern=relation.identifier,
-            )
-        else:
-            columns = cursor.get_columns(catalog=relation.database, schema_pattern=relation.schema)
-        if columns is not None and len(columns) > 0:
+        if columns := cursor.get_columns(
+            catalog=relation.database,
+            schema_pattern=relation.schema,
+            tablename_pattern=relation.identifier,
+        ):
+            results = []
+            CHAR_TYPES = {1, 12}
+            NUMERIC_TYPES = {5, 4, -5, 3, 7, 8, 6, 2, 2003}
             for column in columns:
-                if column[4] == 1 or column[4] == 12:  # if column type is character
-                    results.append(Column(column[3], column[5], column[6], None, None))
-                # elif column[4] == 5 or column[4] == 4 or column[4] == -5 or column[4] == 3 or column[4] == 7\
-                #         or column[4] == 8 or column[4] == 6 or column[4] == 2 or column[4] == 2003:#if column type is numeric
-                elif any(
-                    column[4] == type_int for type_int in [5, 4, -5, 3, 7, 8, 6, 2, 2003]
-                ):  # if column type is numeric
-                    results.append(Column(column[3], column[5], None, column[6], column[8]))
+                _, _, _, name, dtype_number, dtype_name, size, _, numeric_precision, *_ = column
+                if dtype_number in CHAR_TYPES:
+                    results.append(Column(name, dtype_name, size, None, None))  # if
+                elif dtype_number in NUMERIC_TYPES:
+                    results.append(Column(name, dtype_name, None, size, numeric_precision))
                 else:
-                    results.append(Column(column[3], column[5], column[6], None, None))
+                    results.append(Column(name, dtype_name, size, None, None))
+        else:
+            results = []
         return results
 
     def _link_cached_database_relations(self, schemas: Set[str]):
