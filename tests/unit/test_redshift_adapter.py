@@ -11,8 +11,7 @@ from dbt.adapters.redshift import (
     Plugin as RedshiftPlugin,
 )
 from dbt.clients import agate_helper
-from dbt.exceptions import FailedToConnectError
-from dbt.adapters.redshift.connections import RedshiftConnectMethodFactory, RedshiftSSLConfig
+from dbt.adapters.redshift.connections import RedshiftSSLConfig
 from .utils import (
     config_from_parts_or_dicts,
     mock_connection,
@@ -75,8 +74,8 @@ class TestRedshiftAdapter(unittest.TestCase):
             port=5439,
             auto_create=False,
             db_groups=[],
-            timeout=None,
-            region=None,
+            numeric_to_float=False,
+            is_serverless=False,
             **DEFAULT_SSL_CONFIG,
         )
 
@@ -94,8 +93,8 @@ class TestRedshiftAdapter(unittest.TestCase):
             port=5439,
             auto_create=False,
             db_groups=[],
-            region=None,
-            timeout=None,
+            numeric_to_float=False,
+            is_serverless=False,
             **DEFAULT_SSL_CONFIG,
         )
 
@@ -103,7 +102,7 @@ class TestRedshiftAdapter(unittest.TestCase):
     def test_explicit_iam_conn_without_profile(self):
         self.config.credentials = self.config.credentials.replace(
             method="iam",
-            cluster_id="my_redshift",
+            cluster_identifier="my_redshift",
             host="thishostshouldnotexist.test.us-east-1",
         )
         connection = self.adapter.acquire_connection("dummy")
@@ -116,18 +115,17 @@ class TestRedshiftAdapter(unittest.TestCase):
             password="",
             user="",
             cluster_identifier="my_redshift",
-            region=None,
-            timeout=None,
             auto_create=False,
             db_groups=[],
-            profile=None,
             port=5439,
+            numeric_to_float=False,
+            is_serverless=False,
             **DEFAULT_SSL_CONFIG,
         )
 
     @mock.patch("redshift_connector.connect", Mock())
     def test_conn_timeout_30(self):
-        self.config.credentials = self.config.credentials.replace(connect_timeout=30)
+        self.config.credentials = self.config.credentials.replace(timeout=30)
         connection = self.adapter.acquire_connection("dummy")
         connection.handle
         redshift_connector.connect.assert_called_once_with(
@@ -138,8 +136,9 @@ class TestRedshiftAdapter(unittest.TestCase):
             port=5439,
             auto_create=False,
             db_groups=[],
-            region=None,
             timeout=30,
+            numeric_to_float=False,
+            is_serverless=False,
             **DEFAULT_SSL_CONFIG,
         )
 
@@ -147,8 +146,8 @@ class TestRedshiftAdapter(unittest.TestCase):
     def test_explicit_iam_conn_with_profile(self):
         self.config.credentials = self.config.credentials.replace(
             method="iam",
-            cluster_id="my_redshift",
-            iam_profile="test",
+            cluster_identifier="my_redshift",
+            profile="test",
             host="thishostshouldnotexist.test.us-east-1",
         )
         connection = self.adapter.acquire_connection("dummy")
@@ -159,15 +158,15 @@ class TestRedshiftAdapter(unittest.TestCase):
             host="thishostshouldnotexist.test.us-east-1",
             database="redshift",
             cluster_identifier="my_redshift",
-            region=None,
             auto_create=False,
             db_groups=[],
             db_user="root",
             password="",
             user="",
             profile="test",
-            timeout=None,
             port=5439,
+            numeric_to_float=False,
+            is_serverless=False,
             **DEFAULT_SSL_CONFIG,
         )
 
@@ -175,7 +174,7 @@ class TestRedshiftAdapter(unittest.TestCase):
     def test_explicit_iam_serverless_with_profile(self):
         self.config.credentials = self.config.credentials.replace(
             method="iam",
-            iam_profile="test",
+            profile="test",
             host="doesnotexist.1233.us-east-2.redshift-serverless.amazonaws.com",
         )
         connection = self.adapter.acquire_connection("dummy")
@@ -184,16 +183,15 @@ class TestRedshiftAdapter(unittest.TestCase):
             iam=True,
             host="doesnotexist.1233.us-east-2.redshift-serverless.amazonaws.com",
             database="redshift",
-            cluster_identifier=None,
-            region=None,
             auto_create=False,
             db_groups=[],
             db_user="root",
             password="",
             user="",
             profile="test",
-            timeout=None,
             port=5439,
+            numeric_to_float=False,
+            is_serverless=False,
             **DEFAULT_SSL_CONFIG,
         )
 
@@ -202,7 +200,7 @@ class TestRedshiftAdapter(unittest.TestCase):
         # Successful test
         self.config.credentials = self.config.credentials.replace(
             method="iam",
-            iam_profile="test",
+            profile="test",
             host="doesnotexist.1233.redshift-serverless.amazonaws.com",
             region="us-east-2",
         )
@@ -212,7 +210,6 @@ class TestRedshiftAdapter(unittest.TestCase):
             iam=True,
             host="doesnotexist.1233.redshift-serverless.amazonaws.com",
             database="redshift",
-            cluster_identifier=None,
             region="us-east-2",
             auto_create=False,
             db_groups=[],
@@ -220,68 +217,11 @@ class TestRedshiftAdapter(unittest.TestCase):
             password="",
             user="",
             profile="test",
-            timeout=None,
             port=5439,
+            numeric_to_float=False,
+            is_serverless=False,
             **DEFAULT_SSL_CONFIG,
         )
-
-    @mock.patch("redshift_connector.connect", Mock())
-    def test_explicit_region_failure(self):
-        # Failure test with no region
-        self.config.credentials = self.config.credentials.replace(
-            method="iam",
-            iam_profile="test",
-            host="doesnotexist.1233_no_region",
-            region=None,
-        )
-
-        with self.assertRaises(dbt.exceptions.FailedToConnectError):
-            connection = self.adapter.acquire_connection("dummy")
-            connection.handle
-            redshift_connector.connect.assert_called_once_with(
-                iam=True,
-                host="doesnotexist.1233_no_region",
-                database="redshift",
-                cluster_identifier=None,
-                auto_create=False,
-                db_groups=[],
-                db_user="root",
-                password="",
-                user="",
-                profile="test",
-                timeout=None,
-                port=5439,
-                **DEFAULT_SSL_CONFIG,
-            )
-
-    @mock.patch("redshift_connector.connect", Mock())
-    def test_explicit_invalid_region(self):
-        # Invalid region test
-        self.config.credentials = self.config.credentials.replace(
-            method="iam",
-            iam_profile="test",
-            host="doesnotexist.1233_no_region.us-not-a-region-1",
-            region=None,
-        )
-
-        with self.assertRaises(dbt.exceptions.FailedToConnectError):
-            connection = self.adapter.acquire_connection("dummy")
-            connection.handle
-            redshift_connector.connect.assert_called_once_with(
-                iam=True,
-                host="doesnotexist.1233_no_region",
-                database="redshift",
-                cluster_identifier=None,
-                auto_create=False,
-                db_groups=[],
-                db_user="root",
-                password="",
-                user="",
-                profile="test",
-                timeout=None,
-                port=5439,
-                **DEFAULT_SSL_CONFIG,
-            )
 
     @mock.patch("redshift_connector.connect", Mock())
     def test_sslmode_disable(self):
@@ -296,10 +236,10 @@ class TestRedshiftAdapter(unittest.TestCase):
             port=5439,
             auto_create=False,
             db_groups=[],
-            region=None,
-            timeout=None,
             ssl=False,
             sslmode=None,
+            numeric_to_float=False,
+            is_serverless=False,
         )
 
     @mock.patch("redshift_connector.connect", Mock())
@@ -315,10 +255,10 @@ class TestRedshiftAdapter(unittest.TestCase):
             port=5439,
             auto_create=False,
             db_groups=[],
-            region=None,
-            timeout=None,
             ssl=True,
             sslmode="verify-ca",
+            numeric_to_float=False,
+            is_serverless=False,
         )
 
     @mock.patch("redshift_connector.connect", Mock())
@@ -334,10 +274,10 @@ class TestRedshiftAdapter(unittest.TestCase):
             port=5439,
             auto_create=False,
             db_groups=[],
-            region=None,
-            timeout=None,
             ssl=True,
             sslmode="verify-full",
+            numeric_to_float=False,
+            is_serverless=False,
         )
 
     @mock.patch("redshift_connector.connect", Mock())
@@ -353,10 +293,10 @@ class TestRedshiftAdapter(unittest.TestCase):
             port=5439,
             auto_create=False,
             db_groups=[],
-            region=None,
-            timeout=None,
             ssl=True,
             sslmode="verify-ca",
+            numeric_to_float=False,
+            is_serverless=False,
         )
 
     @mock.patch("redshift_connector.connect", Mock())
@@ -372,39 +312,11 @@ class TestRedshiftAdapter(unittest.TestCase):
             port=5439,
             auto_create=False,
             db_groups=[],
-            region=None,
-            timeout=None,
             ssl=True,
             sslmode="verify-ca",
+            numeric_to_float=False,
+            is_serverless=False,
         )
-
-    @mock.patch("redshift_connector.connect", Mock())
-    def test_serverless_iam_failure(self):
-        self.config.credentials = self.config.credentials.replace(
-            method="iam",
-            iam_profile="test",
-            host="doesnotexist.1233.us-east-2.redshift-srvrlss.amazonaws.com",
-        )
-        with self.assertRaises(dbt.exceptions.FailedToConnectError) as context:
-            connection = self.adapter.acquire_connection("dummy")
-            connection.handle
-            redshift_connector.connect.assert_called_once_with(
-                iam=True,
-                host="doesnotexist.1233.us-east-2.redshift-srvrlss.amazonaws.com",
-                database="redshift",
-                cluster_identifier=None,
-                region=None,
-                auto_create=False,
-                db_groups=[],
-                db_user="root",
-                password="",
-                user="",
-                profile="test",
-                port=5439,
-                timeout=None,
-                **DEFAULT_SSL_CONFIG,
-            )
-        self.assertTrue("'host' must be provided" in context.exception.msg)
 
     def test_iam_conn_optionals(self):
         profile_cfg = {
@@ -426,22 +338,6 @@ class TestRedshiftAdapter(unittest.TestCase):
         }
 
         config_from_parts_or_dicts(self.config, profile_cfg)
-
-    def test_invalid_auth_method(self):
-        # we have to set method this way, otherwise it won't validate
-        self.config.credentials.method = "badmethod"
-        with self.assertRaises(FailedToConnectError) as context:
-            connect_method_factory = RedshiftConnectMethodFactory(self.config.credentials)
-            connect_method_factory.get_connect_method()
-        self.assertTrue("badmethod" in context.exception.msg)
-
-    def test_invalid_iam_no_cluster_id(self):
-        self.config.credentials = self.config.credentials.replace(method="iam")
-        with self.assertRaises(FailedToConnectError) as context:
-            connect_method_factory = RedshiftConnectMethodFactory(self.config.credentials)
-            connect_method_factory.get_connect_method()
-
-        self.assertTrue("'cluster_id' must be provided" in context.exception.msg)
 
     def test_cancel_open_connections_empty(self):
         self.assertEqual(len(list(self.adapter.cancel_open_connections())), 0)
