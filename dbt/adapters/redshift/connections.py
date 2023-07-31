@@ -337,6 +337,7 @@ class RedshiftConnectionManager(SQLConnectionManager):
     def execute(
         self, sql: str, auto_begin: bool = False, fetch: bool = False
     ) -> Tuple[AdapterResponse, agate.Table]:
+        sql = self._add_query_comment(sql)
         _, cursor = self.add_query(sql, auto_begin)
         response = self.get_response(cursor)
         if fetch:
