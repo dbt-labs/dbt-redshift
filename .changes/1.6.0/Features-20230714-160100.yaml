@@ -1,6 +1,0 @@
-kind: Features
-body: Enumerate implemented materialized view features via integration test flags  and change `autorefresh` to `auto_refresh`
-time: 2023-07-14T16:01:00.54015-04:00
-custom:
-  Author: mikealfare
-  Issue: dbt-labs/dbt-core#6911
