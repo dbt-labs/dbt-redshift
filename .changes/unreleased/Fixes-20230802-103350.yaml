@@ -1,0 +1,6 @@
+kind: Fixes
+body: Insert values of `merge_exclude_columns` when not matched
+time: 2023-08-02T10:33:50.107228-06:00
+custom:
+  Author: dbeatty10
+  Issue: "563"
