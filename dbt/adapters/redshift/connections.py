@@ -32,7 +32,9 @@ class SSLConfigError(CompilationError):
 
 logger = AdapterLogger("Redshift")
 
+
 drop_lock: Lock = dbt.flags.MP_CONTEXT.Lock()  # type: ignore
+
 
 IAMDuration = NewType("IAMDuration", int)
 
@@ -180,7 +182,7 @@ class RedshiftConnectMethodFactory:
         kwargs = {
             "host": self.credentials.host,
             "database": self.credentials.database,
-            "port": self.credentials.port if self.credentials.port else 5439,
+            "port": int(self.credentials.port) if self.credentials.port else int(5439),
             "auto_create": self.credentials.autocreate,
             "db_groups": self.credentials.db_groups,
             "region": self.credentials.region,
@@ -351,6 +353,7 @@ class RedshiftConnectionManager(SQLConnectionManager):
         fetch: bool = False,
         limit: Optional[int] = None,
     ) -> Tuple[AdapterResponse, agate.Table]:
+        sql = self._add_query_comment(sql)
         _, cursor = self.add_query(sql, auto_begin)
         response = self.get_response(cursor)
         if fetch:

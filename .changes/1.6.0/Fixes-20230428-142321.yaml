@@ -1,6 +1,0 @@
-kind: Fixes
-body: Adding region as independent param in profiles
-time: 2023-04-28T14:23:21.041865-07:00
-custom:
-  Author: nssalian
-  Issue: "419"
