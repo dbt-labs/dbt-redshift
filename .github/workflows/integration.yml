@@ -241,4 +241,4 @@ jobs:
           notification_title: 'Redshift nightly integration test failed'
           status: ${{ job.status }}
     env:
-      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_DEV_CORE_ALERTS }}
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_DEV_ADAPTER_ALERTS }}
