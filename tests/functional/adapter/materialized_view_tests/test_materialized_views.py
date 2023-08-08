@@ -12,13 +12,14 @@ from dbt.tests.adapter.materialized_view.changes import (
     MaterializedViewChangesFailMixin,
 )
 from dbt.tests.adapter.materialized_view.files import MY_TABLE, MY_VIEW
-from dbt.tests.util import get_model_file, set_model_file
+from dbt.tests.util import assert_message_in_logs, get_model_file, set_model_file
 
 from tests.functional.adapter.materialized_view_tests.utils import (
     query_autorefresh,
     query_dist,
     query_relation_type,
     query_sort,
+    run_dbt_and_capture_with_retries,
 )
 
 
@@ -60,6 +61,12 @@ class TestRedshiftMaterializedViewsBasic(MaterializedViewBasic):
     @staticmethod
     def query_relation_type(project, relation: BaseRelation) -> Optional[str]:
         return query_relation_type(project, relation)
+
+    def test_materialized_view_create_idempotent(self, project, my_materialized_view):
+        # setup creates it once; verify it's there and run once
+        assert self.query_relation_type(project, my_materialized_view) == "materialized_view"
+        run_dbt_and_capture_with_retries(["run", "--models", my_materialized_view.identifier])
+        assert self.query_relation_type(project, my_materialized_view) == "materialized_view"
 
     @pytest.mark.skip(
         "The current implementation does not support overwriting materialized views with tables."
@@ -120,16 +127,77 @@ class RedshiftMaterializedViewChanges(MaterializedViewChanges):
 class TestRedshiftMaterializedViewChangesApply(
     RedshiftMaterializedViewChanges, MaterializedViewChangesApplyMixin
 ):
-    pass
+    def test_change_is_applied_via_alter(self, project, my_materialized_view):
+        self.check_start_state(project, my_materialized_view)
+
+        self.change_config_via_alter(project, my_materialized_view)
+        _, logs = run_dbt_and_capture_with_retries(
+            ["--debug", "run", "--models", my_materialized_view.name]
+        )
+
+        self.check_state_alter_change_is_applied(project, my_materialized_view)
+
+        assert_message_in_logs(f"Applying ALTER to: {my_materialized_view}", logs)
+        assert_message_in_logs(f"Applying REPLACE to: {my_materialized_view}", logs, False)
+
+    def test_change_is_applied_via_replace(self, project, my_materialized_view):
+        self.check_start_state(project, my_materialized_view)
+
+        self.change_config_via_alter(project, my_materialized_view)
+        self.change_config_via_replace(project, my_materialized_view)
+        _, logs = run_dbt_and_capture_with_retries(
+            ["--debug", "run", "--models", my_materialized_view.name]
+        )
+
+        self.check_state_alter_change_is_applied(project, my_materialized_view)
+        self.check_state_replace_change_is_applied(project, my_materialized_view)
+
+        assert_message_in_logs(f"Applying REPLACE to: {my_materialized_view}", logs)
 
 
 class TestRedshiftMaterializedViewChangesContinue(
     RedshiftMaterializedViewChanges, MaterializedViewChangesContinueMixin
 ):
-    pass
+    def test_change_is_not_applied_via_alter(self, project, my_materialized_view):
+        self.check_start_state(project, my_materialized_view)
+
+        self.change_config_via_alter(project, my_materialized_view)
+        _, logs = run_dbt_and_capture_with_retries(
+            ["--debug", "run", "--models", my_materialized_view.name]
+        )
+
+        self.check_start_state(project, my_materialized_view)
+
+        assert_message_in_logs(
+            f"Configuration changes were identified and `on_configuration_change` was set"
+            f" to `continue` for `{my_materialized_view}`",
+            logs,
+        )
+        assert_message_in_logs(f"Applying ALTER to: {my_materialized_view}", logs, False)
+        assert_message_in_logs(f"Applying REPLACE to: {my_materialized_view}", logs, False)
+
+    def test_change_is_not_applied_via_replace(self, project, my_materialized_view):
+        self.check_start_state(project, my_materialized_view)
+
+        self.change_config_via_alter(project, my_materialized_view)
+        self.change_config_via_replace(project, my_materialized_view)
+        _, logs = run_dbt_and_capture_with_retries(
+            ["--debug", "run", "--models", my_materialized_view.name]
+        )
+
+        self.check_start_state(project, my_materialized_view)
+
+        assert_message_in_logs(
+            f"Configuration changes were identified and `on_configuration_change` was set"
+            f" to `continue` for `{my_materialized_view}`",
+            logs,
+        )
+        assert_message_in_logs(f"Applying ALTER to: {my_materialized_view}", logs, False)
+        assert_message_in_logs(f"Applying REPLACE to: {my_materialized_view}", logs, False)
 
 
 class TestRedshiftMaterializedViewChangesFail(
     RedshiftMaterializedViewChanges, MaterializedViewChangesFailMixin
 ):
+    # Note: using retries doesn't work when we expect `dbt_run` to fail
     pass
