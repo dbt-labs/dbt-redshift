@@ -19,7 +19,7 @@ from tests.functional.adapter.materialized_view_tests.utils import (
     query_dist,
     query_relation_type,
     query_sort,
-    run_dbt_and_capture_with_retries,
+    run_dbt_and_capture_with_retries_redshift_mv,
 )
 
 
@@ -65,7 +65,9 @@ class TestRedshiftMaterializedViewsBasic(MaterializedViewBasic):
     def test_materialized_view_create_idempotent(self, project, my_materialized_view):
         # setup creates it once; verify it's there and run once
         assert self.query_relation_type(project, my_materialized_view) == "materialized_view"
-        run_dbt_and_capture_with_retries(["run", "--models", my_materialized_view.identifier])
+        run_dbt_and_capture_with_retries_redshift_mv(
+            ["run", "--models", my_materialized_view.identifier]
+        )
         assert self.query_relation_type(project, my_materialized_view) == "materialized_view"
 
     @pytest.mark.skip(
@@ -131,7 +133,7 @@ class TestRedshiftMaterializedViewChangesApply(
         self.check_start_state(project, my_materialized_view)
 
         self.change_config_via_alter(project, my_materialized_view)
-        _, logs = run_dbt_and_capture_with_retries(
+        _, logs = run_dbt_and_capture_with_retries_redshift_mv(
             ["--debug", "run", "--models", my_materialized_view.name]
         )
 
@@ -145,7 +147,7 @@ class TestRedshiftMaterializedViewChangesApply(
 
         self.change_config_via_alter(project, my_materialized_view)
         self.change_config_via_replace(project, my_materialized_view)
-        _, logs = run_dbt_and_capture_with_retries(
+        _, logs = run_dbt_and_capture_with_retries_redshift_mv(
             ["--debug", "run", "--models", my_materialized_view.name]
         )
 
@@ -162,7 +164,7 @@ class TestRedshiftMaterializedViewChangesContinue(
         self.check_start_state(project, my_materialized_view)
 
         self.change_config_via_alter(project, my_materialized_view)
-        _, logs = run_dbt_and_capture_with_retries(
+        _, logs = run_dbt_and_capture_with_retries_redshift_mv(
             ["--debug", "run", "--models", my_materialized_view.name]
         )
 
@@ -181,7 +183,7 @@ class TestRedshiftMaterializedViewChangesContinue(
 
         self.change_config_via_alter(project, my_materialized_view)
         self.change_config_via_replace(project, my_materialized_view)
-        _, logs = run_dbt_and_capture_with_retries(
+        _, logs = run_dbt_and_capture_with_retries_redshift_mv(
             ["--debug", "run", "--models", my_materialized_view.name]
         )
 

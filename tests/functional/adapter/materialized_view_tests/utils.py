@@ -70,7 +70,7 @@ def query_autorefresh(project, relation: RedshiftRelation) -> bool:
     return project.run_sql(sql, fetch="one")[0]
 
 
-def run_dbt_and_capture_with_retries(args: List[str], max_retries: int = 10):
+def run_dbt_and_capture_with_retries_redshift_mv(args: List[str], max_retries: int = 10):
     """
     We need to retry `run_dbt` calls on Redshift because we get sporadic failures of the form:
 
