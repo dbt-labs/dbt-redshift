@@ -1,6 +1,7 @@
-from typing import Optional
+from typing import List, Optional
 
 from dbt.adapters.base.relation import BaseRelation
+from dbt.tests.util import run_dbt_and_capture
 
 from dbt.adapters.redshift.relation import RedshiftRelation
 
@@ -67,3 +68,20 @@ def query_autorefresh(project, relation: RedshiftRelation) -> bool:
         and trim(mv.db_name) ilike '{ relation.database }'
     """
     return project.run_sql(sql, fetch="one")[0]
+
+
+def run_dbt_and_capture_with_retries_redshift_mv(args: List[str], max_retries: int = 10):
+    """
+    We need to retry `run_dbt` calls on Redshift because we get sporadic failures of the form:
+
+        Database Error in model my_materialized_view (models/my_materialized_view.sql)
+        could not open relation with OID 14957412
+    """
+    retries = 0
+    while retries < max_retries:
+        try:
+            # there's no point to using this with expect_pass=False
+            return run_dbt_and_capture(args, expect_pass=True)
+        except AssertionError:
+            retries += 1
+    return None
