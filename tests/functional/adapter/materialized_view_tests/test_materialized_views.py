@@ -109,8 +109,24 @@ class RedshiftMaterializedViewChanges(MaterializedViewChanges):
         set_model_file(project, materialized_view, new_model)
 
     @staticmethod
+    def change_config_via_alter_str_true(project, materialized_view):
+        initial_model = get_model_file(project, materialized_view)
+        new_model = initial_model.replace("dist='id',", "dist='id', auto_refresh='true'")
+        set_model_file(project, materialized_view, new_model)
+
+    @staticmethod
+    def change_config_via_alter_str_false(project, materialized_view):
+        initial_model = get_model_file(project, materialized_view)
+        new_model = initial_model.replace("dist='id',", "dist='id', auto_refresh='False'")
+        set_model_file(project, materialized_view, new_model)
+
+    @staticmethod
     def check_state_alter_change_is_applied(project, materialized_view):
         assert query_autorefresh(project, materialized_view) is True
+
+    @staticmethod
+    def check_state_alter_change_is_applied_str_false(project, materialized_view):
+        assert query_autorefresh(project, materialized_view) is False
 
     @staticmethod
     def change_config_via_replace(project, materialized_view):
@@ -138,6 +154,32 @@ class TestRedshiftMaterializedViewChangesApply(
         )
 
         self.check_state_alter_change_is_applied(project, my_materialized_view)
+
+        assert_message_in_logs(f"Applying ALTER to: {my_materialized_view}", logs)
+        assert_message_in_logs(f"Applying REPLACE to: {my_materialized_view}", logs, False)
+
+    def test_change_is_applied_via_alter_str_true(self, project, my_materialized_view):
+        self.check_start_state(project, my_materialized_view)
+
+        self.change_config_via_alter_str_true(project, my_materialized_view)
+        _, logs = run_dbt_and_capture_with_retries_redshift_mv(
+            ["--debug", "run", "--models", my_materialized_view.name]
+        )
+
+        self.check_state_alter_change_is_applied(project, my_materialized_view)
+
+        assert_message_in_logs(f"Applying ALTER to: {my_materialized_view}", logs)
+        assert_message_in_logs(f"Applying REPLACE to: {my_materialized_view}", logs, False)
+
+    def test_change_is_applied_via_alter_str_false(self, project, my_materialized_view):
+        self.check_start_state(project, my_materialized_view)
+
+        self.change_config_via_alter_str_false(project, my_materialized_view)
+        _, logs = run_dbt_and_capture_with_retries_redshift_mv(
+            ["--debug", "run", "--models", my_materialized_view.name]
+        )
+
+        self.check_state_alter_change_is_applied_str_false(project, my_materialized_view)
 
         assert_message_in_logs(f"Applying ALTER to: {my_materialized_view}", logs)
         assert_message_in_logs(f"Applying REPLACE to: {my_materialized_view}", logs, False)
