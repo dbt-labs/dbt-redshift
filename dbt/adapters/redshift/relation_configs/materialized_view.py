@@ -123,8 +123,24 @@ class RedshiftMaterializedViewConfig(RedshiftRelationConfigBase, RelationConfigV
             "schema_name": model_node.schema,
             "database_name": model_node.database,
             "backup": model_node.config.extra.get("backup"),
-            "autorefresh": model_node.config.extra.get("auto_refresh"),
         }
+
+        autorefresh_value = model_node.config.extra.get("auto_refresh")
+        if autorefresh_value is not None:
+            if isinstance(autorefresh_value, bool):
+                config_dict["autorefresh"] = autorefresh_value
+            elif isinstance(autorefresh_value, str):
+                lower_autorefresh = autorefresh_value.lower()
+                if lower_autorefresh == "true":
+                    config_dict["autorefresh"] = True
+                elif lower_autorefresh == "false":
+                    config_dict["autorefresh"] = False
+                else:
+                    raise ValueError(
+                        "Invalid autorefresh representation. Please use accepted value ex.( True, 'true', 'True')"
+                    )
+            else:
+                raise TypeError("Invalid autorefresh value: expecting boolean or str.")
 
         if query := model_node.compiled_code:
             config_dict.update({"query": query.strip()})

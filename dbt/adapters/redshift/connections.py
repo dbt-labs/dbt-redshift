@@ -1,7 +1,7 @@
 import re
 from multiprocessing import Lock
 from contextlib import contextmanager
-from typing import NewType, Tuple, Union, Optional, List
+from typing import Tuple, Union, Optional, List
 from dataclasses import dataclass, field
 
 import agate
@@ -12,7 +12,7 @@ from redshift_connector.utils.oids import get_datatype_name
 from dbt.adapters.sql import SQLConnectionManager
 from dbt.contracts.connection import AdapterResponse, Connection, Credentials
 from dbt.contracts.util import Replaceable
-from dbt.dataclass_schema import FieldEncoder, dbtClassMixin, StrEnum, ValidationError
+from dbt.dataclass_schema import dbtClassMixin, StrEnum, ValidationError
 from dbt.events import AdapterLogger
 from dbt.exceptions import DbtRuntimeError, CompilationError
 import dbt.flags
@@ -34,18 +34,6 @@ logger = AdapterLogger("Redshift")
 
 
 drop_lock: Lock = dbt.flags.MP_CONTEXT.Lock()  # type: ignore
-
-
-IAMDuration = NewType("IAMDuration", int)
-
-
-class IAMDurationEncoder(FieldEncoder):
-    @property
-    def json_schema(self):
-        return {"type": "integer", "minimum": 0, "maximum": 65535}
-
-
-dbtClassMixin.register_field_encoders({IAMDuration: IAMDurationEncoder()})
 
 
 class RedshiftConnectionMethod(StrEnum):
