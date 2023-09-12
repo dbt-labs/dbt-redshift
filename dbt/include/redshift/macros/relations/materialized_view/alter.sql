@@ -10,7 +10,7 @@
     -- apply a full refresh immediately if needed
     {% if configuration_changes.requires_full_refresh %}
 
-        {{ get_replace_materialized_view_as_sql(relation, sql, existing_relation, backup_relation, intermediate_relation) }}
+        {{ get_replace_sql(relation, sql, existing_relation, backup_relation, intermediate_relation) }}
 
     -- otherwise apply individual changes as needed
     {% else %}
