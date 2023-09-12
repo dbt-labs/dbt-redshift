@@ -1,0 +1,6 @@
+kind: "Dependencies"
+body: "Update black requirement from ~=23.7 to ~=23.9"
+time: 2023-09-12T00:23:53.00000Z
+custom:
+  Author: dependabot[bot]
+  PR: 600
