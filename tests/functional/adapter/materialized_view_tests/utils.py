@@ -82,6 +82,7 @@ def run_dbt_and_capture_with_retries_redshift_mv(args: List[str], max_retries: i
         try:
             # there's no point to using this with expect_pass=False
             return run_dbt_and_capture(args, expect_pass=True)
-        except AssertionError:
+        except AssertionError as e:
             retries += 1
-    return None
+            if retries == max_retries:
+                raise e
