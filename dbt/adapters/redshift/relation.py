@@ -32,6 +32,17 @@ class RedshiftRelation(BaseRelation):
     relation_configs = {
         RelationType.MaterializedView.value: RedshiftMaterializedViewConfig,
     }
+    renameable_relations = frozenset(
+        {
+            RelationType.View,
+            RelationType.Table,
+        }
+    )
+    replaceable_relations = frozenset(
+        {
+            RelationType.View,
+        }
+    )
 
     def __post_init__(self):
         # Check for length of Redshift table/view names.
