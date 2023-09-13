@@ -1,0 +1,5 @@
+kind: Fixes
+body: use get_replace_sql in redshift__get_alter_materialized_view_as_sql
+time: 2023-09-12T13:33:27.451042-07:00
+custom:
+  Author: colin-rogers-dbt
