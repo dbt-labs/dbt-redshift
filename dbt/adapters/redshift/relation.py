@@ -41,7 +41,6 @@ class RedshiftRelation(BaseRelation):
     replaceable_relations = frozenset(
         {
             RelationType.View,
-            RelationType.Table,
         }
     )
 
