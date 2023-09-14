@@ -11,8 +11,13 @@ from dbt.tests.adapter.materialized_view.changes import (
     MaterializedViewChangesContinueMixin,
     MaterializedViewChangesFailMixin,
 )
-from dbt.tests.adapter.materialized_view.files import MY_TABLE, MY_VIEW
-from dbt.tests.util import assert_message_in_logs, get_model_file, set_model_file
+from dbt.tests.adapter.materialized_view.files import MY_TABLE, MY_VIEW, MY_SEED
+from dbt.tests.util import (
+    assert_message_in_logs,
+    get_model_file,
+    set_model_file,
+    run_dbt,
+)
 
 from tests.functional.adapter.materialized_view_tests.utils import (
     query_autorefresh,
@@ -21,7 +26,6 @@ from tests.functional.adapter.materialized_view_tests.utils import (
     query_sort,
     run_dbt_and_capture_with_retries_redshift_mv,
 )
-
 
 MY_MATERIALIZED_VIEW = """
 {{ config(
@@ -233,3 +237,28 @@ class TestRedshiftMaterializedViewChangesFail(
 ):
     # Note: using retries doesn't work when we expect `dbt_run` to fail
     pass
+
+
+NO_BACKUP_MATERIALIZED_VIEW = """
+{{ config(
+    materialized='materialized_view',
+    backup=False
+) }}
+select * from {{ ref('my_seed') }}
+"""
+
+
+class TestRedshiftMaterializedViewWithBackupConfig:
+    @pytest.fixture(scope="class", autouse=True)
+    def models(self):
+        yield {
+            "my_materialized_view.sql": NO_BACKUP_MATERIALIZED_VIEW,
+        }
+
+    @pytest.fixture(scope="class", autouse=True)
+    def seeds(self):
+        return {"my_seed.csv": MY_SEED}
+
+    def test_running_mv_with_backup_false_succeeds(self, project):
+        run_dbt(["seed"])
+        run_dbt(["run"])
