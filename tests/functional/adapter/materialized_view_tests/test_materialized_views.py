@@ -261,4 +261,5 @@ class TestRedshiftMaterializedViewWithBackupConfig:
 
     def test_running_mv_with_backup_false_succeeds(self, project):
         run_dbt(["seed"])
-        run_dbt(["run"])
+        result = run_dbt(["run"])
+        assert result[0].node.config_call_dict["backup"] is False
