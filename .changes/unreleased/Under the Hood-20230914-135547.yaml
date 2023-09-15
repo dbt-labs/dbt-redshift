@@ -4,3 +4,4 @@ body: allow for bool/str input to backup/autorefresh when configuring materializ
 time: 2023-09-14T13:55:47.951848-07:00
 custom:
   Author: colin-rogers-dbt
+  Issue: "606"
