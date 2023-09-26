@@ -24,6 +24,7 @@ with
         from pg_depend
         left join pg_rewrite
           on pg_depend.objid = pg_rewrite.oid
+        where coalesce(pg_rewrite.ev_class, pg_depend.objid) != pg_depend.refobjid
     )
 
 select distinct
@@ -36,7 +37,6 @@ join relation ref
     on dependency.ref_relation_id = ref.relation_id
 join relation dep
     on dependency.dep_relation_id = dep.relation_id
-where ref.relation_name != dep.relation_name
 
 {%- endcall -%}
 
