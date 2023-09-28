@@ -8,11 +8,10 @@ my_model_sql_header_sql = """
     materialized = "table"
   )
 }}
-{% call set_sql_header(config) %}
-CREATE TEMPORARY TABLE _variables AS (
-    SELECT '89' as my_variable
-);
-{% endcall %}
+WITH  _variables AS (
+  SELECT '89' as my_variable
+)
+
 SELECT my_variable from _variables
 """
 
