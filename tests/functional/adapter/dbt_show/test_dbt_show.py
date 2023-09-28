@@ -1,19 +1,4 @@
-import pytest
 from dbt.tests.adapter.dbt_show.test_dbt_show import BaseShowSqlHeader, BaseShowLimit
-
-
-my_model_sql_header_sql = """
-{{
-  config(
-    materialized = "table"
-  )
-}}
-WITH  _variables AS (
-  SELECT '89' as my_variable
-)
-
-SELECT my_variable from _variables
-"""
 
 
 class TestRedshiftShowLimit(BaseShowLimit):
@@ -21,8 +6,4 @@ class TestRedshiftShowLimit(BaseShowLimit):
 
 
 class TestRedshiftShowSqlHeader(BaseShowSqlHeader):
-    @pytest.fixture(scope="class")
-    def models(self):
-        return {
-            "sql_header.sql": my_model_sql_header_sql,
-        }
+    pass
