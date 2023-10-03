@@ -1,12 +1,29 @@
-from dbt.tests.adapter.store_test_failures_tests.basic import StoreTestFailures
+from dbt.tests.adapter.store_test_failures_tests.basic import (
+    StoreTestFailuresAsGeneric,
+    StoreTestFailuresAsInteractions,
+    StoreTestFailuresAsProjectLevelOff,
+    StoreTestFailuresAsProjectLevelView,
+)
 from dbt.tests.adapter.store_test_failures_tests.test_store_test_failures import (
     TestStoreTestFailures,
 )
 
 
-class RedshiftTestStoreTestFailures(TestStoreTestFailures):
+class TestRedshiftTestStoreTestFailures(TestStoreTestFailures):
     pass
 
 
-class TestStoreTestFailures(StoreTestFailures):
+class TestRedshiftStoreTestFailuresAsInteractions(StoreTestFailuresAsInteractions):
+    pass
+
+
+class TestRedshiftStoreTestFailuresAsProjectLevelOff(StoreTestFailuresAsProjectLevelOff):
+    pass
+
+
+class TestRedshiftStoreTestFailuresAsProjectLevelView(StoreTestFailuresAsProjectLevelView):
+    pass
+
+
+class TestRedshiftStoreTestFailuresAsGeneric(StoreTestFailuresAsGeneric):
     pass
