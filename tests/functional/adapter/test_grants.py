@@ -1,24 +1,24 @@
-from dbt.tests.adapter.grants.test_model_grants import BaseModelGrants
-from dbt.tests.adapter.grants.test_incremental_grants import BaseIncrementalGrants
-from dbt.tests.adapter.grants.test_seed_grants import BaseSeedGrants
-from dbt.tests.adapter.grants.test_snapshot_grants import BaseSnapshotGrants
+from grants.test_model_grants import BaseModelGrantsRedshift
+from grants.test_snapshot_grants import BaseSnapshotGrantsRedshift
+from grants.test_seed_grants import BaseSeedGrantsRedshift
+from grants.test_incremental_grants import BaseIncrementalGrantsRedshift
 
 
-class TestModelGrantsRedshift(BaseModelGrants):
+class TestModelGrantsRedshift(BaseModelGrantsRedshift):
     pass
 
 
-class TestIncrementalGrantsRedshift(BaseIncrementalGrants):
+class TestIncrementalGrantsRedshift(BaseIncrementalGrantsRedshift):
     pass
 
 
-class TestSeedGrantsRedshift(BaseSeedGrants):
+class TestSeedGrantsRedshift(BaseSeedGrantsRedshift):
     pass
 
 
-class TestSnapshotGrantsRedshift(BaseSnapshotGrants):
+class TestSnapshotGrantsRedshift(BaseSnapshotGrantsRedshift):
     pass
 
 
-class TestInvalidGrantsRedshift(BaseModelGrants):
+class TestInvalidGrantsRedshift(BaseModelGrantsRedshift):
     pass

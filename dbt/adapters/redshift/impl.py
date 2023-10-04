@@ -9,14 +9,11 @@ from dbt.contracts.connection import AdapterResponse
 from dbt.contracts.graph.nodes import ConstraintType
 from dbt.events import AdapterLogger
 
-
 import dbt.exceptions
 
 from dbt.adapters.redshift import RedshiftConnectionManager, RedshiftRelation
 
-
 logger = AdapterLogger("Redshift")
-
 
 GET_RELATIONS_MACRO_NAME = "redshift__get_relations"
 
@@ -168,3 +165,93 @@ class RedshiftAdapter(SQLAdapter):
     def debug_query(self):
         """Override for DebugTask method"""
         self.execute("select 1 as id")
+
+    ## grant-related methods ##
+    @available
+    def standardize_grants_dict(self, grants_table):
+        """
+        Override for standardize_grants_dict
+        """
+        grants_dict = {}  # Dict[str, Dict[str, List[str]]]
+        for row in grants_table:
+            grantee_type = row["grantee_type"]
+            grantee = row["grantee"]
+            privilege = row["privilege_type"]
+            if privilege not in grants_dict:
+                grants_dict[privilege] = {}
+
+            if grantee_type not in grants_dict[privilege]:
+                grants_dict[privilege][grantee_type] = []
+
+            grants_dict[privilege][grantee_type].append(grantee)
+
+        return grants_dict
+
+    @available
+    def diff_of_two_nested_dicts(self, dict_a, dict_b):
+        """
+        Given two dictionaries of type Dict[str, Dict[str, List[str]]]:
+            dict_a = {'key_x': {'key_a': 'VALUE_1'}, 'KEY_Y': {'key_b': value_2'}}
+            dict_b = {'key_x': {'key_a': 'VALUE_1'}, 'KEY_Y': {'key_b': value_2'}}
+        Return the same dictionary representation of dict_a MINUS dict_b,
+        performing a case-insensitive comparison between the strings in each.
+        All keys returned will be in the original case of dict_a.
+            returns {'key_x': ['VALUE_2'], 'KEY_Y': ['value_3']}
+        """
+
+        dict_diff = {}
+
+        for k, v_a in dict_a.items():
+            if k.casefold() in dict_b:
+                v_b = dict_b[k.casefold()]
+
+                for sub_key, values_a in v_a.items():
+                    if sub_key in v_b:
+                        values_b = v_b[sub_key]
+                        diff_values = [v for v in values_a if v.casefold() not in values_b]
+                        if diff_values:
+                            if k in dict_diff:
+                                dict_diff[k][sub_key] = diff_values
+                            else:
+                                dict_diff[k] = {sub_key: diff_values}
+                    else:
+                        if k in dict_diff:
+                            if values_a:
+                                dict_diff[k][sub_key] = values_a
+                        else:
+                            if values_a:
+                                dict_diff[k] = {sub_key: values_a}
+            else:
+                dict_diff[k] = v_a
+
+        return dict_diff
+
+    @available
+    def process_grant_dicts(self, unknown_dict):
+        """
+        Given a dictionary where the type can either be of type:
+        - Dict[str, List[str]]
+        - Dict[str, List[Dict[str, List[str]]
+        Return a processed dictionary of the type Dict[str, Dict[str, List[str]]
+        """
+        first_value = next(iter(unknown_dict.values()))
+        if first_value:
+            is_dict = isinstance(first_value[0], dict)
+        else:
+            is_dict = False
+
+        temp = {}
+        if not is_dict:
+            for privilege, grantees in unknown_dict.items():
+                if grantees:
+                    temp[privilege] = {"user": grantees}
+        else:
+            for privilege, grantee_map in unknown_dict.items():
+                grantees_map_temp = {}
+                for grantee_type, grantees in grantee_map[0].items():
+                    if grantees:
+                        grantees_map_temp[grantee_type] = grantees
+                if grantees_map_temp:
+                    temp[privilege] = grantees_map_temp
+
+        return temp
