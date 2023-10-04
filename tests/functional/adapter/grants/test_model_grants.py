@@ -6,8 +6,6 @@ from dbt.tests.util import (
 )
 from tests.functional.adapter.grants.base_grants import BaseGrantsRedshift
 
-# from tests.functional.adapter.grants import BaseGrantsRedshift
-
 my_model_sql = """
   select 1 as fun
 """
@@ -141,8 +139,7 @@ class BaseModelGrantsRedshift(BaseGrantsRedshift):
         }
 
     def test_view_table_grants(self, project, get_test_users, get_test_groups, get_test_roles):
-        ## Override/refactor the tests from dbt-core ##
-
+        # Override/refactor the tests from dbt-core #
         # we want the test to fail, not silently skip
         test_users = get_test_users
         test_groups = get_test_groups
@@ -217,14 +214,19 @@ class BaseModelGrantsRedshift(BaseGrantsRedshift):
         assert len(results) == 1
         manifest = get_manifest(project.project_root)
         model = manifest.nodes[model_id]
-        user_expected = {select_privilege_name: [test_users[0]], insert_privilege_name: [test_users[1]]}
+        user_expected = {
+            select_privilege_name: [test_users[0]],
+            insert_privilege_name: [test_users[1]],
+        }
         assert model.config.grants == user_expected
         assert model.config.materialized == "table"
-        expected = {select_privilege_name: {"user": [test_users[0]]}, insert_privilege_name: {"user": [test_users[1]]}}
+        expected = {
+            select_privilege_name: {"user": [test_users[0]]},
+            insert_privilege_name: {"user": [test_users[1]]},
+        }
         self.assert_expected_grants_match_actual(project, "my_model", expected)
 
-        ## Additional tests for privilege grants to extended permission types
-
+        # Additional tests for privilege grants to extended permission types
         # Table materialization, single select grant
         updated_yaml = self.interpolate_name_overrides(extended_table_model_schema_yml)
         write_file(updated_yaml, project.project_root, "models", "schema.yml")
@@ -233,10 +235,12 @@ class BaseModelGrantsRedshift(BaseGrantsRedshift):
         manifest = get_manifest(project.project_root)
         model = manifest.nodes[model_id]
         assert model.config.materialized == "table"
-        expected = {select_privilege_name: {
-            "user": [test_users[0]],
-            "group": [test_groups[0]],
-            "role": [test_roles[0]]}
+        expected = {
+            select_privilege_name: {
+                "user": [test_users[0]],
+                "group": [test_groups[0]],
+                "role": [test_roles[0]],
+            }
         }
         self.assert_expected_grants_match_actual(project, "my_model", expected)
 
@@ -248,30 +252,38 @@ class BaseModelGrantsRedshift(BaseGrantsRedshift):
         manifest = get_manifest(project.project_root)
         model = manifest.nodes[model_id]
         assert model.config.materialized == "table"
-        expected = {select_privilege_name: {
-            "user": [test_users[1]],
-            "group": [test_groups[1]],
-            "role": [test_roles[1]]}
+        expected = {
+            select_privilege_name: {
+                "user": [test_users[1]],
+                "group": [test_groups[1]],
+                "role": [test_roles[1]],
+            }
         }
         self.assert_expected_grants_match_actual(project, "my_model", expected)
 
         # Table materialization, multiple grantees
-        updated_yaml = self.interpolate_name_overrides(extended_multiple_grantees_table_model_schema_yml)
+        updated_yaml = self.interpolate_name_overrides(
+            extended_multiple_grantees_table_model_schema_yml
+        )
         write_file(updated_yaml, project.project_root, "models", "schema.yml")
         (results, log_output) = run_dbt_and_capture(["--debug", "run"])
         assert len(results) == 1
         manifest = get_manifest(project.project_root)
         model = manifest.nodes[model_id]
         assert model.config.materialized == "table"
-        expected = {select_privilege_name: {
-            "user": [test_users[0], test_users[1]],
-            "group": [test_groups[0], test_groups[1]],
-            "role": [test_roles[0], test_roles[1]]}
+        expected = {
+            select_privilege_name: {
+                "user": [test_users[0], test_users[1]],
+                "group": [test_groups[0], test_groups[1]],
+                "role": [test_roles[0], test_roles[1]],
+            }
         }
         self.assert_expected_grants_match_actual(project, "my_model", expected)
 
         # Table materialization, multiple privileges
-        updated_yaml = self.interpolate_name_overrides(extended_multiple_privileges_table_model_schema_yml)
+        updated_yaml = self.interpolate_name_overrides(
+            extended_multiple_privileges_table_model_schema_yml
+        )
         write_file(updated_yaml, project.project_root, "models", "schema.yml")
         (results, log_output) = run_dbt_and_capture(["--debug", "run"])
         assert len(results) == 1
@@ -282,12 +294,12 @@ class BaseModelGrantsRedshift(BaseGrantsRedshift):
             select_privilege_name: {
                 "user": [test_users[0]],
                 "group": [test_groups[0]],
-                "role": [test_roles[0]]
+                "role": [test_roles[0]],
             },
             insert_privilege_name: {
                 "user": [test_users[1]],
                 "group": [test_groups[1]],
-                "role": [test_roles[1]]
-            }
+                "role": [test_roles[1]],
+            },
         }
         self.assert_expected_grants_match_actual(project, "my_model", expected)

@@ -7,7 +7,7 @@ from dbt.tests.util import (
 )
 
 from tests.functional.adapter.grants.base_grants import BaseGrantsRedshift
-# from tests.functional.adapter.grants import BaseGrantsRedshift
+
 
 my_snapshot_sql = """
 {% snapshot my_snapshot %}
@@ -42,8 +42,8 @@ version: 2
 snapshots:
   - name: my_snapshot
     config:
-      grants: 
-        select: 
+      grants:
+        select:
           user: ["{{ env_var('DBT_TEST_USER_1') }}"]
           group: ["{{ env_var('DBT_TEST_GROUP_1') }}"]
           role: ["{{ env_var('DBT_TEST_ROLE_1') }}"]
@@ -54,8 +54,8 @@ version: 2
 snapshots:
   - name: my_snapshot
     config:
-      grants: 
-        select: 
+      grants:
+        select:
           user: ["{{ env_var('DBT_TEST_USER_2') }}"]
           group: ["{{ env_var('DBT_TEST_GROUP_2') }}"]
           role: ["{{ env_var('DBT_TEST_ROLE_2') }}"]
@@ -71,7 +71,6 @@ class BaseSnapshotGrantsRedshift(BaseGrantsRedshift):
         }
 
     def test_snapshot_grants(self, project, get_test_users, get_test_groups, get_test_roles):
-
         print("snapshot testing")
         test_users = get_test_users
         test_groups = get_test_groups
@@ -109,10 +108,12 @@ class BaseSnapshotGrantsRedshift(BaseGrantsRedshift):
         write_file(updated_yaml, project.project_root, "snapshots", "schema.yml")
         (results, log_output) = run_dbt_and_capture(["--debug", "snapshot"])
         assert len(results) == 1
-        expected = {select_privilege_name: {
-            "user": [test_users[0]],
-            "group": [test_groups[0]],
-            "role": [test_roles[0]]}
+        expected = {
+            select_privilege_name: {
+                "user": [test_users[0]],
+                "group": [test_groups[0]],
+                "role": [test_roles[0]],
+            }
         }
         self.assert_expected_grants_match_actual(project, "my_snapshot", expected)
 
@@ -121,9 +122,11 @@ class BaseSnapshotGrantsRedshift(BaseGrantsRedshift):
         write_file(updated_yaml, project.project_root, "snapshots", "schema.yml")
         (results, log_output) = run_dbt_and_capture(["--debug", "snapshot"])
         assert len(results) == 1
-        expected = {select_privilege_name: {
-            "user": [test_users[1]],
-            "group": [test_groups[1]],
-            "role": [test_roles[1]]}
+        expected = {
+            select_privilege_name: {
+                "user": [test_users[1]],
+                "group": [test_groups[1]],
+                "role": [test_roles[1]],
+            }
         }
         self.assert_expected_grants_match_actual(project, "my_snapshot", expected)

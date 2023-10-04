@@ -6,7 +6,7 @@ from dbt.tests.util import (
     write_file,
 )
 from tests.functional.adapter.grants.base_grants import BaseGrantsRedshift
-# from dbt.tests.adapter.grants.base_grants import BaseGrantsRedshift
+
 
 seeds__my_seed_csv = """
 id,name,some_date
@@ -57,7 +57,7 @@ seeds:
   - name: my_seed
     config:
       grants:
-        select: 
+        select:
           user: []
           group: []
           role: []
@@ -76,13 +76,11 @@ class BaseSeedGrantsRedshift(BaseGrantsRedshift):
             "schema.yml": updated_schema,
         }
 
-    def test_seed_grants(self, project, get_test_users, get_test_groups, get_test_roles):
+    def test_seed_grants(self, project, get_test_users):
         # debugging for seeds
         print("seed testing")
 
         test_users = get_test_users
-        test_groups = get_test_groups
-        test_roles = get_test_roles
         select_privilege_name = self.privilege_grantee_name_overrides()["select"]
 
         # seed command

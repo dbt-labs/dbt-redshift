@@ -1,10 +1,6 @@
 from dbt.tests.adapter.grants.base_grants import BaseGrants
 import pytest
 import os
-from dbt.tests.util import (
-    relation_from_name,
-    get_connection,
-)
 
 TEST_USER_ENV_VARS = ["DBT_TEST_USER_1", "DBT_TEST_USER_2", "DBT_TEST_USER_3"]
 TEST_GROUP_ENV_VARS = ["DBT_TEST_GROUP_1", "DBT_TEST_GROUP_2", "DBT_TEST_GROUP_3"]
@@ -27,7 +23,6 @@ def get_test_permissions(permission_env_vars):
 
 
 class BaseGrantsRedshift(BaseGrants):
-
     @pytest.fixture(scope="class", autouse=True)
     def get_test_groups(self, project):
         return get_test_permissions(TEST_GROUP_ENV_VARS)

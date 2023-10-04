@@ -166,7 +166,7 @@ class RedshiftAdapter(SQLAdapter):
         """Override for DebugTask method"""
         self.execute("select 1 as id")
 
-    ## grant-related methods ##
+    # grant-related methods
     @available
     def standardize_grants_dict(self, grants_table):
         """

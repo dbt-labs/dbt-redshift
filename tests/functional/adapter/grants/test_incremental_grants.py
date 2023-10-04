@@ -9,7 +9,6 @@ from dbt.tests.util import (
 )
 
 from tests.functional.adapter.grants.base_grants import BaseGrantsRedshift
-# from tests.functional.adapter.grants import BaseGrantsRedshift
 
 my_incremental_model_sql = """
   select 1 as fun
@@ -41,8 +40,8 @@ models:
   - name: my_incremental_model
     config:
       materialized: incremental
-      grants: 
-        select: 
+      grants:
+        select:
           user: ["{{ env_var('DBT_TEST_USER_1') }}"]
           group: ["{{ env_var('DBT_TEST_GROUP_1') }}"]
           role: ["{{ env_var('DBT_TEST_ROLE_1') }}"]
@@ -54,12 +53,13 @@ models:
   - name: my_incremental_model
     config:
       materialized: incremental
-      grants: 
-        select: 
+      grants:
+        select:
           user: ["{{ env_var('DBT_TEST_USER_2') }}"]
           group: ["{{ env_var('DBT_TEST_GROUP_2') }}"]
           role: ["{{ env_var('DBT_TEST_ROLE_2') }}"]
 """
+
 
 class BaseIncrementalGrantsRedshift(BaseGrantsRedshift):
     @pytest.fixture(scope="class")
@@ -131,8 +131,7 @@ class BaseIncrementalGrantsRedshift(BaseGrantsRedshift):
         assert "revoke " not in log_output
         self.assert_expected_grants_match_actual(project, "my_incremental_model", expected)
 
-        ## Additional tests for privilege grants to extended permission types
-
+        # Additional tests for privilege grants to extended permission types
         # Incremental materialization, single select grant
         updated_yaml = self.interpolate_name_overrides(extended_incremental_model_schema_yml)
         write_file(updated_yaml, project.project_root, "models", "schema.yml")
@@ -144,10 +143,12 @@ class BaseIncrementalGrantsRedshift(BaseGrantsRedshift):
         manifest = get_manifest(project.project_root)
         model = manifest.nodes[model_id]
         assert model.config.materialized == "incremental"
-        expected = {select_privilege_name: {
-            "user": [test_users[0]],
-            "group": [test_groups[0]],
-            "role": [test_roles[0]]}
+        expected = {
+            select_privilege_name: {
+                "user": [test_users[0]],
+                "group": [test_groups[0]],
+                "role": [test_roles[0]],
+            }
         }
         self.assert_expected_grants_match_actual(project, "my_incremental_model", expected)
 
@@ -162,10 +163,11 @@ class BaseIncrementalGrantsRedshift(BaseGrantsRedshift):
         manifest = get_manifest(project.project_root)
         model = manifest.nodes[model_id]
         assert model.config.materialized == "incremental"
-        expected = {select_privilege_name: {
-            "user": [test_users[1]],
-            "group": [test_groups[1]],
-            "role": [test_roles[1]]}
+        expected = {
+            select_privilege_name: {
+                "user": [test_users[1]],
+                "group": [test_groups[1]],
+                "role": [test_roles[1]],
+            }
         }
         self.assert_expected_grants_match_actual(project, "my_incremental_model", expected)
-
