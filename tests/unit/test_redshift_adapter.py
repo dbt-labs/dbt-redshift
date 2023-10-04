@@ -12,7 +12,10 @@ from dbt.adapters.redshift import (
 )
 from dbt.clients import agate_helper
 from dbt.exceptions import FailedToConnectError
-from dbt.adapters.redshift.connections import RedshiftConnectMethodFactory, RedshiftSSLConfig
+from dbt.adapters.redshift.connections import (
+    RedshiftConnectMethodFactory,
+    RedshiftSSLConfig,
+)
 from .utils import (
     config_from_parts_or_dicts,
     mock_connection,
@@ -193,6 +196,55 @@ class TestRedshiftAdapter(unittest.TestCase):
             db_user="root",
             password="",
             user="",
+            profile="test",
+            timeout=None,
+            port=5439,
+            **DEFAULT_SSL_CONFIG,
+        )
+
+    @mock.patch("redshift_connector.connect", Mock())
+    def test_explicit_iamr_conn_without_profile(self):
+        self.config.credentials = self.config.credentials.replace(
+            method="iamr",
+            cluster_id="my_redshift",
+            host="thishostshouldnotexist.test.us-east-1",
+        )
+        connection = self.adapter.acquire_connection("dummy")
+        connection.handle
+        redshift_connector.connect.assert_called_once_with(
+            iam=True,
+            host="thishostshouldnotexist.test.us-east-1",
+            database="redshift",
+            cluster_identifier="my_redshift",
+            region=None,
+            timeout=None,
+            auto_create=False,
+            db_groups=[],
+            profile=None,
+            port=5439,
+            **DEFAULT_SSL_CONFIG,
+        )
+
+    @mock.patch("redshift_connector.connect", Mock())
+    @mock.patch("boto3.Session", Mock())
+    def test_explicit_iamr_conn_with_profile(self):
+        self.config.credentials = self.config.credentials.replace(
+            method="iamr",
+            cluster_id="my_redshift",
+            iam_profile="test",
+            host="thishostshouldnotexist.test.us-east-1",
+        )
+        connection = self.adapter.acquire_connection("dummy")
+        connection.handle
+
+        redshift_connector.connect.assert_called_once_with(
+            iam=True,
+            host="thishostshouldnotexist.test.us-east-1",
+            database="redshift",
+            cluster_identifier="my_redshift",
+            region=None,
+            auto_create=False,
+            db_groups=[],
             profile="test",
             timeout=None,
             port=5439,

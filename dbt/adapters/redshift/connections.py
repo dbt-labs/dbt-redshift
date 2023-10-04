@@ -39,6 +39,7 @@ drop_lock: Lock = dbt.flags.MP_CONTEXT.Lock()  # type: ignore
 class RedshiftConnectionMethod(StrEnum):
     DATABASE = "database"
     IAM = "iam"
+    IAMR = "iamr"
 
 
 class UserSSLMode(StrEnum):
@@ -104,9 +105,9 @@ class RedshiftSSLConfig(dbtClassMixin, Replaceable):  # type: ignore
 @dataclass
 class RedshiftCredentials(Credentials):
     host: str
-    user: str
     port: Port
     method: str = RedshiftConnectionMethod.DATABASE  # type: ignore
+    user: Optional[str] = None  # type: ignore
     password: Optional[str] = None  # type: ignore
     cluster_id: Optional[str] = field(
         default=None,
@@ -216,6 +217,27 @@ class RedshiftConnectMethodFactory:
                     db_user=self.credentials.user,
                     password="",
                     user="",
+                    cluster_identifier=self.credentials.cluster_id,
+                    profile=self.credentials.iam_profile,
+                    **kwargs,
+                )
+                if self.credentials.autocommit:
+                    c.autocommit = True
+                if self.credentials.role:
+                    c.cursor().execute("set role {}".format(self.credentials.role))
+                return c
+
+        elif method == RedshiftConnectionMethod.IAMR:
+            if not self.credentials.cluster_id and "serverless" not in self.credentials.host:
+                raise dbt.exceptions.FailedToConnectError(
+                    "Failed to use IAM method. 'cluster_id' must be provided for provisioned cluster. "
+                    "'host' must be provided for serverless endpoint."
+                )
+
+            def connect():
+                logger.debug("Connecting to redshift with IAM based auth...")
+                c = redshift_connector.connect(
+                    iam=True,
                     cluster_identifier=self.credentials.cluster_id,
                     profile=self.credentials.iam_profile,
                     **kwargs,
