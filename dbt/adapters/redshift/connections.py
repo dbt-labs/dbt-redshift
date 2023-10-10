@@ -255,6 +255,8 @@ class RedshiftConnectionManager(SQLConnectionManager):
 
         sql = f"select pg_terminate_backend({pid})"
         cursor = connection.handle.cursor()
+        logger.debug(f"Cancel query on: '{connection.name}' with PID: {pid}")
+        logger.debug(sql)
         cursor.execute(sql)
 
     @classmethod
