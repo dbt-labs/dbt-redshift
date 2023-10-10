@@ -11,8 +11,13 @@ from dbt.tests.adapter.materialized_view.changes import (
     MaterializedViewChangesContinueMixin,
     MaterializedViewChangesFailMixin,
 )
-from dbt.tests.adapter.materialized_view.files import MY_TABLE, MY_VIEW
-from dbt.tests.util import assert_message_in_logs, get_model_file, set_model_file
+from dbt.tests.adapter.materialized_view.files import MY_TABLE, MY_VIEW, MY_SEED
+from dbt.tests.util import (
+    assert_message_in_logs,
+    get_model_file,
+    set_model_file,
+    run_dbt,
+)
 
 from tests.functional.adapter.materialized_view_tests.utils import (
     query_autorefresh,
@@ -21,7 +26,6 @@ from tests.functional.adapter.materialized_view_tests.utils import (
     query_sort,
     run_dbt_and_capture_with_retries_redshift_mv,
 )
-
 
 MY_MATERIALIZED_VIEW = """
 {{ config(
@@ -69,18 +73,6 @@ class TestRedshiftMaterializedViewsBasic(MaterializedViewBasic):
             ["run", "--models", my_materialized_view.identifier]
         )
         assert self.query_relation_type(project, my_materialized_view) == "materialized_view"
-
-    @pytest.mark.skip(
-        "The current implementation does not support overwriting materialized views with tables."
-    )
-    def test_table_replaces_materialized_view(self, project, my_materialized_view):
-        super().test_table_replaces_materialized_view(project, my_materialized_view)
-
-    @pytest.mark.skip(
-        "The current implementation does not support overwriting materialized views with views."
-    )
-    def test_view_replaces_materialized_view(self, project, my_materialized_view):
-        super().test_view_replaces_materialized_view(project, my_materialized_view)
 
 
 class RedshiftMaterializedViewChanges(MaterializedViewChanges):
@@ -245,3 +237,29 @@ class TestRedshiftMaterializedViewChangesFail(
 ):
     # Note: using retries doesn't work when we expect `dbt_run` to fail
     pass
+
+
+NO_BACKUP_MATERIALIZED_VIEW = """
+{{ config(
+    materialized='materialized_view',
+    backup=False
+) }}
+select * from {{ ref('my_seed') }}
+"""
+
+
+class TestRedshiftMaterializedViewWithBackupConfig:
+    @pytest.fixture(scope="class", autouse=True)
+    def models(self):
+        yield {
+            "my_materialized_view.sql": NO_BACKUP_MATERIALIZED_VIEW,
+        }
+
+    @pytest.fixture(scope="class", autouse=True)
+    def seeds(self):
+        return {"my_seed.csv": MY_SEED}
+
+    def test_running_mv_with_backup_false_succeeds(self, project):
+        run_dbt(["seed"])
+        result = run_dbt(["run"])
+        assert result[0].node.config_call_dict["backup"] is False
