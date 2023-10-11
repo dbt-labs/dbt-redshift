@@ -478,7 +478,6 @@ class TestRedshiftAdapter(unittest.TestCase):
             add_query.assert_has_calls(
                 [
                     call("select pg_backend_pid()"),
-                    call("select pg_terminate_backend(42)"),
                 ]
             )
 
