@@ -1,0 +1,6 @@
+kind: Fixes
+body: avoid nested loop in query planner execution of redshift__get_relations
+time: 2023-09-23T09:11:55.2152725-04:00
+custom:
+  Author: slin30
+  Issue: "609"
