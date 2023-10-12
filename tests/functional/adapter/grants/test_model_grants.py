@@ -129,7 +129,7 @@ models:
 """
 
 
-class TestModelGrantsRedshift(BaseGrantsRedshift):
+class BaseModelGrantsRedshift(BaseGrantsRedshift):
     @pytest.fixture(scope="class")
     def models(self):
         updated_schema = self.interpolate_name_overrides(model_schema_yml)
@@ -303,3 +303,7 @@ class TestModelGrantsRedshift(BaseGrantsRedshift):
             },
         }
         self.assert_expected_grants_match_actual(project, "my_model", expected)
+
+
+class TestModelGrantsRedshift(BaseModelGrantsRedshift):
+    pass
