@@ -71,9 +71,6 @@ class BaseIncrementalGrantsRedshift(BaseGrantsRedshift):
         }
 
     def test_incremental_grants(self, project, get_test_users, get_test_groups, get_test_roles):
-        # for debugging
-        print("incremental test")
-
         # we want the test to fail, not silently skip
         test_users = get_test_users
         test_groups = get_test_groups
@@ -171,3 +168,7 @@ class BaseIncrementalGrantsRedshift(BaseGrantsRedshift):
             }
         }
         self.assert_expected_grants_match_actual(project, "my_incremental_model", expected)
+
+
+class TestIncrementalGrantsRedshift(BaseIncrementalGrantsRedshift):
+    pass
