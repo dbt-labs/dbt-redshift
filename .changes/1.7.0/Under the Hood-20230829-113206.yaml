@@ -1,7 +1,0 @@
-kind: Under the Hood
-body: Restructure macro files to be more granular; organize macros by relation and
-  type (create, drop, etc.)
-time: 2023-08-29T11:32:06.653271-04:00
-custom:
-  Author: mikealfare
-  Issue: "590"
