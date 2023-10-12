@@ -1,6 +1,0 @@
-kind: Fixes
-body: allow auto_refresh to take in boolean and str values for materialized views
-time: 2023-08-15T15:16:55.771712-05:00
-custom:
-  Author: McKnight-42
-  Issue: "560"
