@@ -61,7 +61,7 @@ models:
 """
 
 
-class BaseIncrementalGrantsRedshift(BaseGrantsRedshift):
+class TestIncrementalGrantsRedshift(BaseGrantsRedshift):
     @pytest.fixture(scope="class")
     def models(self):
         updated_schema = self.interpolate_name_overrides(incremental_model_schema_yml)
@@ -168,7 +168,3 @@ class BaseIncrementalGrantsRedshift(BaseGrantsRedshift):
             }
         }
         self.assert_expected_grants_match_actual(project, "my_incremental_model", expected)
-
-
-class TestIncrementalGrantsRedshift(BaseIncrementalGrantsRedshift):
-    pass

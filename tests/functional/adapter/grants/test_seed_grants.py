@@ -64,7 +64,7 @@ seeds:
 """
 
 
-class BaseSeedGrantsRedshift(BaseGrantsRedshift):
+class TestSeedGrantsRedshift(BaseGrantsRedshift):
     def seeds_support_partial_refresh(self):
         return True
 

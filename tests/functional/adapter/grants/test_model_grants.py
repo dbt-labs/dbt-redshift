@@ -1,6 +1,6 @@
 import pytest
 from dbt.tests.util import (
-    run_dbt_and_capture,
+    run_dbt,
     get_manifest,
     write_file,
 )
@@ -129,7 +129,7 @@ models:
 """
 
 
-class BaseModelGrantsRedshift(BaseGrantsRedshift):
+class TestModelGrantsRedshift(BaseGrantsRedshift):
     @pytest.fixture(scope="class")
     def models(self):
         updated_schema = self.interpolate_name_overrides(model_schema_yml)
@@ -151,7 +151,7 @@ class BaseModelGrantsRedshift(BaseGrantsRedshift):
         assert len(test_roles) == 3
 
         # View materialization, single select grant
-        (results, log_output) = run_dbt_and_capture(["--debug", "run"])
+        results = run_dbt(["run"])
         assert len(results) == 1
         manifest = get_manifest(project.project_root)
         model_id = "model.test.my_model"
@@ -167,7 +167,7 @@ class BaseModelGrantsRedshift(BaseGrantsRedshift):
         # View materialization, change select grant user
         updated_yaml = self.interpolate_name_overrides(user2_model_schema_yml)
         write_file(updated_yaml, project.project_root, "models", "schema.yml")
-        (results, log_output) = run_dbt_and_capture(["--debug", "run"])
+        results = run_dbt(["run"])
         assert len(results) == 1
 
         expected = {select_privilege_name: {"user": [test_users[1]]}}
@@ -176,7 +176,7 @@ class BaseModelGrantsRedshift(BaseGrantsRedshift):
         # Table materialization, single select grant
         updated_yaml = self.interpolate_name_overrides(table_model_schema_yml)
         write_file(updated_yaml, project.project_root, "models", "schema.yml")
-        (results, log_output) = run_dbt_and_capture(["--debug", "run"])
+        results = run_dbt(["run"])
         assert len(results) == 1
         manifest = get_manifest(project.project_root)
         model_id = "model.test.my_model"
@@ -188,7 +188,7 @@ class BaseModelGrantsRedshift(BaseGrantsRedshift):
         # Table materialization, change select grant user
         updated_yaml = self.interpolate_name_overrides(user2_table_model_schema_yml)
         write_file(updated_yaml, project.project_root, "models", "schema.yml")
-        (results, log_output) = run_dbt_and_capture(["--debug", "run"])
+        results = run_dbt(["run"])
         assert len(results) == 1
         manifest = get_manifest(project.project_root)
         model = manifest.nodes[model_id]
@@ -199,7 +199,7 @@ class BaseModelGrantsRedshift(BaseGrantsRedshift):
         # Table materialization, multiple grantees
         updated_yaml = self.interpolate_name_overrides(multiple_users_table_model_schema_yml)
         write_file(updated_yaml, project.project_root, "models", "schema.yml")
-        (results, log_output) = run_dbt_and_capture(["--debug", "run"])
+        results = run_dbt(["run"])
         assert len(results) == 1
         manifest = get_manifest(project.project_root)
         model = manifest.nodes[model_id]
@@ -210,7 +210,7 @@ class BaseModelGrantsRedshift(BaseGrantsRedshift):
         # Table materialization, multiple privileges
         updated_yaml = self.interpolate_name_overrides(multiple_privileges_table_model_schema_yml)
         write_file(updated_yaml, project.project_root, "models", "schema.yml")
-        (results, log_output) = run_dbt_and_capture(["--debug", "run"])
+        results = run_dbt(["run"])
         assert len(results) == 1
         manifest = get_manifest(project.project_root)
         model = manifest.nodes[model_id]
@@ -230,7 +230,7 @@ class BaseModelGrantsRedshift(BaseGrantsRedshift):
         # Table materialization, single select grant
         updated_yaml = self.interpolate_name_overrides(extended_table_model_schema_yml)
         write_file(updated_yaml, project.project_root, "models", "schema.yml")
-        (results, log_output) = run_dbt_and_capture(["--debug", "run"])
+        results = run_dbt(["run"])
         assert len(results) == 1
         manifest = get_manifest(project.project_root)
         model = manifest.nodes[model_id]
@@ -242,12 +242,13 @@ class BaseModelGrantsRedshift(BaseGrantsRedshift):
                 "role": [test_roles[0]],
             }
         }
+        breakpoint()
         self.assert_expected_grants_match_actual(project, "my_model", expected)
 
         # Table materialization, change select grant
         updated_yaml = self.interpolate_name_overrides(extended2_table_model_schema_yml)
         write_file(updated_yaml, project.project_root, "models", "schema.yml")
-        (results, log_output) = run_dbt_and_capture(["--debug", "run"])
+        results = run_dbt(["run"])
         assert len(results) == 1
         manifest = get_manifest(project.project_root)
         model = manifest.nodes[model_id]
@@ -266,7 +267,7 @@ class BaseModelGrantsRedshift(BaseGrantsRedshift):
             extended_multiple_grantees_table_model_schema_yml
         )
         write_file(updated_yaml, project.project_root, "models", "schema.yml")
-        (results, log_output) = run_dbt_and_capture(["--debug", "run"])
+        results = run_dbt(["run"])
         assert len(results) == 1
         manifest = get_manifest(project.project_root)
         model = manifest.nodes[model_id]
@@ -285,7 +286,7 @@ class BaseModelGrantsRedshift(BaseGrantsRedshift):
             extended_multiple_privileges_table_model_schema_yml
         )
         write_file(updated_yaml, project.project_root, "models", "schema.yml")
-        (results, log_output) = run_dbt_and_capture(["--debug", "run"])
+        results = run_dbt(["run"])
         assert len(results) == 1
         manifest = get_manifest(project.project_root)
         model = manifest.nodes[model_id]
@@ -303,7 +304,3 @@ class BaseModelGrantsRedshift(BaseGrantsRedshift):
             },
         }
         self.assert_expected_grants_match_actual(project, "my_model", expected)
-
-
-class TestModelGrantsRedshift(BaseModelGrantsRedshift):
-    pass

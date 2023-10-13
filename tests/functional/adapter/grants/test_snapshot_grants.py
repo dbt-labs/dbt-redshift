@@ -62,7 +62,7 @@ snapshots:
 """
 
 
-class BaseSnapshotGrantsRedshift(BaseGrantsRedshift):
+class TestSnapshotGrantsRedshift(BaseGrantsRedshift):
     @pytest.fixture(scope="class")
     def snapshots(self):
         return {
