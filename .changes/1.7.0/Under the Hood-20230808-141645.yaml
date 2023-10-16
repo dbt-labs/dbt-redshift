@@ -1,7 +1,0 @@
-kind: Under the Hood
-body: Update flaky MV tests to use retry logic to avoid "cannot open relation with
-  OID" error
-time: 2023-08-08T14:16:45.227308-04:00
-custom:
-  Author: mikealfare
-  Issue: "569"
