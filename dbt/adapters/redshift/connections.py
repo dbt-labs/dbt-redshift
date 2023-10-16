@@ -190,6 +190,11 @@ class RedshiftConnectMethodFactory:
                     "'password' field is required for 'database' credentials"
                 )
 
+            if self.credentials.user is None:
+                raise dbt.exceptions.FailedToConnectError(
+                    "'user' field is required for 'database' credentials"
+                )
+
             def connect():
                 logger.debug("Connecting to redshift with username/password based auth...")
                 c = redshift_connector.connect(
@@ -208,6 +213,11 @@ class RedshiftConnectMethodFactory:
                 raise dbt.exceptions.FailedToConnectError(
                     "Failed to use IAM method. 'cluster_id' must be provided for provisioned cluster. "
                     "'host' must be provided for serverless endpoint."
+                )
+
+            if self.credentials.user is None:
+                raise dbt.exceptions.FailedToConnectError(
+                    "'user' field is required for 'iam' credentials"
                 )
 
             def connect():
