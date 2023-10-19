@@ -250,6 +250,7 @@ class RedshiftConnectMethodFactory:
                     iam=True,
                     cluster_identifier=self.credentials.cluster_id,
                     profile=self.credentials.iam_profile,
+                    group_federation=True,
                     **kwargs,
                 )
                 if self.credentials.autocommit:

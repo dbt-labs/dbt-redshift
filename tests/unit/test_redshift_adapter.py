@@ -208,6 +208,7 @@ class TestRedshiftAdapter(unittest.TestCase):
             method="iamr",
             cluster_id="my_redshift",
             host="thishostshouldnotexist.test.us-east-1",
+            user=None,
         )
         connection = self.adapter.acquire_connection("dummy")
         connection.handle
@@ -222,6 +223,7 @@ class TestRedshiftAdapter(unittest.TestCase):
             db_groups=[],
             profile=None,
             port=5439,
+            group_federation=True,
             **DEFAULT_SSL_CONFIG,
         )
 
@@ -233,6 +235,7 @@ class TestRedshiftAdapter(unittest.TestCase):
             cluster_id="my_redshift",
             iam_profile="test",
             host="thishostshouldnotexist.test.us-east-1",
+            user=None,
         )
         connection = self.adapter.acquire_connection("dummy")
         connection.handle
@@ -248,6 +251,7 @@ class TestRedshiftAdapter(unittest.TestCase):
             profile="test",
             timeout=None,
             port=5439,
+            group_federation=True,
             **DEFAULT_SSL_CONFIG,
         )
 
