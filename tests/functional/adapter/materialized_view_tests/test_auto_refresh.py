@@ -1,4 +1,5 @@
 from datetime import datetime
+import time
 
 import pytest
 
@@ -9,7 +10,7 @@ from dbt.tests.adapter.materialized_view.auto_refresh import (
 from tests.functional.adapter.materialized_view_tests import files
 
 
-class TestDynamicTableAutoRefreshNoChanges(MaterializedViewAutoRefreshNoChanges):
+class TestMaterializedViewAutoRefreshNoChanges(MaterializedViewAutoRefreshNoChanges):
     @pytest.fixture(scope="class", autouse=True)
     def seeds(self):
         yield {"my_seed.csv": files.MY_SEED}
@@ -17,22 +18,25 @@ class TestDynamicTableAutoRefreshNoChanges(MaterializedViewAutoRefreshNoChanges)
     @pytest.fixture(scope="class", autouse=True)
     def models(self):
         yield {
-            "auto_refresh_on.sql": files.MY_MATERIALIZED_VIEW,
+            "auto_refresh_on.sql": files.MY_MATERIALIZED_VIEW_ON,
+            "auto_refresh_off.sql": files.MY_MATERIALIZED_VIEW_OFF,
         }
 
     @pytest.fixture(scope="class", autouse=True)
     def macros(self):
-        yield {"snowflake__test__last_refresh.sql": files.MACRO__LAST_REFRESH}
+        yield {"redshift__test__last_refresh.sql": files.MACRO__LAST_REFRESH}
 
-    def last_refreshed(self, project, dynamic_table: str) -> datetime:
+    def last_refreshed(self, project, materialized_view: str) -> datetime:
         with project.adapter.connection_named("__test"):
-            kwargs = {"schema": project.test_schema, "identifier": dynamic_table}
+            kwargs = {"schema": project.test_schema, "identifier": materialized_view}
             last_refresh_results = project.adapter.execute_macro(
-                "snowflake__test__last_refresh", kwargs=kwargs
+                "redshift__test__last_refresh", kwargs=kwargs
             )
-        last_refresh = last_refresh_results[0].get("last_refresh")
+        if len(last_refresh_results) > 0:
+            last_refresh = last_refresh_results[0].get("last_refresh")
+        else:
+            # redshift doesn't store the first refresh, so assume it's the beginning of time
+            # this should be the created date of the materialized view, but redshift doesn't
+            # make that available to the user for a materialized view
+            last_refresh = datetime.fromtimestamp(time.mktime(time.gmtime(0)))
         return last_refresh
-
-    @pytest.mark.skip("Snowflake does not support turning off auto refresh.")
-    def test_manual_refresh_occurs_when_auto_refresh_is_off(self, project):
-        pass
