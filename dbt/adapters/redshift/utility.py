@@ -21,5 +21,5 @@ def evaluate_bool(value: Union[str, bool]) -> bool:
     else:
         raise TypeError(
             f"Invalid type for boolean evaluation, "
-            f"expecting boolean or str, recieved: {type(value)}"
+            f"expecting boolean or str, received: {type(value)}"
         )
