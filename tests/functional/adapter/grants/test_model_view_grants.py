@@ -31,9 +31,7 @@ models:
 """
 
 
-# class BaseModelGrants(BaseGrantsRedshift):
-
-class TestModelGrantsView(BaseGrantsRedshift):
+class TestModelGrantsViewRedshift(BaseGrantsRedshift):
     @pytest.fixture(scope="class")
     def models(self):
         updated_schema = self.interpolate_name_overrides(model_schema_yml)

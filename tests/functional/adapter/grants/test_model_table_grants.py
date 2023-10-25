@@ -111,7 +111,7 @@ models:
 """
 
 
-class TestModelGrantsRedshift(BaseGrantsRedshift):
+class TestModelGrantsTableRedshift(BaseGrantsRedshift):
     @pytest.fixture(scope="class")
     def models(self):
         updated_schema = self.interpolate_name_overrides(table_model_schema_yml)
