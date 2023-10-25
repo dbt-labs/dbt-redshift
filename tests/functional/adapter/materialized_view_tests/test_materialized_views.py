@@ -164,6 +164,8 @@ class TestRedshiftMaterializedViewChangesApply(
         assert_message_in_logs(f"Applying REPLACE to: {my_materialized_view}", logs, False)
 
     def test_change_is_applied_via_alter_str_false(self, project, my_materialized_view):
+        # note that there is no auto_refresh specified initially, which is equivalent to false
+        # this test actually only verifies that a string can be submitted and matches the boolean in Redshift
         self.check_start_state(project, my_materialized_view)
 
         self.change_config_via_alter_str_false(project, my_materialized_view)
@@ -173,8 +175,7 @@ class TestRedshiftMaterializedViewChangesApply(
 
         self.check_state_alter_change_is_applied_str_false(project, my_materialized_view)
 
-        assert_message_in_logs(f"Applying ALTER to: {my_materialized_view}", logs)
-        assert_message_in_logs(f"Applying REPLACE to: {my_materialized_view}", logs, False)
+        assert_message_in_logs(f"Applying REFRESH to: {my_materialized_view}", logs)
 
     def test_change_is_applied_via_replace(self, project, my_materialized_view):
         self.check_start_state(project, my_materialized_view)
