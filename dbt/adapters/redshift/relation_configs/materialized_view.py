@@ -1,24 +1,29 @@
 from dataclasses import dataclass
-from typing import Optional, Set
+from typing import Any, Dict, Optional, Set
+from typing_extensions import Self
 
 import agate
 from dbt.adapters.relation_configs import (
+    MaterializedViewRelationConfig,
     RelationResults,
     RelationConfigChange,
     RelationConfigValidationMixin,
     RelationConfigValidationRule,
 )
-from dbt.contracts.graph.nodes import ModelNode
+from dbt.contracts.graph.nodes import ParsedNode
 from dbt.contracts.relation import ComponentName
 from dbt.exceptions import DbtRuntimeError
 
-from dbt.adapters.redshift.relation_configs.base import RedshiftRelationConfigBase
+from dbt.adapters.redshift.relation_configs.agate_helpers import get_first_row
 from dbt.adapters.redshift.relation_configs.dist import (
     RedshiftDistConfig,
     RedshiftDistStyle,
     RedshiftDistConfigChange,
 )
-from dbt.adapters.redshift.relation_configs.policies import MAX_CHARACTERS_IN_IDENTIFIER
+from dbt.adapters.redshift.relation_configs.policies import (
+    MAX_CHARACTERS_IN_IDENTIFIER,
+    render_part,
+)
 from dbt.adapters.redshift.relation_configs.sort import (
     RedshiftSortConfig,
     RedshiftSortConfigChange,
@@ -27,7 +32,9 @@ from dbt.adapters.redshift.utility import evaluate_bool
 
 
 @dataclass(frozen=True, eq=True, unsafe_hash=True)
-class RedshiftMaterializedViewConfig(RedshiftRelationConfigBase, RelationConfigValidationMixin):
+class RedshiftMaterializedViewConfig(
+    MaterializedViewRelationConfig, RelationConfigValidationMixin
+):
     """
     This config follow the specs found here:
     https://docs.aws.amazon.com/redshift/latest/dg/materialized-view-create-sql-command.html
@@ -60,6 +67,10 @@ class RedshiftMaterializedViewConfig(RedshiftRelationConfigBase, RelationConfigV
     dist: RedshiftDistConfig = RedshiftDistConfig(diststyle=RedshiftDistStyle.even)
     sort: RedshiftSortConfig = RedshiftSortConfig()
     autorefresh: bool = False
+
+    @property
+    def auto_refresh(self) -> bool:
+        return self.autorefresh
 
     @property
     def path(self) -> str:
@@ -95,13 +106,11 @@ class RedshiftMaterializedViewConfig(RedshiftRelationConfigBase, RelationConfigV
         }
 
     @classmethod
-    def from_dict(cls, config_dict) -> "RedshiftMaterializedViewConfig":
+    def from_dict(cls, config_dict: Dict[str, Any]) -> Self:
         kwargs_dict = {
-            "mv_name": cls._render_part(ComponentName.Identifier, config_dict.get("mv_name")),
-            "schema_name": cls._render_part(ComponentName.Schema, config_dict.get("schema_name")),
-            "database_name": cls._render_part(
-                ComponentName.Database, config_dict.get("database_name")
-            ),
+            "mv_name": render_part(ComponentName.Identifier, config_dict.get("mv_name")),
+            "schema_name": render_part(ComponentName.Schema, config_dict.get("schema_name")),
+            "database_name": render_part(ComponentName.Database, config_dict.get("database_name")),
             "query": config_dict.get("query"),
             "backup": config_dict.get("backup"),
             "autorefresh": config_dict.get("autorefresh"),
@@ -114,39 +123,41 @@ class RedshiftMaterializedViewConfig(RedshiftRelationConfigBase, RelationConfigV
         if sort := config_dict.get("sort"):
             kwargs_dict.update({"sort": RedshiftSortConfig.from_dict(sort)})
 
-        materialized_view: "RedshiftMaterializedViewConfig" = super().from_dict(kwargs_dict)  # type: ignore
-        return materialized_view
+        return super().from_dict(kwargs_dict)
 
     @classmethod
-    def parse_model_node(cls, model_node: ModelNode) -> dict:
+    def parse_node(cls, node: ParsedNode) -> Dict[str, Any]:
         config_dict = {
-            "mv_name": model_node.identifier,
-            "schema_name": model_node.schema,
-            "database_name": model_node.database,
+            "mv_name": node.identifier,
+            "schema_name": node.schema,
+            "database_name": node.database,
         }
 
         # backup/autorefresh can be bools or strings
-        backup_value = model_node.config.extra.get("backup")
+        backup_value = node.config.extra.get("backup")
         if backup_value is not None:
             config_dict["backup"] = evaluate_bool(backup_value)
 
-        autorefresh_value = model_node.config.extra.get("auto_refresh")
+        autorefresh_value = node.config.extra.get("auto_refresh")
         if autorefresh_value is not None:
             config_dict["autorefresh"] = evaluate_bool(autorefresh_value)
 
-        if query := model_node.compiled_code:
-            config_dict.update({"query": query.strip()})
+        if hasattr(node, "compiled_code"):
+            # ParseNode objects don't have compiled_code, but we usually get at
+            # least a ModelNode, which does
+            if query := node.compiled_code:
+                config_dict.update({"query": query.strip()})
 
-        if model_node.config.get("dist"):
-            config_dict.update({"dist": RedshiftDistConfig.parse_model_node(model_node)})
+        if node.config.get("dist"):
+            config_dict.update({"dist": RedshiftDistConfig.parse_node(node)})
 
-        if model_node.config.get("sort"):
-            config_dict.update({"sort": RedshiftSortConfig.parse_model_node(model_node)})
+        if node.config.get("sort"):
+            config_dict.update({"sort": RedshiftSortConfig.parse_node(node)})
 
         return config_dict
 
     @classmethod
-    def parse_relation_results(cls, relation_results: RelationResults) -> dict:
+    def parse_relation_results(cls, relation_results: RelationResults) -> Dict[str, Any]:
         """
         Translate agate objects from the database into a standard dictionary.
 
@@ -161,22 +172,18 @@ class RedshiftMaterializedViewConfig(RedshiftRelationConfigBase, RelationConfigV
                             "table": "<name>",
                             "diststyle": "<diststyle/distkey>",  # e.g. EVEN | KEY(column1) | AUTO(ALL) | AUTO(KEY(id)),
                             "sortkey1": "<column_name>",
-                            "autorefresh: any("t", "f"),
+                            "autorefresh": "<t/f>",
                         })
                     ),
                     "query": agate.Table(
-                        agate.Row({"definition": "<query>")}
+                        agate.Row({"definition": "<query>"})
                     ),
                 }
 
-                Additional columns in either value is fine, as long as `sortkey` and `sortstyle` are available.
-
         Returns: a standard dictionary describing this `RedshiftMaterializedViewConfig` instance
         """
-        materialized_view: agate.Row = cls._get_first_row(
-            relation_results.get("materialized_view")
-        )
-        query: agate.Row = cls._get_first_row(relation_results.get("query"))
+        materialized_view: agate.Row = get_first_row(relation_results.get("materialized_view"))
+        query: agate.Row = get_first_row(relation_results.get("query"))
 
         config_dict = {
             "mv_name": materialized_view.get("table"),
@@ -213,14 +220,14 @@ class RedshiftMaterializedViewConfig(RedshiftRelationConfigBase, RelationConfigV
         Args:
             query: the `create materialized view` statement from `pg_views`, for example:
 
-            create materialized view my_materialized_view
-                backup yes
-                diststyle even
-                sortkey (id)
-                auto refresh no
-            as (
-                select * from my_base_table
-            );
+                create materialized view my_materialized_view
+                    backup yes
+                    diststyle even
+                    sortkey (id)
+                    auto refresh no
+                as (
+                    select * from my_base_table
+                );
 
         Returns: the `select ...` statement, for example:
 

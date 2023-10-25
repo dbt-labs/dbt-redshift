@@ -3,12 +3,10 @@ from typing import Optional
 
 from dbt.adapters.base.relation import BaseRelation
 from dbt.adapters.relation_configs import (
-    RelationConfigBase,
     RelationConfigChangeAction,
     RelationResults,
 )
 from dbt.context.providers import RuntimeConfigObject
-from dbt.contracts.graph.nodes import ModelNode
 from dbt.contracts.relation import RelationType
 from dbt.exceptions import DbtRuntimeError
 
@@ -29,9 +27,6 @@ from dbt.adapters.redshift.relation_configs import (
 class RedshiftRelation(BaseRelation):
     include_policy = RedshiftIncludePolicy  # type: ignore
     quote_policy = RedshiftQuotePolicy  # type: ignore
-    relation_configs = {
-        RelationType.MaterializedView.value: RedshiftMaterializedViewConfig,
-    }
     renameable_relations = frozenset(
         {
             RelationType.View,
@@ -61,18 +56,6 @@ class RedshiftRelation(BaseRelation):
         return MAX_CHARACTERS_IN_IDENTIFIER
 
     @classmethod
-    def from_runtime_config(cls, runtime_config: RuntimeConfigObject) -> RelationConfigBase:
-        model_node: ModelNode = runtime_config.model
-        relation_type: str = model_node.config.materialized
-
-        if relation_config := cls.relation_configs.get(relation_type):
-            return relation_config.from_model_node(model_node)
-
-        raise DbtRuntimeError(
-            f"from_runtime_config() is not supported for the provided relation type: {relation_type}"
-        )
-
-    @classmethod
     def materialized_view_config_changeset(
         cls, relation_results: RelationResults, runtime_config: RuntimeConfigObject
     ) -> Optional[RedshiftMaterializedViewConfigChangeset]:
@@ -81,9 +64,7 @@ class RedshiftRelation(BaseRelation):
         existing_materialized_view = RedshiftMaterializedViewConfig.from_relation_results(
             relation_results
         )
-        new_materialized_view = RedshiftMaterializedViewConfig.from_model_node(
-            runtime_config.model
-        )
+        new_materialized_view = RedshiftMaterializedViewConfig.from_node(runtime_config.model)
         assert isinstance(existing_materialized_view, RedshiftMaterializedViewConfig)
         assert isinstance(new_materialized_view, RedshiftMaterializedViewConfig)
 

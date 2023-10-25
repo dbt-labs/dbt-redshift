@@ -1,6 +1,6 @@
 {% macro redshift__get_create_materialized_view_as_sql(relation, sql) %}
 
-    {%- set materialized_view = relation.from_runtime_config(config) -%}
+    {%- set materialized_view = adapter.relation_factory.make_from_node(config.model) -%}
 
     create materialized view {{ materialized_view.path }}
         backup {% if materialized_view.backup %}yes{% else %}no{% endif %}

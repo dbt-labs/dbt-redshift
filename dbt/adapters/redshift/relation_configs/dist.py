@@ -1,18 +1,18 @@
 from dataclasses import dataclass
-from typing import Optional, Set
+from typing import Any, Dict, Optional, Set
+from typing_extensions import Self
 
 import agate
 from dbt.adapters.relation_configs import (
+    RelationConfigBase,
     RelationConfigChange,
     RelationConfigChangeAction,
     RelationConfigValidationMixin,
     RelationConfigValidationRule,
 )
-from dbt.contracts.graph.nodes import ModelNode
+from dbt.contracts.graph.nodes import ParsedNode
 from dbt.dataclass_schema import StrEnum
 from dbt.exceptions import DbtRuntimeError
-
-from dbt.adapters.redshift.relation_configs.base import RedshiftRelationConfigBase
 
 
 class RedshiftDistStyle(StrEnum):
@@ -27,7 +27,7 @@ class RedshiftDistStyle(StrEnum):
 
 
 @dataclass(frozen=True, eq=True, unsafe_hash=True)
-class RedshiftDistConfig(RedshiftRelationConfigBase, RelationConfigValidationMixin):
+class RedshiftDistConfig(RelationConfigBase, RelationConfigValidationMixin):
     """
     This config fallows the specs found here:
     https://docs.aws.amazon.com/redshift/latest/dg/r_CREATE_TABLE_NEW.html
@@ -65,21 +65,20 @@ class RedshiftDistConfig(RedshiftRelationConfigBase, RelationConfigValidationMix
         }
 
     @classmethod
-    def from_dict(cls, config_dict) -> "RedshiftDistConfig":
+    def from_dict(cls, config_dict: Dict[str, Any]) -> Self:
         kwargs_dict = {
             "diststyle": config_dict.get("diststyle"),
             "distkey": config_dict.get("distkey"),
         }
-        dist: "RedshiftDistConfig" = super().from_dict(kwargs_dict)  # type: ignore
-        return dist
+        return super().from_dict(kwargs_dict)
 
     @classmethod
-    def parse_model_node(cls, model_node: ModelNode) -> dict:
+    def parse_node(cls, node: ParsedNode) -> Dict[str, Any]:
         """
         Translate ModelNode objects from the user-provided config into a standard dictionary.
 
         Args:
-            model_node: the description of the distkey and diststyle from the user in this format:
+            node: the description of the distkey and diststyle from the user in this format:
 
                 {
                     "dist": any("auto", "even", "all") or "<column_name>"
@@ -87,7 +86,7 @@ class RedshiftDistConfig(RedshiftRelationConfigBase, RelationConfigValidationMix
 
         Returns: a standard dictionary describing this `RedshiftDistConfig` instance
         """
-        dist = model_node.config.extra.get("dist", "")
+        dist = node.config.extra.get("dist", "")
 
         diststyle = dist.lower()
 
@@ -107,7 +106,7 @@ class RedshiftDistConfig(RedshiftRelationConfigBase, RelationConfigValidationMix
         return config
 
     @classmethod
-    def parse_relation_results(cls, relation_results_entry: agate.Row) -> dict:
+    def parse_relation_results(cls, relation_results_entry: agate.Row) -> Dict[str, Any]:
         """
         Translate agate objects from the database into a standard dictionary.
 
