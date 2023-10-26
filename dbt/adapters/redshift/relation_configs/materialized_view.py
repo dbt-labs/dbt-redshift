@@ -73,7 +73,7 @@ class RedshiftMaterializedViewConfig(
         return self.autorefresh
 
     @property
-    def path(self) -> str:
+    def fully_qualified_path(self) -> str:
         return ".".join(
             part
             for part in [self.database_name, self.schema_name, self.mv_name]
