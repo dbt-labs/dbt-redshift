@@ -182,9 +182,13 @@ class RedshiftMaterializedViewConfig(RedshiftRelationConfigBase, RelationConfigV
             "mv_name": materialized_view.get("table"),
             "schema_name": materialized_view.get("schema"),
             "database_name": materialized_view.get("database"),
-            "autorefresh": materialized_view.get("autorefresh"),
             "query": cls._parse_query(query.get("definition")),
         }
+
+        autorefresh_value = materialized_view.get("autorefresh")
+        if autorefresh_value is not None:
+            bool_filter = {"t": True, "f": False}
+            config_dict["autorefresh"] = bool_filter.get(autorefresh_value, autorefresh_value)
 
         # the default for materialized views differs from the default for diststyle in general
         # only set it if we got a value
