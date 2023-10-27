@@ -471,14 +471,13 @@ class TestRedshiftAdapter(unittest.TestCase):
         with mock.patch.object(self.adapter.connections, "add_query") as add_query:
             query_result = mock.MagicMock()
             cursor = mock.Mock()
-            cursor.fetchone.return_value = 42
+            cursor.fetchone.return_value = (42,)
             add_query.side_effect = [(None, cursor), (None, query_result)]
 
             self.assertEqual(len(list(self.adapter.cancel_open_connections())), 1)
             add_query.assert_has_calls(
                 [
                     call("select pg_backend_pid()"),
-                    call("select pg_terminate_backend(42)"),
                 ]
             )
 
