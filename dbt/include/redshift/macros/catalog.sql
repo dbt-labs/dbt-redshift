@@ -43,7 +43,7 @@
             sch.nspname as table_schema,
             tbl.relname as table_name,
             case
-                when materialized_views.relname is not null then 'MATERIALIZED VIEW'
+                when tbl.relkind = 'v' and materialized_views.relname is not null then 'MATERIALIZED VIEW'
                 when tbl.relkind = 'v' then 'VIEW'
                 else 'BASE TABLE'
             end as table_type,
