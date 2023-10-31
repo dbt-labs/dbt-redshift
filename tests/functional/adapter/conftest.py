@@ -6,24 +6,35 @@ from dbt.exceptions import DbtDatabaseError
 # This is a hack to prevent the fixture from running more than once
 GRANTS_AND_ROLES_SETUP = False
 
+GROUPS = {
+    "DBT_TEST_GROUP_1": "dbt_test_group_1",
+    "DBT_TEST_GROUP_2": "dbt_test_group_2",
+    "DBT_TEST_GROUP_3": "dbt_test_group_3",
+}
+ROLES = {
+    "DBT_TEST_ROLE_1": "dbt_test_role_1",
+    "DBT_TEST_ROLE_2": "dbt_test_role_2",
+    "DBT_TEST_ROLE_3": "dbt_test_role_3",
+}
+
 
 @pytest.fixture(scope="class", autouse=True)
 def setup_grants_and_roles(project):
     global GRANTS_AND_ROLES_SETUP
-    groups = [
-        os.environ[env_var] for env_var in os.environ if env_var.startswith("DBT_TEST_GROUP_")
-    ]
-    roles = [os.environ[env_var] for env_var in os.environ if env_var.startswith("DBT_TEST_ROLE_")]
+    for env_name, env_var in GROUPS.items():
+        os.environ[env_name] = env_var
+    for env_name, env_var in ROLES.items():
+        os.environ[env_name] = env_var
     if not GRANTS_AND_ROLES_SETUP:
         with project.adapter.connection_named("__test"):
-            for group in groups:
+            for group in GROUPS.values():
                 try:
                     project.adapter.execute(f"CREATE GROUP {group}")
                 except DbtDatabaseError:
                     # This is expected if the group already exists
                     pass
 
-            for role in roles:
+            for role in ROLES.values():
                 try:
                     project.adapter.execute(f"CREATE ROLE {role}")
                 except DbtDatabaseError:
