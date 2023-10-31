@@ -199,7 +199,7 @@ class TestModelGrantsTableRedshift(BaseGrantsRedshift):
                 "role": [test_roles[0]],
             }
         }
-        # breakpoint()
+
         self.assert_expected_grants_match_actual(project, "my_model_table", expected)
 
         # Table materialization, change select grant
