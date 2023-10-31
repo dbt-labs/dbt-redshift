@@ -1,3 +1,4 @@
+import os
 from dataclasses import dataclass
 from typing import Optional, Set, Any, Dict, Type
 from collections import namedtuple
@@ -9,11 +10,20 @@ from dbt.contracts.connection import AdapterResponse
 from dbt.contracts.graph.nodes import ConstraintType
 from dbt.events import AdapterLogger
 
+
 import dbt.exceptions
 
 from dbt.adapters.redshift import RedshiftConnectionManager, RedshiftRelation
 
 logger = AdapterLogger("Redshift")
+packages = ["redshift_connector", "redshift_connector.core"]
+if os.getenv("DBT_REDSHIFT_CONNECTOR_DEBUG_LOGGING"):
+    level = "DEBUG"
+else:
+    level = "ERROR"
+for package in packages:
+    logger.debug(f"Setting {package} to {level}")
+    logger.set_adapter_dependency_log_level(package, level)
 
 GET_RELATIONS_MACRO_NAME = "redshift__get_relations"
 
