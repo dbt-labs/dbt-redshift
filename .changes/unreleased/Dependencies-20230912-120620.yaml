@@ -1,6 +1,0 @@
-kind: Dependencies
-body: Update redshift-connector requirement from ~=2.0.913 to ~=2.0.914
-time: 2023-09-12T12:06:20.401643-07:00
-custom:
-  Author: soksamnanglim
-  PR: "601"
