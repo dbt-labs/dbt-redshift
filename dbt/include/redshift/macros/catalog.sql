@@ -23,13 +23,28 @@
         order by "column_index"
     ),
 
+    materialized_views as (
+        select
+            table_schema  as nspname,
+            table_name    as relname
+        from information_schema.views
+        where (
+            {%- for schema in schemas -%}
+                upper(table_schema) = upper('{{ schema }}'){%- if not loop.last %} or {% endif -%}
+            {%- endfor -%}
+        )
+        and table_catalog = '{{ database }}'
+        and view_definition ilike '%create materialized view%'
+    ),
+
     early_binding as (
         select
             '{{ database }}'::varchar as table_database,
             sch.nspname as table_schema,
             tbl.relname as table_name,
-            case tbl.relkind
-                when 'v' then 'VIEW'
+            case
+                when tbl.relkind = 'v' and materialized_views.relname is not null then 'MATERIALIZED VIEW'
+                when tbl.relkind = 'v' then 'VIEW'
                 else 'BASE TABLE'
             end as table_type,
             tbl_desc.description as table_comment,
@@ -43,6 +58,7 @@
         join pg_catalog.pg_attribute col on col.attrelid = tbl.oid
         left outer join pg_catalog.pg_description tbl_desc on (tbl_desc.objoid = tbl.oid and tbl_desc.objsubid = 0)
         left outer join pg_catalog.pg_description col_desc on (col_desc.objoid = tbl.oid and col_desc.objsubid = col.attnum)
+        left outer join materialized_views on (materialized_views.nspname = sch.nspname and materialized_views.relname = tbl.relname)
         where (
             {%- for schema in schemas -%}
               upper(sch.nspname) = upper('{{ schema }}'){%- if not loop.last %} or {% endif -%}
