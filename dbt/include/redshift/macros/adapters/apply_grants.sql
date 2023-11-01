@@ -74,6 +74,7 @@ where exists(
     select *
     from information_schema.table_privileges tp
     where tp.grantee=g.groname
+    and tp.table_schema=replace(split_part('{{ relation }}', '.', 2), '"', '')
     and tp.table_name=replace(split_part('{{ relation }}', '.', 3), '"', '')
     and LOWER(tp.privilege_type)=p.privilege_type
 )
@@ -90,6 +91,7 @@ where exists(
     select *
     from svv_relation_privileges rp
     where rp.identity_name=r.role_name
+    and rp.namespace_name=replace(split_part('{{ relation }}', '.', 2), '"', '')
     and rp.relation_name=replace(split_part('{{ relation }}', '.', 3), '"', '')
     and LOWER(rp.privilege_type)=p.privilege_type
 )
