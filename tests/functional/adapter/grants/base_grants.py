@@ -70,8 +70,7 @@ class BaseGrantsRedshift:
         return actual_grants
 
     # This is an override of the BaseGrants class
-    def assert_expected_grants_match_actual(self, project, relation_name, expected_grants):
-        actual_grants = self.get_grants_on_relation(project, relation_name)
+    def assert_expected_grants_match_actual(self, project, actual_grants, expected_grants):
         adapter = project.adapter
         # need a case-insensitive comparison
         # so just a simple "assert expected == actual_grants" won't work

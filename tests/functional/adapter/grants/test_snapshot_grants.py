@@ -86,14 +86,16 @@ class TestSnapshotGrantsRedshift(BaseGrantsRedshift):
         user_expected = {select_privilege_name: [test_users[0]]}
         assert snapshot.config.grants == user_expected
         expected = {select_privilege_name: {"user": [test_users[0]]}}
-        self.assert_expected_grants_match_actual(project, "my_snapshot", expected)
+        actual_grants = self.get_grants_on_relation(project, "my_snapshot")
+        self.assert_expected_grants_match_actual(project, actual_grants, expected)
 
         # run it again, nothing should have changed
         (results, log_output) = run_dbt_and_capture(["--debug", "snapshot"])
         assert len(results) == 1
         assert "revoke " not in log_output
         assert "grant " not in log_output
-        self.assert_expected_grants_match_actual(project, "my_snapshot", expected)
+        actual_grants = self.get_grants_on_relation(project, "my_snapshot")
+        self.assert_expected_grants_match_actual(project, actual_grants, expected)
 
         # change the grantee, assert it updates
         updated_yaml = self.interpolate_name_overrides(user2_snapshot_schema_yml)
@@ -101,7 +103,8 @@ class TestSnapshotGrantsRedshift(BaseGrantsRedshift):
         (results, log_output) = run_dbt_and_capture(["--debug", "snapshot"])
         assert len(results) == 1
         expected = {select_privilege_name: {"user": [test_users[1]]}}
-        self.assert_expected_grants_match_actual(project, "my_snapshot", expected)
+        actual_grants = self.get_grants_on_relation(project, "my_snapshot")
+        self.assert_expected_grants_match_actual(project, actual_grants, expected)
 
         # change the grants, assert that it updates
         updated_yaml = self.interpolate_name_overrides(extended_snapshot_schema_yml)
@@ -115,7 +118,8 @@ class TestSnapshotGrantsRedshift(BaseGrantsRedshift):
                 "role": [test_roles[0]],
             }
         }
-        self.assert_expected_grants_match_actual(project, "my_snapshot", expected)
+        actual_grants = self.get_grants_on_relation(project, "my_snapshot")
+        self.assert_expected_grants_match_actual(project, actual_grants, expected)
 
         # change the grants again, assert that it updates
         updated_yaml = self.interpolate_name_overrides(extended2_snapshot_schema_yml)
@@ -129,4 +133,5 @@ class TestSnapshotGrantsRedshift(BaseGrantsRedshift):
                 "role": [test_roles[1]],
             }
         }
-        self.assert_expected_grants_match_actual(project, "my_snapshot", expected)
+        actual_grants = self.get_grants_on_relation(project, "my_snapshot")
+        self.assert_expected_grants_match_actual(project, actual_grants, expected)

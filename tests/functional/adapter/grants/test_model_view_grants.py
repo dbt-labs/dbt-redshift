@@ -66,7 +66,9 @@ class TestModelGrantsViewRedshift(BaseGrantsRedshift):
         assert model.config.materialized == "view"
         # new configuration for grants
         expected = {select_privilege_name: {"user": [test_users[0]]}}
-        self.assert_expected_grants_match_actual(project, "my_model_view", expected)
+
+        actual_grants = self.get_grants_on_relation(project, "my_model_view")
+        self.assert_expected_grants_match_actual(project, actual_grants, expected)
 
         # View materialization, change select grant user
         updated_yaml = self.interpolate_name_overrides(user2_model_schema_yml)
@@ -75,4 +77,5 @@ class TestModelGrantsViewRedshift(BaseGrantsRedshift):
         assert len(results) == 1
 
         expected = {select_privilege_name: {"user": [test_users[1]]}}
-        self.assert_expected_grants_match_actual(project, "my_model_view", expected)
+        actual_grants = self.get_grants_on_relation(project, "my_model_view")
+        self.assert_expected_grants_match_actual(project, actual_grants, expected)

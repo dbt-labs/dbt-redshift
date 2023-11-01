@@ -140,7 +140,8 @@ class TestModelGrantsTableRedshift(BaseGrantsRedshift):
         model = manifest.nodes[model_id]
         assert model.config.materialized == "table"
         expected = {select_privilege_name: {"user": [test_users[0]]}}
-        self.assert_expected_grants_match_actual(project, "my_model_table", expected)
+        actual_grants = self.get_grants_on_relation(project, "my_model_table")
+        self.assert_expected_grants_match_actual(project, actual_grants, expected)
 
         # Table materialization, change select grant user
         updated_yaml = self.interpolate_name_overrides(user2_table_model_schema_yml)
@@ -151,7 +152,8 @@ class TestModelGrantsTableRedshift(BaseGrantsRedshift):
         model = manifest.nodes[model_id]
         assert model.config.materialized == "table"
         expected = {select_privilege_name: {"user": [test_users[1]]}}
-        self.assert_expected_grants_match_actual(project, "my_model_table", expected)
+        actual_grants = self.get_grants_on_relation(project, "my_model_table")
+        self.assert_expected_grants_match_actual(project, actual_grants, expected)
 
         # Table materialization, multiple grantees
         updated_yaml = self.interpolate_name_overrides(multiple_users_table_model_schema_yml)
@@ -162,7 +164,8 @@ class TestModelGrantsTableRedshift(BaseGrantsRedshift):
         model = manifest.nodes[model_id]
         assert model.config.materialized == "table"
         expected = {select_privilege_name: {"user": [test_users[0], test_users[1]]}}
-        self.assert_expected_grants_match_actual(project, "my_model_table", expected)
+        actual_grants = self.get_grants_on_relation(project, "my_model_table")
+        self.assert_expected_grants_match_actual(project, actual_grants, expected)
 
         # Table materialization, multiple privileges
         updated_yaml = self.interpolate_name_overrides(multiple_privileges_table_model_schema_yml)
@@ -181,7 +184,8 @@ class TestModelGrantsTableRedshift(BaseGrantsRedshift):
             select_privilege_name: {"user": [test_users[0]]},
             insert_privilege_name: {"user": [test_users[1]]},
         }
-        self.assert_expected_grants_match_actual(project, "my_model_table", expected)
+        actual_grants = self.get_grants_on_relation(project, "my_model_table")
+        self.assert_expected_grants_match_actual(project, actual_grants, expected)
 
         # Additional tests for privilege grants to extended permission types
         # Table materialization, single select grant
@@ -200,7 +204,8 @@ class TestModelGrantsTableRedshift(BaseGrantsRedshift):
             }
         }
 
-        self.assert_expected_grants_match_actual(project, "my_model_table", expected)
+        actual_grants = self.get_grants_on_relation(project, "my_model_table")
+        self.assert_expected_grants_match_actual(project, actual_grants, expected)
 
         # Table materialization, change select grant
         updated_yaml = self.interpolate_name_overrides(extended2_table_model_schema_yml)
@@ -217,7 +222,8 @@ class TestModelGrantsTableRedshift(BaseGrantsRedshift):
                 "role": [test_roles[1]],
             }
         }
-        self.assert_expected_grants_match_actual(project, "my_model_table", expected)
+        actual_grants = self.get_grants_on_relation(project, "my_model_table")
+        self.assert_expected_grants_match_actual(project, actual_grants, expected)
 
         # Table materialization, multiple grantees
         updated_yaml = self.interpolate_name_overrides(
@@ -236,7 +242,8 @@ class TestModelGrantsTableRedshift(BaseGrantsRedshift):
                 "role": [test_roles[0], test_roles[1]],
             }
         }
-        self.assert_expected_grants_match_actual(project, "my_model_table", expected)
+        actual_grants = self.get_grants_on_relation(project, "my_model_table")
+        self.assert_expected_grants_match_actual(project, actual_grants, expected)
 
         # Table materialization, multiple privileges
         updated_yaml = self.interpolate_name_overrides(
@@ -260,4 +267,5 @@ class TestModelGrantsTableRedshift(BaseGrantsRedshift):
                 "role": [test_roles[1]],
             },
         }
-        self.assert_expected_grants_match_actual(project, "my_model_table", expected)
+        actual_grants = self.get_grants_on_relation(project, "my_model_table")
+        self.assert_expected_grants_match_actual(project, actual_grants, expected)

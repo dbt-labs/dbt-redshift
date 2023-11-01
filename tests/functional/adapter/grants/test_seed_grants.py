@@ -93,7 +93,8 @@ class TestSeedGrantsRedshift(BaseGrantsRedshift):
         assert seed.config.grants == user_expected
         assert "grant " in log_output
         expected = {select_privilege_name: {"user": [test_users[0]]}}
-        self.assert_expected_grants_match_actual(project, "my_seed", expected)
+        actual_grants = self.get_grants_on_relation(project, "my_seed")
+        self.assert_expected_grants_match_actual(project, actual_grants, expected)
 
         # run it again, with no config changes
         (results, log_output) = run_dbt_and_capture(["--debug", "seed"])
@@ -105,7 +106,8 @@ class TestSeedGrantsRedshift(BaseGrantsRedshift):
         else:
             # seeds are always full-refreshed on this adapter, so we need to re-grant
             assert "grant " in log_output
-        self.assert_expected_grants_match_actual(project, "my_seed", expected)
+        actual_grants = self.get_grants_on_relation(project, "my_seed")
+        self.assert_expected_grants_match_actual(project, actual_grants, expected)
 
         # change the grantee, assert it updates
         updated_yaml = self.interpolate_name_overrides(user2_schema_base_yml)
@@ -113,11 +115,13 @@ class TestSeedGrantsRedshift(BaseGrantsRedshift):
         (results, log_output) = run_dbt_and_capture(["--debug", "seed"])
         assert len(results) == 1
         expected = {select_privilege_name: {"user": [test_users[1]]}}
-        self.assert_expected_grants_match_actual(project, "my_seed", expected)
+        actual_grants = self.get_grants_on_relation(project, "my_seed")
+        self.assert_expected_grants_match_actual(project, actual_grants, expected)
 
         # run it again, with --full-refresh, grants should be the same
         run_dbt(["seed", "--full-refresh"])
-        self.assert_expected_grants_match_actual(project, "my_seed", expected)
+        actual_grants = self.get_grants_on_relation(project, "my_seed")
+        self.assert_expected_grants_match_actual(project, actual_grants, expected)
 
         # change config to 'grants: {}' -- should be completely ignored
         updated_yaml = self.interpolate_name_overrides(ignore_grants_yml)
@@ -132,12 +136,13 @@ class TestSeedGrantsRedshift(BaseGrantsRedshift):
         expected_config = {}
         expected_actual = {select_privilege_name: {"user": [test_users[1]]}}
         assert seed.config.grants == expected_config
+        actual_grants = self.get_grants_on_relation(project, "my_seed")
         if self.seeds_support_partial_refresh():
             # ACTUAL grants will NOT match expected grants
-            self.assert_expected_grants_match_actual(project, "my_seed", expected_actual)
+            self.assert_expected_grants_match_actual(project, actual_grants, expected_actual)
         else:
             # there should be ZERO grants on the seed
-            self.assert_expected_grants_match_actual(project, "my_seed", expected_config)
+            self.assert_expected_grants_match_actual(project, actual_grants, expected_config)
 
         # now run with ZERO grants -- all grants should be removed
         # whether explicitly (revoke) or implicitly (recreated without any grants added on)
@@ -148,14 +153,16 @@ class TestSeedGrantsRedshift(BaseGrantsRedshift):
         if self.seeds_support_partial_refresh():
             assert "revoke " in log_output
         expected = {}
-        self.assert_expected_grants_match_actual(project, "my_seed", expected)
+        actual_grants = self.get_grants_on_relation(project, "my_seed")
+        self.assert_expected_grants_match_actual(project, actual_grants, expected)
 
         # run it again -- dbt shouldn't try to grant or revoke anything
         (results, log_output) = run_dbt_and_capture(["--debug", "seed"])
         assert len(results) == 1
         assert "revoke " not in log_output
         assert "grant " not in log_output
-        self.assert_expected_grants_match_actual(project, "my_seed", expected)
+        actual_grants = self.get_grants_on_relation(project, "my_seed")
+        self.assert_expected_grants_match_actual(project, actual_grants, expected)
 
         # run with ZERO grants -- since all grants were removed previously
         # nothing should have changed
@@ -166,4 +173,5 @@ class TestSeedGrantsRedshift(BaseGrantsRedshift):
         assert "grant " not in log_output
         assert "revoke " not in log_output
         expected = {}
-        self.assert_expected_grants_match_actual(project, "my_seed", expected)
+        actual_grants = self.get_grants_on_relation(project, "my_seed")
+        self.assert_expected_grants_match_actual(project, actual_grants, expected)

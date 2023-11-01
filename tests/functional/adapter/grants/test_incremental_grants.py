@@ -88,14 +88,16 @@ class TestIncrementalGrantsRedshift(BaseGrantsRedshift):
         model = manifest.nodes[model_id]
         assert model.config.materialized == "incremental"
         expected = {select_privilege_name: {"user": [test_users[0]]}}
-        self.assert_expected_grants_match_actual(project, "my_incremental_model", expected)
+        actual_grants = self.get_grants_on_relation(project, "my_incremental_model")
+        self.assert_expected_grants_match_actual(project, actual_grants, expected)
 
         # Incremental materialization, run again without changes
         (results, log_output) = run_dbt_and_capture(["--debug", "run"])
         assert len(results) == 1
         assert "revoke " not in log_output
         assert "grant " not in log_output  # with space to disambiguate from 'show grants'
-        self.assert_expected_grants_match_actual(project, "my_incremental_model", expected)
+        actual_grants = self.get_grants_on_relation(project, "my_incremental_model")
+        self.assert_expected_grants_match_actual(project, actual_grants, expected)
 
         # Incremental materialization, change select grant user
         updated_yaml = self.interpolate_name_overrides(user2_incremental_model_schema_yml)
@@ -107,13 +109,15 @@ class TestIncrementalGrantsRedshift(BaseGrantsRedshift):
         model = manifest.nodes[model_id]
         assert model.config.materialized == "incremental"
         expected = {select_privilege_name: {"user": [test_users[1]]}}
-        self.assert_expected_grants_match_actual(project, "my_incremental_model", expected)
+        actual_grants = self.get_grants_on_relation(project, "my_incremental_model")
+        self.assert_expected_grants_match_actual(project, actual_grants, expected)
 
         # Incremental materialization, same config, now with --full-refresh
         run_dbt(["--debug", "run", "--full-refresh"])
         assert len(results) == 1
         # whether grants or revokes happened will vary by adapter
-        self.assert_expected_grants_match_actual(project, "my_incremental_model", expected)
+        actual_grants = self.get_grants_on_relation(project, "my_incremental_model")
+        self.assert_expected_grants_match_actual(project, actual_grants, expected)
 
         # Now drop the schema (with the table in it)
         adapter = project.adapter
@@ -126,7 +130,8 @@ class TestIncrementalGrantsRedshift(BaseGrantsRedshift):
         assert len(results) == 1
         assert "grant " in log_output
         assert "revoke " not in log_output
-        self.assert_expected_grants_match_actual(project, "my_incremental_model", expected)
+        actual_grants = self.get_grants_on_relation(project, "my_incremental_model")
+        self.assert_expected_grants_match_actual(project, actual_grants, expected)
 
         # Additional tests for privilege grants to extended permission types
         # Incremental materialization, single select grant
@@ -147,7 +152,9 @@ class TestIncrementalGrantsRedshift(BaseGrantsRedshift):
                 "role": [test_roles[0]],
             }
         }
-        self.assert_expected_grants_match_actual(project, "my_incremental_model", expected)
+
+        actual_grants = self.get_grants_on_relation(project, "my_incremental_model")
+        self.assert_expected_grants_match_actual(project, actual_grants, expected)
 
         # Incremental materialization, change select grant
         updated_yaml = self.interpolate_name_overrides(extended2_incremental_model_schema_yml)
@@ -167,4 +174,5 @@ class TestIncrementalGrantsRedshift(BaseGrantsRedshift):
                 "role": [test_roles[1]],
             }
         }
-        self.assert_expected_grants_match_actual(project, "my_incremental_model", expected)
+        actual_grants = self.get_grants_on_relation(project, "my_incremental_model")
+        self.assert_expected_grants_match_actual(project, actual_grants, expected)
