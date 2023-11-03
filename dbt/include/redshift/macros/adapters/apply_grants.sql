@@ -83,7 +83,7 @@ union all
 -- check that role has table privilege
 select
     'role' as grantee_type,
-    r.role_name as rolename,
+    r.role_name as grantee,
     p.privilege_type
 from svv_roles r
 cross join privileges p
