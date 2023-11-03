@@ -3,6 +3,7 @@ from typing import Optional, Tuple
 import pytest
 
 from dbt.adapters.base.relation import BaseRelation
+from dbt.contracts.graph.model_config import OnConfigurationChangeOption
 
 from dbt.tests.adapter.materialized_view.basic import MaterializedViewBasic
 from dbt.tests.adapter.materialized_view.changes import (
@@ -246,7 +247,30 @@ class TestRedshiftMaterializedViewWithBackupConfig:
     def seeds(self):
         return {"my_seed.csv": MY_SEED}
 
-    def test_running_mv_with_backup_false_succeeds(self, project):
+    @pytest.fixture(scope="class")
+    def project_config_update(self):
+        return {"models": {"on_configuration_change": OnConfigurationChangeOption.Fail.value}}
+
+    @pytest.fixture(scope="function")
+    def dbt_run_results(self, project):
         run_dbt(["seed"])
-        result = run_dbt(["run"])
-        assert result[0].node.config_call_dict["backup"] is False
+        yield run_dbt(["run", "--full-refresh"])
+
+    def test_running_mv_with_backup_false_succeeds(self, dbt_run_results):
+        assert dbt_run_results[0].node.config_call_dict["backup"] is False
+
+    def test_running_mv_with_backup_false_is_idempotent(self, project, dbt_run_results):
+        """
+        Addresses: https://github.com/dbt-labs/dbt-redshift/issues/621
+        Context:
+          - The default for `backup` is `True`
+          - We cannot query `backup` for a materialized view in Redshift at the moment
+        Premise:
+          - Set `on_configuration_change` = 'fail' (via `project_config_update`)
+          - Set `backup` = False (via `NO_BACKUP_MATERIALIZED_VIEW`)
+          - Create the materialized view (via `dbt_run_results`)
+          - Run a second time forcing the configuration change monitoring
+          - There should be no changes monitored, hence the run should be successful
+        """
+        results = run_dbt(["run"])
+        assert results[0].node.config_call_dict["backup"] is False
