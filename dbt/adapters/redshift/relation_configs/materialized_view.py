@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Optional, Set
 
 import agate
@@ -56,7 +56,7 @@ class RedshiftMaterializedViewConfig(RedshiftRelationConfigBase, RelationConfigV
     schema_name: str
     database_name: str
     query: str
-    backup: bool = True
+    backup: bool = field(default=True, compare=False, hash=False)
     dist: RedshiftDistConfig = RedshiftDistConfig(diststyle=RedshiftDistStyle.even)
     sort: RedshiftSortConfig = RedshiftSortConfig()
     autorefresh: bool = False
@@ -241,18 +241,8 @@ class RedshiftAutoRefreshConfigChange(RelationConfigChange):
         return False
 
 
-@dataclass(frozen=True, eq=True, unsafe_hash=True)
-class RedshiftBackupConfigChange(RelationConfigChange):
-    context: Optional[bool] = None
-
-    @property
-    def requires_full_refresh(self) -> bool:
-        return True
-
-
 @dataclass
 class RedshiftMaterializedViewConfigChangeset:
-    backup: Optional[RedshiftBackupConfigChange] = None
     dist: Optional[RedshiftDistConfigChange] = None
     sort: Optional[RedshiftSortConfigChange] = None
     autorefresh: Optional[RedshiftAutoRefreshConfigChange] = None
@@ -262,7 +252,6 @@ class RedshiftMaterializedViewConfigChangeset:
         return any(
             {
                 self.autorefresh.requires_full_refresh if self.autorefresh else False,
-                self.backup.requires_full_refresh if self.backup else False,
                 self.dist.requires_full_refresh if self.dist else False,
                 self.sort.requires_full_refresh if self.sort else False,
             }
@@ -272,7 +261,6 @@ class RedshiftMaterializedViewConfigChangeset:
     def has_changes(self) -> bool:
         return any(
             {
-                self.backup if self.backup else False,
                 self.dist if self.dist else False,
                 self.sort if self.sort else False,
                 self.autorefresh if self.autorefresh else False,
