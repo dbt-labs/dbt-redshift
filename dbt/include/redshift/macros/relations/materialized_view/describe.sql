@@ -13,9 +13,10 @@
             tb.sortkey1,
             mv.autorefresh
         from svv_table_info tb
-        left join stv_mv_info mv
-            on mv.db_name = tb.database
-            and mv.schema = tb.schema
+        -- svv_mv_info is queryable by Redshift Serverless, but stv_mv_info is not
+        left join svv_mv_info mv
+            on mv.database_name = tb.database
+            and mv.schema_name = tb.schema
             and mv.name = tb.table
         where tb.table ilike '{{ relation.identifier }}'
         and tb.schema ilike '{{ relation.schema }}'
