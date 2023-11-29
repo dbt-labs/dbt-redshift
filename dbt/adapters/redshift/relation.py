@@ -16,7 +16,6 @@ from dbt.adapters.redshift.relation_configs import (
     RedshiftMaterializedViewConfig,
     RedshiftMaterializedViewConfigChangeset,
     RedshiftAutoRefreshConfigChange,
-    RedshiftBackupConfigChange,
     RedshiftDistConfigChange,
     RedshiftSortConfigChange,
     RedshiftIncludePolicy,
@@ -91,12 +90,6 @@ class RedshiftRelation(BaseRelation):
             config_change_collection.autorefresh = RedshiftAutoRefreshConfigChange(
                 action=RelationConfigChangeAction.alter,
                 context=new_materialized_view.autorefresh,
-            )
-
-        if new_materialized_view.backup != existing_materialized_view.backup:
-            config_change_collection.backup = RedshiftBackupConfigChange(
-                action=RelationConfigChangeAction.alter,
-                context=new_materialized_view.backup,
             )
 
         if new_materialized_view.dist != existing_materialized_view.dist:
