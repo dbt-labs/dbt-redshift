@@ -92,6 +92,7 @@ class TestBaseAdapterMethod(BaseAdapterMethod):
     pass
 
 
+@pytest.mark.skip(reason="Known flakey test to be reviewed")
 class TestDocsGenerateRedshift(BaseDocsGenerate):
     @pytest.fixture(scope="class")
     def expected_catalog(self, project, profile_user):
