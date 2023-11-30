@@ -84,7 +84,6 @@ setup(
     install_requires=[
         f"dbt-core~={_core_version()}",
         f"dbt-postgres~={_core_version()}",
-        "boto3~=1.26.157",
         # dbt-redshift depends deeply on this package. it does not follow SemVer, therefore there have been breaking changes in previous patch releases
         # Pin to the patch or minor version, and bump in each new minor version of dbt-redshift.
         "redshift-connector==2.0.915",
