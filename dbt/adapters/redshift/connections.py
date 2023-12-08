@@ -40,7 +40,7 @@ class RedshiftConnectionMethod(StrEnum):
 @dataclass
 class RedshiftCredentials(PostgresCredentials):
     method: str = RedshiftConnectionMethod.DATABASE  # type: ignore
-    password: Optional[str] = None
+    password: Optional[str] = None  # asdf
     cluster_id: Optional[str] = field(
         default=None,
         metadata={"description": "If using IAM auth, the name of the cluster"},
