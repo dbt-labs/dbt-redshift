@@ -1,4 +1,6 @@
 import unittest
+
+from multiprocessing import get_context
 from unittest import mock
 from unittest.mock import Mock, call
 
@@ -10,8 +12,8 @@ from dbt.adapters.redshift import (
     RedshiftAdapter,
     Plugin as RedshiftPlugin,
 )
-from dbt.clients import agate_helper
-from dbt.exceptions import FailedToConnectError
+from dbt.common.clients import agate_helper
+from dbt.adapters.exceptions import FailedToConnectError
 from dbt.adapters.redshift.connections import RedshiftConnectMethodFactory, RedshiftSSLConfig
 from .utils import (
     config_from_parts_or_dicts,
@@ -59,7 +61,7 @@ class TestRedshiftAdapter(unittest.TestCase):
     @property
     def adapter(self):
         if self._adapter is None:
-            self._adapter = RedshiftAdapter(self.config)
+            self._adapter = RedshiftAdapter(self.config, get_context("spawn"))
             inject_adapter(self._adapter, RedshiftPlugin)
         return self._adapter
 
@@ -235,7 +237,7 @@ class TestRedshiftAdapter(unittest.TestCase):
             region=None,
         )
 
-        with self.assertRaises(dbt.exceptions.FailedToConnectError):
+        with self.assertRaises(dbt.adapters.exceptions.FailedToConnectError):
             connection = self.adapter.acquire_connection("dummy")
             connection.handle
             redshift_connector.connect.assert_called_once_with(
@@ -264,7 +266,7 @@ class TestRedshiftAdapter(unittest.TestCase):
             region=None,
         )
 
-        with self.assertRaises(dbt.exceptions.FailedToConnectError):
+        with self.assertRaises(dbt.adapters.exceptions.FailedToConnectError):
             connection = self.adapter.acquire_connection("dummy")
             connection.handle
             redshift_connector.connect.assert_called_once_with(
@@ -385,7 +387,7 @@ class TestRedshiftAdapter(unittest.TestCase):
             iam_profile="test",
             host="doesnotexist.1233.us-east-2.redshift-srvrlss.amazonaws.com",
         )
-        with self.assertRaises(dbt.exceptions.FailedToConnectError) as context:
+        with self.assertRaises(dbt.adapters.exceptions.FailedToConnectError) as context:
             connection = self.adapter.acquire_connection("dummy")
             connection.handle
             redshift_connector.connect.assert_called_once_with(
@@ -507,12 +509,12 @@ class TestRedshiftAdapter(unittest.TestCase):
         }
         self.config = config_from_parts_or_dicts(project_cfg, profile_cfg)
         self.adapter.cleanup_connections()
-        self._adapter = RedshiftAdapter(self.config)
+        self._adapter = RedshiftAdapter(self.config, get_context("spawn"))
         self.adapter.verify_database("redshift")
 
     def test_execute_with_fetch(self):
         cursor = mock.Mock()
-        table = dbt.clients.agate_helper.empty_table()
+        table = dbt.common.clients.agate_helper.empty_table()
         with mock.patch.object(self.adapter.connections, "add_query") as mock_add_query:
             mock_add_query.return_value = (
                 None,

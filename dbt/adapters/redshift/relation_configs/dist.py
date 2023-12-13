@@ -9,7 +9,7 @@ from dbt.adapters.relation_configs import (
     RelationConfigValidationRule,
 )
 from dbt.contracts.graph.nodes import ModelNode
-from dbt.dataclass_schema import StrEnum
+from dbt.common.dataclass_schema import StrEnum
 from dbt.exceptions import DbtRuntimeError
 
 from dbt.adapters.redshift.relation_configs.base import RedshiftRelationConfigBase

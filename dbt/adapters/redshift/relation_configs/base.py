@@ -3,12 +3,12 @@ from typing import Optional
 
 import agate
 from dbt.adapters.base.relation import Policy
+from dbt.adapters.contracts.relation import ComponentName
 from dbt.adapters.relation_configs import (
     RelationConfigBase,
     RelationResults,
 )
 from dbt.contracts.graph.nodes import ModelNode
-from dbt.contracts.relation import ComponentName
 
 from dbt.adapters.redshift.relation_configs.policies import (
     RedshiftIncludePolicy,

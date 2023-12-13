@@ -10,13 +10,14 @@ import redshift_connector
 from redshift_connector.utils.oids import get_datatype_name
 
 from dbt.adapters.sql import SQLConnectionManager
-from dbt.contracts.connection import AdapterResponse, Connection, Credentials
-from dbt.contracts.util import Replaceable
-from dbt.dataclass_schema import dbtClassMixin, StrEnum, ValidationError
-from dbt.events import AdapterLogger
+from dbt.adapters.contracts.connection import AdapterResponse, Connection, Credentials
+from dbt.adapters.events.logging import AdapterLogger
+from dbt.common.contracts.util import Replaceable
+from dbt.common.dataclass_schema import dbtClassMixin, StrEnum, ValidationError
+from dbt.common.helper_types import Port
 from dbt.exceptions import DbtRuntimeError, CompilationError
 import dbt.flags
-from dbt.helper_types import Port
+import dbt.mp_context
 
 
 class SSLConfigError(CompilationError):
@@ -33,7 +34,7 @@ class SSLConfigError(CompilationError):
 logger = AdapterLogger("Redshift")
 
 
-drop_lock: Lock = dbt.flags.MP_CONTEXT.Lock()  # type: ignore
+drop_lock: Lock = dbt.mp_context._MP_CONTEXT.Lock()  # type: ignore
 
 
 class RedshiftConnectionMethod(StrEnum):
@@ -185,7 +186,7 @@ class RedshiftConnectMethodFactory:
             # this requirement is really annoying to encode into json schema,
             # so validate it here
             if self.credentials.password is None:
-                raise dbt.exceptions.FailedToConnectError(
+                raise dbt.adapters.exceptions.FailedToConnectError(
                     "'password' field is required for 'database' credentials"
                 )
 
@@ -204,7 +205,7 @@ class RedshiftConnectMethodFactory:
 
         elif method == RedshiftConnectionMethod.IAM:
             if not self.credentials.cluster_id and "serverless" not in self.credentials.host:
-                raise dbt.exceptions.FailedToConnectError(
+                raise dbt.adapters.exceptions.FailedToConnectError(
                     "Failed to use IAM method. 'cluster_id' must be provided for provisioned cluster. "
                     "'host' must be provided for serverless endpoint."
                 )
@@ -227,7 +228,7 @@ class RedshiftConnectMethodFactory:
                 return c
 
         else:
-            raise dbt.exceptions.FailedToConnectError(
+            raise dbt.adapters.exceptions.FailedToConnectError(
                 "Invalid 'method' in profile: '{}'".format(method)
             )
 
@@ -349,7 +350,7 @@ class RedshiftConnectionManager(SQLConnectionManager):
         if fetch:
             table = self.get_result_from_cursor(cursor, limit)
         else:
-            table = dbt.clients.agate_helper.empty_table()
+            table = dbt.common.clients.agate_helper.empty_table()
         return response, table
 
     def add_query(self, sql, auto_begin=True, bindings=None, abridge_sql_log=False):

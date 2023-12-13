@@ -6,12 +6,12 @@ from dbt.adapters.base import PythonJobHelper
 from dbt.adapters.base.impl import AdapterConfig, ConstraintSupport
 from dbt.adapters.base.meta import available
 from dbt.adapters.sql import SQLAdapter
-from dbt.contracts.connection import AdapterResponse
+from dbt.adapters.contracts.connection import AdapterResponse
 from dbt.contracts.graph.nodes import ConstraintType
-from dbt.events import AdapterLogger
+from dbt.adapters.events.logging import AdapterLogger
 
 
-import dbt.exceptions
+import dbt.adapters.exceptions
 
 from dbt.adapters.redshift import RedshiftConnectionManager, RedshiftRelation
 

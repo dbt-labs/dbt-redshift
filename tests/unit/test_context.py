@@ -2,11 +2,12 @@ import os
 import pytest
 import unittest
 
+from multiprocessing import get_context
 from unittest import mock
 
 from .utils import config_from_parts_or_dicts, inject_adapter, clear_plugin
 from .mock_adapter import adapter_factory
-import dbt.exceptions
+import dbt.adapters.exceptions
 
 from dbt.adapters import (
     redshift,
@@ -191,7 +192,7 @@ def manifest_extended(manifest_fx):
 
 @pytest.fixture
 def redshift_adapter(config, get_adapter):
-    adapter = redshift.RedshiftAdapter(config)
+    adapter = redshift.RedshiftAdapter(config, get_context("spawn"))
     inject_adapter(adapter, redshift.Plugin)
     get_adapter.return_value = adapter
     yield adapter
