@@ -15,7 +15,7 @@ from dbt.adapters.events.logging import AdapterLogger
 from dbt.common.contracts.util import Replaceable
 from dbt.common.dataclass_schema import dbtClassMixin, StrEnum, ValidationError
 from dbt.common.helper_types import Port
-from dbt.exceptions import DbtRuntimeError, CompilationError
+from dbt.common.exceptions import DbtRuntimeError, CompilationError
 import dbt.flags
 import dbt.mp_context
 
@@ -32,9 +32,6 @@ class SSLConfigError(CompilationError):
 
 
 logger = AdapterLogger("Redshift")
-
-
-drop_lock: Lock = dbt.mp_context._MP_CONTEXT.Lock()  # type: ignore
 
 
 class RedshiftConnectionMethod(StrEnum):
@@ -279,16 +276,16 @@ class RedshiftConnectionManager(SQLConnectionManager):
                 err_msg = str(e).strip()
             logger.debug(f"Redshift error: {err_msg}")
             self.rollback_if_open()
-            raise dbt.exceptions.DbtDatabaseError(err_msg) from e
+            raise dbt.common.exceptions.DbtDatabaseError(err_msg) from e
 
         except Exception as e:
             logger.debug("Error running SQL: {}", sql)
             logger.debug("Rolling back transaction.")
             self.rollback_if_open()
             # Raise DBT native exceptions as is.
-            if isinstance(e, dbt.exceptions.DbtRuntimeError):
+            if isinstance(e, DbtRuntimeError):
                 raise
-            raise dbt.exceptions.DbtRuntimeError(str(e)) from e
+            raise DbtRuntimeError(str(e)) from e
 
     @contextmanager
     def fresh_transaction(self):
@@ -298,6 +295,8 @@ class RedshiftConnectionManager(SQLConnectionManager):
 
         See drop_relation in RedshiftAdapter for more information.
         """
+        drop_lock: Lock = dbt.mp_context._MP_CONTEXT.Lock()  # type: ignore
+
         with drop_lock:
             connection = self.get_thread_connection()
 

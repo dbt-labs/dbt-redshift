@@ -554,7 +554,7 @@ class TestRedshiftAdapter(unittest.TestCase):
         ) as mock_get_thread_connection:
             mock_get_thread_connection.return_value = None
             with self.assertRaisesRegex(
-                dbt.exceptions.DbtRuntimeError, "Tried to run invalid SQL:  on <None>"
+                dbt.common.exceptions.DbtRuntimeError, "Tried to run invalid SQL:  on <None>"
             ):
                 self.adapter.connections.add_query(sql="")
         mock_get_thread_connection.assert_called_once()

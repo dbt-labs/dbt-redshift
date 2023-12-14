@@ -10,7 +10,7 @@ from dbt.adapters.relation_configs import (
 from dbt.context.providers import RuntimeConfigObject
 from dbt.contracts.graph.nodes import ModelNode
 from dbt.adapters.base import RelationType
-from dbt.exceptions import DbtRuntimeError
+from dbt.common.exceptions import DbtRuntimeError
 
 from dbt.adapters.redshift.relation_configs import (
     RedshiftMaterializedViewConfig,
