@@ -11,12 +11,12 @@
     {% set select_extended = redshift__can_select_from('svv_table_info') %}
     {% if select_extended %}
         {% set extended_catalog = _redshift__get_extended_catalog_by_schema(schemas) %}
-        {% set catalog = catalog.join(extended_catalog, 'table_id') %}
+        {% set catalog = catalog.join(extended_catalog, ['table_schema', 'table_name']) %}
     {% else %}
         {{ redshift__no_svv_table_info_warning() }}
     {% endif %}
 
-    {{ return(catalog.exclude(['table_id'])) }}
+    {{ return(catalog) }}
 
 {% endmacro %}
 
@@ -26,9 +26,9 @@
         with
             late_binding as ({{ _redshift__get_late_binding_by_schema_sql(schemas) }}),
             early_binding as ({{ _redshift__get_early_binding_by_schema_sql(database, schemas) }}),
-            unioned as (select * from late_binding union all select * from early_binding),
+            unioned as (select * from early_binding union all select * from late_binding),
             table_owners as ({{ redshift__get_table_owners_sql() }})
-        select *, table_schema || '.' || table_name as table_id
+        select '{{ database }}' as table_database, *
         from unioned
         join table_owners using (table_schema, table_name)
         order by "column_index"
@@ -62,7 +62,7 @@
         {{ redshift__get_extended_catalog_sql() }}
         where (
             {%- for schema in schemas -%}
-                upper(schema) = upper('{{ schema }}'){%- if not loop.last %} or {% endif -%}
+                upper("schema") = upper('{{ schema }}'){%- if not loop.last %} or {% endif -%}
             {%- endfor -%}
         )
     {%- endcall -%}

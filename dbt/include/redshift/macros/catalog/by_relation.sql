@@ -1,21 +1,24 @@
 {% macro redshift__get_catalog_relations(information_schema, relations) -%}
 
+    {% set database = information_schema.database %}
+    {{ adapter.verify_database(database) }}
+
     {#-- Compute a left-outer join in memory. Some Redshift queries are
       -- leader-only, and cannot be joined to other compute-based queries #}
 
-    {% set catalog = _redshift__get_base_catalog_by_relation(information_schema, relations) %}
+    {% set catalog = _redshift__get_base_catalog_by_relation(database, relations) %}
 
     {% set select_extended = redshift__can_select_from('svv_table_info') %}
     {% if select_extended %}
         {% set extended_catalog = _redshift__get_extended_catalog_by_relation(relations) %}
-        {% set catalog = catalog.join(extended_catalog, 'table_id') %}
+        {% set catalog = catalog.join(extended_catalog, ['table_schema', 'table_name']) %}
     {% else %}
         {{ redshift__no_svv_table_info_warning() }}
     {% endif %}
 
-    {{ return(catalog.exclude(['table_id'])) }}
+    {{ return(catalog) }}
 
-{%- endmacro %}
+{% endmacro %}
 
 
 {% macro _redshift__get_base_catalog_by_relation(database, relations) -%}
@@ -23,9 +26,9 @@
         with
             late_binding as ({{ _redshift__get_late_binding_by_relation_sql(relations) }}),
             early_binding as ({{ _redshift__get_early_binding_by_relation_sql(database, relations) }}),
-            unioned as (select * from late_binding union all select * from early_binding),
+            unioned as (select * from early_binding union all select * from late_binding),
             table_owners as ({{ redshift__get_table_owners_sql() }})
-        select *, table_schema || '.' || table_name as table_id
+        select '{{ database }}' as table_database, *
         from unioned
         join table_owners using (table_schema, table_name)
         order by "column_index"
@@ -68,8 +71,8 @@
         where (
             {%- for relation in relations -%}
                 (
-                    upper(schema) = upper('{{ relation.schema }}')
-                and upper(table) = upper('{{ relation.identifier }}')
+                    upper("schema") = upper('{{ relation.schema }}')
+                and upper("table") = upper('{{ relation.identifier }}')
                 )
             {%- if not loop.last %} or {% endif -%}
             {%- endfor -%}

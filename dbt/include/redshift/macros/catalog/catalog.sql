@@ -24,7 +24,7 @@
         sch.nspname as table_schema,
         tbl.relname as table_name,
         case
-            when tbl.relkind = 'v' and mat_views.relname is not null then 'MATERIALIZED VIEW'
+            when tbl.relkind = 'v' and mat_views.table_name is not null then 'MATERIALIZED VIEW'
             when tbl.relkind = 'v' then 'VIEW'
             else 'BASE TABLE'
         end as table_type,
@@ -72,7 +72,8 @@
 
 {% macro redshift__get_extended_catalog_sql() %}
     select
-        "schema" || '.' || "table" as table_id,
+        "schema" as table_schema,
+        "table" as table_name,
 
         'Encoded'::text as "stats:encoded:label",
         encoded as "stats:encoded:value",
