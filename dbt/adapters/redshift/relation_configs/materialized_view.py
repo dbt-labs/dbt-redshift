@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Optional, Set
 
 import agate
@@ -23,6 +23,7 @@ from dbt.adapters.redshift.relation_configs.sort import (
     RedshiftSortConfig,
     RedshiftSortConfigChange,
 )
+from dbt.adapters.redshift.utility import evaluate_bool
 
 
 @dataclass(frozen=True, eq=True, unsafe_hash=True)
@@ -55,7 +56,7 @@ class RedshiftMaterializedViewConfig(RedshiftRelationConfigBase, RelationConfigV
     schema_name: str
     database_name: str
     query: str
-    backup: bool = True
+    backup: bool = field(default=True, compare=False, hash=False)
     dist: RedshiftDistConfig = RedshiftDistConfig(diststyle=RedshiftDistStyle.even)
     sort: RedshiftSortConfig = RedshiftSortConfig()
     autorefresh: bool = False
@@ -122,25 +123,16 @@ class RedshiftMaterializedViewConfig(RedshiftRelationConfigBase, RelationConfigV
             "mv_name": model_node.identifier,
             "schema_name": model_node.schema,
             "database_name": model_node.database,
-            "backup": model_node.config.extra.get("backup"),
         }
+
+        # backup/autorefresh can be bools or strings
+        backup_value = model_node.config.extra.get("backup")
+        if backup_value is not None:
+            config_dict["backup"] = evaluate_bool(backup_value)
 
         autorefresh_value = model_node.config.extra.get("auto_refresh")
         if autorefresh_value is not None:
-            if isinstance(autorefresh_value, bool):
-                config_dict["autorefresh"] = autorefresh_value
-            elif isinstance(autorefresh_value, str):
-                lower_autorefresh = autorefresh_value.lower()
-                if lower_autorefresh == "true":
-                    config_dict["autorefresh"] = True
-                elif lower_autorefresh == "false":
-                    config_dict["autorefresh"] = False
-                else:
-                    raise ValueError(
-                        "Invalid autorefresh representation. Please use accepted value ex.( True, 'true', 'True')"
-                    )
-            else:
-                raise TypeError("Invalid autorefresh value: expecting boolean or str.")
+            config_dict["autorefresh"] = evaluate_bool(autorefresh_value)
 
         if query := model_node.compiled_code:
             config_dict.update({"query": query.strip()})
@@ -190,9 +182,13 @@ class RedshiftMaterializedViewConfig(RedshiftRelationConfigBase, RelationConfigV
             "mv_name": materialized_view.get("table"),
             "schema_name": materialized_view.get("schema"),
             "database_name": materialized_view.get("database"),
-            "autorefresh": materialized_view.get("autorefresh"),
             "query": cls._parse_query(query.get("definition")),
         }
+
+        autorefresh_value = materialized_view.get("autorefresh")
+        if autorefresh_value is not None:
+            bool_filter = {"t": True, "f": False}
+            config_dict["autorefresh"] = bool_filter.get(autorefresh_value, autorefresh_value)
 
         # the default for materialized views differs from the default for diststyle in general
         # only set it if we got a value
@@ -245,18 +241,8 @@ class RedshiftAutoRefreshConfigChange(RelationConfigChange):
         return False
 
 
-@dataclass(frozen=True, eq=True, unsafe_hash=True)
-class RedshiftBackupConfigChange(RelationConfigChange):
-    context: Optional[bool] = None
-
-    @property
-    def requires_full_refresh(self) -> bool:
-        return True
-
-
 @dataclass
 class RedshiftMaterializedViewConfigChangeset:
-    backup: Optional[RedshiftBackupConfigChange] = None
     dist: Optional[RedshiftDistConfigChange] = None
     sort: Optional[RedshiftSortConfigChange] = None
     autorefresh: Optional[RedshiftAutoRefreshConfigChange] = None
@@ -266,7 +252,6 @@ class RedshiftMaterializedViewConfigChangeset:
         return any(
             {
                 self.autorefresh.requires_full_refresh if self.autorefresh else False,
-                self.backup.requires_full_refresh if self.backup else False,
                 self.dist.requires_full_refresh if self.dist else False,
                 self.sort.requires_full_refresh if self.sort else False,
             }
@@ -276,7 +261,6 @@ class RedshiftMaterializedViewConfigChangeset:
     def has_changes(self) -> bool:
         return any(
             {
-                self.backup if self.backup else False,
                 self.dist if self.dist else False,
                 self.sort if self.sort else False,
                 self.autorefresh if self.autorefresh else False,

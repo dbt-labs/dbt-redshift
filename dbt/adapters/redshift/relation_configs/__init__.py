@@ -9,7 +9,6 @@ from dbt.adapters.redshift.relation_configs.dist import (
 from dbt.adapters.redshift.relation_configs.materialized_view import (
     RedshiftMaterializedViewConfig,
     RedshiftAutoRefreshConfigChange,
-    RedshiftBackupConfigChange,
     RedshiftMaterializedViewConfigChangeset,
 )
 from dbt.adapters.redshift.relation_configs.policies import (
