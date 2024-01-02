@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from dbt.adapters.contracts.relation import RelationConfig
 from typing import Optional
 
 from dbt.adapters.base.relation import BaseRelation
@@ -7,8 +8,6 @@ from dbt.adapters.relation_configs import (
     RelationConfigChangeAction,
     RelationResults,
 )
-from dbt.context.providers import RuntimeConfigObject
-from dbt.contracts.graph.nodes import ModelNode
 from dbt.adapters.base import RelationType
 from dbt.common.exceptions import DbtRuntimeError
 
@@ -60,31 +59,28 @@ class RedshiftRelation(BaseRelation):
         return MAX_CHARACTERS_IN_IDENTIFIER
 
     @classmethod
-    def from_runtime_config(cls, runtime_config: RuntimeConfigObject) -> RelationConfigBase:
-        model_node: ModelNode = runtime_config.model
-        relation_type: str = model_node.config.materialized
+    def from_config(cls, config: RelationConfig) -> RelationConfigBase:
+        relation_type: str = config.config.materialized  # type: ignore
 
         if relation_config := cls.relation_configs.get(relation_type):
-            return relation_config.from_model_node(model_node)
+            return relation_config.from_config(relation_config)  # type: ignore
 
         raise DbtRuntimeError(
-            f"from_runtime_config() is not supported for the provided relation type: {relation_type}"
+            f"from_config() is not supported for the provided relation type: {relation_type}"
         )
 
     @classmethod
     def materialized_view_config_changeset(
-        cls, relation_results: RelationResults, runtime_config: RuntimeConfigObject
+        cls, relation_results: RelationResults, relation_config: RelationConfig
     ) -> Optional[RedshiftMaterializedViewConfigChangeset]:
         config_change_collection = RedshiftMaterializedViewConfigChangeset()
 
         existing_materialized_view = RedshiftMaterializedViewConfig.from_relation_results(
             relation_results
         )
-        new_materialized_view = RedshiftMaterializedViewConfig.from_model_node(
-            runtime_config.model
+        new_materialized_view = RedshiftMaterializedViewConfig.from_relation_config(
+            relation_config
         )
-        assert isinstance(existing_materialized_view, RedshiftMaterializedViewConfig)
-        assert isinstance(new_materialized_view, RedshiftMaterializedViewConfig)
 
         if new_materialized_view.autorefresh != existing_materialized_view.autorefresh:
             config_change_collection.autorefresh = RedshiftAutoRefreshConfigChange(
