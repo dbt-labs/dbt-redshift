@@ -63,7 +63,7 @@ class RedshiftRelation(BaseRelation):
         relation_type: str = config.config.materialized  # type: ignore
 
         if relation_config := cls.relation_configs.get(relation_type):
-            return relation_config.from_config(relation_config)  # type: ignore
+            return relation_config.from_relation_config(config)
 
         raise DbtRuntimeError(
             f"from_config() is not supported for the provided relation type: {relation_type}"
