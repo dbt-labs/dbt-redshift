@@ -137,10 +137,10 @@ class RedshiftMaterializedViewConfig(RedshiftRelationConfigBase, RelationConfigV
         if query := config.compiled_code:  # type: ignore
             config_dict.update({"query": query.strip()})
 
-        if config.config.get("dist"):
+        if config.config.get("dist"):  # type: ignore
             config_dict.update({"dist": RedshiftDistConfig.parse_relation_config(config)})
 
-        if config.config.get("sort"):
+        if config.config.get("sort"):  # type: ignore
             config_dict.update({"sort": RedshiftSortConfig.parse_relation_config(config)})
 
         return config_dict

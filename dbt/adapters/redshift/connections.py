@@ -7,6 +7,8 @@ from dataclasses import dataclass, field
 import agate
 import sqlparse
 import redshift_connector
+from dbt.adapters.exceptions import FailedToConnectError
+from dbt.common.clients import agate_helper
 from redshift_connector.utils.oids import get_datatype_name
 
 from dbt.adapters.sql import SQLConnectionManager
@@ -15,9 +17,7 @@ from dbt.adapters.events.logging import AdapterLogger
 from dbt.common.contracts.util import Replaceable
 from dbt.common.dataclass_schema import dbtClassMixin, StrEnum, ValidationError
 from dbt.common.helper_types import Port
-from dbt.common.exceptions import DbtRuntimeError, CompilationError
-import dbt.flags
-import dbt.mp_context
+from dbt.common.exceptions import DbtRuntimeError, CompilationError, DbtDatabaseError
 
 
 class SSLConfigError(CompilationError):
@@ -183,7 +183,7 @@ class RedshiftConnectMethodFactory:
             # this requirement is really annoying to encode into json schema,
             # so validate it here
             if self.credentials.password is None:
-                raise dbt.adapters.exceptions.FailedToConnectError(
+                raise FailedToConnectError(
                     "'password' field is required for 'database' credentials"
                 )
 
@@ -202,7 +202,7 @@ class RedshiftConnectMethodFactory:
 
         elif method == RedshiftConnectionMethod.IAM:
             if not self.credentials.cluster_id and "serverless" not in self.credentials.host:
-                raise dbt.adapters.exceptions.FailedToConnectError(
+                raise FailedToConnectError(
                     "Failed to use IAM method. 'cluster_id' must be provided for provisioned cluster. "
                     "'host' must be provided for serverless endpoint."
                 )
@@ -225,9 +225,7 @@ class RedshiftConnectMethodFactory:
                 return c
 
         else:
-            raise dbt.adapters.exceptions.FailedToConnectError(
-                "Invalid 'method' in profile: '{}'".format(method)
-            )
+            raise FailedToConnectError("Invalid 'method' in profile: '{}'".format(method))
 
         return connect
 
@@ -276,7 +274,7 @@ class RedshiftConnectionManager(SQLConnectionManager):
                 err_msg = str(e).strip()
             logger.debug(f"Redshift error: {err_msg}")
             self.rollback_if_open()
-            raise dbt.common.exceptions.DbtDatabaseError(err_msg) from e
+            raise DbtDatabaseError(err_msg) from e
 
         except Exception as e:
             logger.debug("Error running SQL: {}", sql)
@@ -295,7 +293,7 @@ class RedshiftConnectionManager(SQLConnectionManager):
 
         See drop_relation in RedshiftAdapter for more information.
         """
-        drop_lock: Lock = dbt.mp_context._MP_CONTEXT.Lock()  # type: ignore
+        drop_lock: Lock = self.lock
 
         with drop_lock:
             connection = self.get_thread_connection()
@@ -349,7 +347,7 @@ class RedshiftConnectionManager(SQLConnectionManager):
         if fetch:
             table = self.get_result_from_cursor(cursor, limit)
         else:
-            table = dbt.common.clients.agate_helper.empty_table()
+            table = agate_helper.empty_table()
         return response, table
 
     def add_query(self, sql, auto_begin=True, bindings=None, abridge_sql_log=False):
