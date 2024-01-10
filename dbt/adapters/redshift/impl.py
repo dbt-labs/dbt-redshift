@@ -1,17 +1,17 @@
 import os
 from dataclasses import dataclass
+from dbt.common.contracts.constraints import ConstraintType
 from typing import Optional, Set, Any, Dict, Type
 from collections import namedtuple
 from dbt.adapters.base import PythonJobHelper
 from dbt.adapters.base.impl import AdapterConfig, ConstraintSupport
 from dbt.adapters.base.meta import available
 from dbt.adapters.sql import SQLAdapter
-from dbt.contracts.connection import AdapterResponse
-from dbt.contracts.graph.nodes import ConstraintType
-from dbt.events import AdapterLogger
+from dbt.adapters.contracts.connection import AdapterResponse
+from dbt.adapters.events.logging import AdapterLogger
 
 
-import dbt.exceptions
+import dbt.adapters.exceptions
 
 from dbt.adapters.redshift import RedshiftConnectionManager, RedshiftRelation
 
@@ -96,7 +96,7 @@ class RedshiftAdapter(SQLAdapter):
         ra3_node = self.config.credentials.ra3_node
 
         if database.lower() != expected.lower() and not ra3_node:
-            raise dbt.exceptions.NotImplementedError(
+            raise dbt.common.exceptions.NotImplementedError(
                 "Cross-db references allowed only in RA3.* node. ({} vs {})".format(
                     database, expected
                 )
@@ -109,9 +109,9 @@ class RedshiftAdapter(SQLAdapter):
         schemas = super(SQLAdapter, self)._get_catalog_schemas(manifest)
         try:
             return schemas.flatten(allow_multiple_databases=self.config.credentials.ra3_node)
-        except dbt.exceptions.DbtRuntimeError as exc:
+        except dbt.common.exceptions.DbtRuntimeError as exc:
             msg = f"Cross-db references allowed only in {self.type()} RA3.* node. Got {exc.msg}"
-            raise dbt.exceptions.CompilationError(msg)
+            raise dbt.common.exceptions.CompilationError(msg)
 
     def valid_incremental_strategies(self):
         """The set of standard builtin strategies which this adapter supports out-of-the-box.
