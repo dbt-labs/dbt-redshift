@@ -1,0 +1,6 @@
+kind: Dependencies
+body: upgrade redshift driver constraint to allow for `<=2.0.918, >=2.0.913`
+time: 2024-01-18T09:57:40.844744-08:00
+custom:
+  Author: colin-rogers-dbt
+  PR: "703"
