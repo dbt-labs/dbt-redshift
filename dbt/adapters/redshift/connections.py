@@ -8,16 +8,16 @@ import agate
 import sqlparse
 import redshift_connector
 from dbt.adapters.exceptions import FailedToConnectError
-from dbt.common.clients import agate_helper
+from dbt_common.clients import agate_helper
 from redshift_connector.utils.oids import get_datatype_name
 
 from dbt.adapters.sql import SQLConnectionManager
 from dbt.adapters.contracts.connection import AdapterResponse, Connection, Credentials
 from dbt.adapters.events.logging import AdapterLogger
-from dbt.common.contracts.util import Replaceable
-from dbt.common.dataclass_schema import dbtClassMixin, StrEnum, ValidationError
-from dbt.common.helper_types import Port
-from dbt.common.exceptions import DbtRuntimeError, CompilationError, DbtDatabaseError
+from dbt_common.contracts.util import Replaceable
+from dbt_common.dataclass_schema import dbtClassMixin, StrEnum, ValidationError
+from dbt_common.helper_types import Port
+from dbt_common.exceptions import DbtRuntimeError, CompilationError, DbtDatabaseError
 
 
 class SSLConfigError(CompilationError):

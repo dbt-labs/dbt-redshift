@@ -82,7 +82,8 @@ setup(
     packages=find_namespace_packages(include=["dbt", "dbt.*"]),
     include_package_data=True,
     install_requires=[
-        f"dbt-core~={_core_version()}",
+        "dbt-common<1.0",
+        "dbt-adapters==0.1.0a1",
         f"dbt-postgres~={_core_version()}",
         # dbt-redshift depends deeply on this package. it does not follow SemVer, therefore there have been breaking changes in previous patch releases
         # Pin to the patch or minor version, and bump in each new minor version of dbt-redshift.
