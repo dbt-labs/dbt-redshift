@@ -50,7 +50,7 @@ setup(
     install_requires=[
         "dbt-common<1.0",
         "dbt-adapters~=0.1.0a1",
-        "dbt-postgres>=1.8,<1.9",
+        f"dbt-postgres~={_plugin_version()}",
         # dbt-redshift depends deeply on this package. it does not follow SemVer, therefore there have been breaking changes in previous patch releases
         # Pin to the patch or minor version, and bump in each new minor version of dbt-redshift.
         "redshift-connector<=2.0.918, >=2.0.913",
