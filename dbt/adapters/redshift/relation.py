@@ -9,7 +9,7 @@ from dbt.adapters.relation_configs import (
     RelationResults,
 )
 from dbt.adapters.base import RelationType
-from dbt.common.exceptions import DbtRuntimeError
+from dbt_common.exceptions import DbtRuntimeError
 
 from dbt.adapters.redshift.relation_configs import (
     RedshiftMaterializedViewConfig,

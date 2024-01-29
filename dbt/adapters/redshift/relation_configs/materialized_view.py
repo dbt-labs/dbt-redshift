@@ -9,7 +9,7 @@ from dbt.adapters.relation_configs import (
     RelationConfigValidationRule,
 )
 from dbt.adapters.contracts.relation import ComponentName, RelationConfig
-from dbt.common.exceptions import DbtRuntimeError
+from dbt_common.exceptions import DbtRuntimeError
 from typing_extensions import Self
 
 from dbt.adapters.redshift.relation_configs.base import RedshiftRelationConfigBase
