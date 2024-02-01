@@ -2,6 +2,8 @@ import unittest
 
 from multiprocessing import get_context
 from unittest import mock
+
+from dbt_common.exceptions import DbtRuntimeError
 from unittest.mock import Mock, call
 
 import agate
@@ -12,7 +14,7 @@ from dbt.adapters.redshift import (
     RedshiftAdapter,
     Plugin as RedshiftPlugin,
 )
-from dbt.common.clients import agate_helper
+from dbt_common.clients import agate_helper
 from dbt.adapters.exceptions import FailedToConnectError
 from dbt.adapters.redshift.connections import RedshiftConnectMethodFactory, RedshiftSSLConfig
 from .utils import (
@@ -514,7 +516,7 @@ class TestRedshiftAdapter(unittest.TestCase):
 
     def test_execute_with_fetch(self):
         cursor = mock.Mock()
-        table = dbt.common.clients.agate_helper.empty_table()
+        table = agate_helper.empty_table()
         with mock.patch.object(self.adapter.connections, "add_query") as mock_add_query:
             mock_add_query.return_value = (
                 None,
@@ -553,9 +555,7 @@ class TestRedshiftAdapter(unittest.TestCase):
             self.adapter.connections, "get_thread_connection"
         ) as mock_get_thread_connection:
             mock_get_thread_connection.return_value = None
-            with self.assertRaisesRegex(
-                dbt.common.exceptions.DbtRuntimeError, "Tried to run invalid SQL:  on <None>"
-            ):
+            with self.assertRaisesRegex(DbtRuntimeError, "Tried to run invalid SQL:  on <None>"):
                 self.adapter.connections.add_query(sql="")
         mock_get_thread_connection.assert_called_once()
 

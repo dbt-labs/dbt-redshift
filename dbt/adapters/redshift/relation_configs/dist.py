@@ -9,8 +9,8 @@ from dbt.adapters.relation_configs import (
     RelationConfigValidationMixin,
     RelationConfigValidationRule,
 )
-from dbt.common.dataclass_schema import StrEnum
-from dbt.common.exceptions import DbtRuntimeError
+from dbt_common.dataclass_schema import StrEnum
+from dbt_common.exceptions import DbtRuntimeError
 from typing_extensions import Self
 
 from dbt.adapters.redshift.relation_configs.base import RedshiftRelationConfigBase
