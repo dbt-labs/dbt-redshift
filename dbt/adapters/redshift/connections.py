@@ -356,6 +356,7 @@ class RedshiftConnectionManager(SQLConnectionManager):
         connection = None
         cursor = None
 
+        self._initialize_sqlparse_lexer()
         queries = sqlparse.split(sql)
 
         for query in queries:
@@ -387,3 +388,14 @@ class RedshiftConnectionManager(SQLConnectionManager):
     @classmethod
     def data_type_code_to_name(cls, type_code: Union[int, str]) -> str:
         return get_datatype_name(type_code)
+
+    @staticmethod
+    def _initialize_sqlparse_lexer():
+        """
+        Resolves: https://github.com/dbt-labs/dbt-redshift/issues/710
+        Implementation of this fix: https://github.com/dbt-labs/dbt-core/pull/8215
+        """
+        from sqlparse.lexer import Lexer  # type: ignore
+
+        if hasattr(Lexer, "get_default_instance"):
+            Lexer.get_default_instance()
