@@ -1,6 +1,6 @@
 import pytest
 from dbt.tests.util import run_dbt, get_manifest
-from dbt.exceptions import DbtRuntimeError
+from dbt_common.exceptions import DbtRuntimeError
 from dbt.context.providers import generate_runtime_model_context
 
 
