@@ -7,16 +7,17 @@ from dataclasses import dataclass, field
 import agate
 import sqlparse
 import redshift_connector
+from dbt.adapters.exceptions import FailedToConnectError
+from dbt_common.clients import agate_helper
 from redshift_connector.utils.oids import get_datatype_name
 
 from dbt.adapters.sql import SQLConnectionManager
-from dbt.contracts.connection import AdapterResponse, Connection, Credentials
-from dbt.contracts.util import Replaceable
-from dbt.dataclass_schema import dbtClassMixin, StrEnum, ValidationError
-from dbt.events import AdapterLogger
-from dbt.exceptions import DbtRuntimeError, CompilationError
-import dbt.flags
-from dbt.helper_types import Port
+from dbt.adapters.contracts.connection import AdapterResponse, Connection, Credentials
+from dbt.adapters.events.logging import AdapterLogger
+from dbt_common.contracts.util import Replaceable
+from dbt_common.dataclass_schema import dbtClassMixin, StrEnum, ValidationError
+from dbt_common.helper_types import Port
+from dbt_common.exceptions import DbtRuntimeError, CompilationError, DbtDatabaseError
 
 
 class SSLConfigError(CompilationError):
@@ -31,9 +32,6 @@ class SSLConfigError(CompilationError):
 
 
 logger = AdapterLogger("Redshift")
-
-
-drop_lock: Lock = dbt.flags.MP_CONTEXT.Lock()  # type: ignore
 
 
 class RedshiftConnectionMethod(StrEnum):
@@ -185,7 +183,7 @@ class RedshiftConnectMethodFactory:
             # this requirement is really annoying to encode into json schema,
             # so validate it here
             if self.credentials.password is None:
-                raise dbt.exceptions.FailedToConnectError(
+                raise FailedToConnectError(
                     "'password' field is required for 'database' credentials"
                 )
 
@@ -204,7 +202,7 @@ class RedshiftConnectMethodFactory:
 
         elif method == RedshiftConnectionMethod.IAM:
             if not self.credentials.cluster_id and "serverless" not in self.credentials.host:
-                raise dbt.exceptions.FailedToConnectError(
+                raise FailedToConnectError(
                     "Failed to use IAM method. 'cluster_id' must be provided for provisioned cluster. "
                     "'host' must be provided for serverless endpoint."
                 )
@@ -227,9 +225,7 @@ class RedshiftConnectMethodFactory:
                 return c
 
         else:
-            raise dbt.exceptions.FailedToConnectError(
-                "Invalid 'method' in profile: '{}'".format(method)
-            )
+            raise FailedToConnectError("Invalid 'method' in profile: '{}'".format(method))
 
         return connect
 
@@ -278,16 +274,16 @@ class RedshiftConnectionManager(SQLConnectionManager):
                 err_msg = str(e).strip()
             logger.debug(f"Redshift error: {err_msg}")
             self.rollback_if_open()
-            raise dbt.exceptions.DbtDatabaseError(err_msg) from e
+            raise DbtDatabaseError(err_msg) from e
 
         except Exception as e:
             logger.debug("Error running SQL: {}", sql)
             logger.debug("Rolling back transaction.")
             self.rollback_if_open()
             # Raise DBT native exceptions as is.
-            if isinstance(e, dbt.exceptions.DbtRuntimeError):
+            if isinstance(e, DbtRuntimeError):
                 raise
-            raise dbt.exceptions.DbtRuntimeError(str(e)) from e
+            raise DbtRuntimeError(str(e)) from e
 
     @contextmanager
     def fresh_transaction(self):
@@ -297,6 +293,8 @@ class RedshiftConnectionManager(SQLConnectionManager):
 
         See drop_relation in RedshiftAdapter for more information.
         """
+        drop_lock: Lock = self.lock
+
         with drop_lock:
             connection = self.get_thread_connection()
 
@@ -349,13 +347,14 @@ class RedshiftConnectionManager(SQLConnectionManager):
         if fetch:
             table = self.get_result_from_cursor(cursor, limit)
         else:
-            table = dbt.clients.agate_helper.empty_table()
+            table = agate_helper.empty_table()
         return response, table
 
     def add_query(self, sql, auto_begin=True, bindings=None, abridge_sql_log=False):
         connection = None
         cursor = None
 
+        self._initialize_sqlparse_lexer()
         queries = sqlparse.split(sql)
 
         for query in queries:
@@ -387,3 +386,14 @@ class RedshiftConnectionManager(SQLConnectionManager):
     @classmethod
     def data_type_code_to_name(cls, type_code: Union[int, str]) -> str:
         return get_datatype_name(type_code)
+
+    @staticmethod
+    def _initialize_sqlparse_lexer():
+        """
+        Resolves: https://github.com/dbt-labs/dbt-redshift/issues/710
+        Implementation of this fix: https://github.com/dbt-labs/dbt-core/pull/8215
+        """
+        from sqlparse.lexer import Lexer  # type: ignore
+
+        if hasattr(Lexer, "get_default_instance"):
+            Lexer.get_default_instance()
