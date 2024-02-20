@@ -56,7 +56,7 @@ class RedshiftAdapter(SQLAdapter):
 
     _capabilities: CapabilityDict = CapabilityDict(
         {
-            Capability.TableLastModifiedMetadata: CapabilitySupport(support=Support.Unsupported),
+            Capability.TableLastModifiedMetadata: CapabilitySupport(support=Support.Full),
         }
     )
 
