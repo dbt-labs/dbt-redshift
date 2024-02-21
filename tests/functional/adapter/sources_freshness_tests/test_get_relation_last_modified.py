@@ -1,7 +1,7 @@
 import os
-import pytest
 
 from dbt.tests.util import run_dbt
+import pytest
 
 from tests.functional.adapter.sources_freshness_tests import files
 
@@ -27,15 +27,15 @@ class TestGetLastRelationModified:
         del os.environ["DBT_GET_LAST_RELATION_TEST_SCHEMA"]
 
     @pytest.mark.parametrize(
-        "source,status",
+        "source,status,expect_pass",
         [
-            ("test_source.test_source_last_modified", "error"),  # stale
+            ("test_source.test_source_no_last_modified", "pass", True),
+            ("test_source.test_source_last_modified", "error", False),  # stale
         ],
     )
-    def test_get_last_relation_modified(self, project, source, status):
-        statuses = {"pass": True, "error": False}
+    def test_get_last_relation_modified(self, project, source, status, expect_pass):
         results = run_dbt(
-            ["source", "freshness", "--select", f"source:{source}"], expect_pass=statuses[status]
+            ["source", "freshness", "--select", f"source:{source}"], expect_pass=expect_pass
         )
         assert len(results) == 1
         result = results[0]
