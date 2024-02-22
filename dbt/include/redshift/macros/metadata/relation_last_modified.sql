@@ -11,7 +11,7 @@
             on ns.oid = c.relnamespace
         join sys_query_detail qd
             on qd.table_id = c.oid
-        where qd.step_name in ('insert', 'merge', 'mergejoin')
+        where qd.step_name = 'insert'
         and (
             {%- for relation in relations -%}
                 (
