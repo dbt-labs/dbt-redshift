@@ -1,0 +1,6 @@
+kind: Fixes
+body: Compare contract data types prior to creating the DDL with data types and constraints
+time: 2024-01-26T17:13:53.430072-07:00
+custom:
+  Author: dbeatty10
+  Issue: "707"
