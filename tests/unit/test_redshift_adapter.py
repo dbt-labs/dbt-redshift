@@ -4,7 +4,7 @@ from multiprocessing import get_context
 from unittest import mock
 
 from dbt_common.exceptions import DbtRuntimeError
-from unittest.mock import Mock, call
+from unittest.mock import MagicMock, call
 
 import agate
 import dbt
@@ -67,7 +67,7 @@ class TestRedshiftAdapter(unittest.TestCase):
             inject_adapter(self._adapter, RedshiftPlugin)
         return self._adapter
 
-    @mock.patch("redshift_connector.connect", Mock())
+    @mock.patch("redshift_connector.connect", MagicMock())
     def test_implicit_database_conn(self):
         connection = self.adapter.acquire_connection("dummy")
         connection.handle
@@ -84,7 +84,7 @@ class TestRedshiftAdapter(unittest.TestCase):
             **DEFAULT_SSL_CONFIG,
         )
 
-    @mock.patch("redshift_connector.connect", Mock())
+    @mock.patch("redshift_connector.connect", MagicMock())
     def test_explicit_region_with_database_conn(self):
         self.config.method = "database"
 
@@ -103,7 +103,7 @@ class TestRedshiftAdapter(unittest.TestCase):
             **DEFAULT_SSL_CONFIG,
         )
 
-    @mock.patch("redshift_connector.connect", Mock())
+    @mock.patch("redshift_connector.connect", MagicMock())
     def test_explicit_iam_conn_without_profile(self):
         self.config.credentials = self.config.credentials.replace(
             method="iam",
@@ -129,7 +129,7 @@ class TestRedshiftAdapter(unittest.TestCase):
             **DEFAULT_SSL_CONFIG,
         )
 
-    @mock.patch("redshift_connector.connect", Mock())
+    @mock.patch("redshift_connector.connect", MagicMock())
     def test_conn_timeout_30(self):
         self.config.credentials = self.config.credentials.replace(connect_timeout=30)
         connection = self.adapter.acquire_connection("dummy")
@@ -147,7 +147,7 @@ class TestRedshiftAdapter(unittest.TestCase):
             **DEFAULT_SSL_CONFIG,
         )
 
-    @mock.patch("redshift_connector.connect", Mock())
+    @mock.patch("redshift_connector.connect", MagicMock())
     def test_explicit_iam_conn_with_profile(self):
         self.config.credentials = self.config.credentials.replace(
             method="iam",
@@ -175,7 +175,7 @@ class TestRedshiftAdapter(unittest.TestCase):
             **DEFAULT_SSL_CONFIG,
         )
 
-    @mock.patch("redshift_connector.connect", Mock())
+    @mock.patch("redshift_connector.connect", MagicMock())
     def test_explicit_iam_serverless_with_profile(self):
         self.config.credentials = self.config.credentials.replace(
             method="iam",
@@ -201,7 +201,7 @@ class TestRedshiftAdapter(unittest.TestCase):
             **DEFAULT_SSL_CONFIG,
         )
 
-    @mock.patch("redshift_connector.connect", Mock())
+    @mock.patch("redshift_connector.connect", MagicMock())
     def test_explicit_region(self):
         # Successful test
         self.config.credentials = self.config.credentials.replace(
@@ -229,7 +229,7 @@ class TestRedshiftAdapter(unittest.TestCase):
             **DEFAULT_SSL_CONFIG,
         )
 
-    @mock.patch("redshift_connector.connect", Mock())
+    @mock.patch("redshift_connector.connect", MagicMock())
     def test_explicit_region_failure(self):
         # Failure test with no region
         self.config.credentials = self.config.credentials.replace(
@@ -258,7 +258,7 @@ class TestRedshiftAdapter(unittest.TestCase):
                 **DEFAULT_SSL_CONFIG,
             )
 
-    @mock.patch("redshift_connector.connect", Mock())
+    @mock.patch("redshift_connector.connect", MagicMock())
     def test_explicit_invalid_region(self):
         # Invalid region test
         self.config.credentials = self.config.credentials.replace(
@@ -287,7 +287,7 @@ class TestRedshiftAdapter(unittest.TestCase):
                 **DEFAULT_SSL_CONFIG,
             )
 
-    @mock.patch("redshift_connector.connect", Mock())
+    @mock.patch("redshift_connector.connect", MagicMock())
     def test_sslmode_disable(self):
         self.config.credentials.sslmode = "disable"
         connection = self.adapter.acquire_connection("dummy")
@@ -306,7 +306,7 @@ class TestRedshiftAdapter(unittest.TestCase):
             sslmode=None,
         )
 
-    @mock.patch("redshift_connector.connect", Mock())
+    @mock.patch("redshift_connector.connect", MagicMock())
     def test_sslmode_allow(self):
         self.config.credentials.sslmode = "allow"
         connection = self.adapter.acquire_connection("dummy")
@@ -325,7 +325,7 @@ class TestRedshiftAdapter(unittest.TestCase):
             sslmode="verify-ca",
         )
 
-    @mock.patch("redshift_connector.connect", Mock())
+    @mock.patch("redshift_connector.connect", MagicMock())
     def test_sslmode_verify_full(self):
         self.config.credentials.sslmode = "verify-full"
         connection = self.adapter.acquire_connection("dummy")
@@ -344,7 +344,7 @@ class TestRedshiftAdapter(unittest.TestCase):
             sslmode="verify-full",
         )
 
-    @mock.patch("redshift_connector.connect", Mock())
+    @mock.patch("redshift_connector.connect", MagicMock())
     def test_sslmode_verify_ca(self):
         self.config.credentials.sslmode = "verify-ca"
         connection = self.adapter.acquire_connection("dummy")
@@ -363,7 +363,7 @@ class TestRedshiftAdapter(unittest.TestCase):
             sslmode="verify-ca",
         )
 
-    @mock.patch("redshift_connector.connect", Mock())
+    @mock.patch("redshift_connector.connect", MagicMock())
     def test_sslmode_prefer(self):
         self.config.credentials.sslmode = "prefer"
         connection = self.adapter.acquire_connection("dummy")
@@ -382,7 +382,7 @@ class TestRedshiftAdapter(unittest.TestCase):
             sslmode="verify-ca",
         )
 
-    @mock.patch("redshift_connector.connect", Mock())
+    @mock.patch("redshift_connector.connect", MagicMock())
     def test_serverless_iam_failure(self):
         self.config.credentials = self.config.credentials.replace(
             method="iam",
