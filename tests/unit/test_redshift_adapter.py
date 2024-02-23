@@ -447,6 +447,23 @@ class TestRedshiftAdapter(unittest.TestCase):
 
         self.assertTrue("'cluster_id' must be provided" in context.exception.msg)
 
+    @mock.patch("redshift_connector.connect", MagicMock())
+    def test_connection_has_backend_pid(self):
+        backend_pid = 42
+
+        cursor = mock.Mock()
+        cursor().execute().fetchone.return_value = (backend_pid,)
+        redshift_connector.connect().cursor = cursor
+
+        connection = self.adapter.acquire_connection("dummy")
+        assert connection.handle.backend_pid == backend_pid
+
+        cursor().execute.assert_has_calls(
+            [
+                call("select pg_backend_pid()"),
+            ]
+        )        
+
     def test_cancel_open_connections_empty(self):
         self.assertEqual(len(list(self.adapter.cancel_open_connections())), 0)
 
@@ -475,11 +492,33 @@ class TestRedshiftAdapter(unittest.TestCase):
             self.assertEqual(len(list(self.adapter.cancel_open_connections())), 1)
             add_query.assert_has_calls(
                 [
-                    call("select pg_backend_pid()"),
+                    call(f"select pg_terminate_backend({model.handle.backend_pid})"),
                 ]
             )
 
-        master.handle.get_backend_pid.assert_not_called()
+        master.handle.backend_pid.assert_not_called()
+
+
+    @mock.patch("redshift_connector.connect", MagicMock())
+    def test_backend_pid_used_in_pg_terminate_backend(self):
+        with mock.patch.object(self.adapter.connections, "add_query") as add_query:
+            backend_pid = 42
+            query_result = (backend_pid,)
+
+            cursor = mock.Mock()
+            cursor().execute().fetchone.return_value = query_result
+            redshift_connector.connect().cursor = cursor
+
+            connection = self.adapter.acquire_connection("dummy")
+            connection.handle
+
+            self.adapter.connections.cancel(connection)
+
+            add_query.assert_has_calls(
+                [
+                    call(f"select pg_terminate_backend({backend_pid})"),
+                ]
+            )
 
     def test_dbname_verification_is_case_insensitive(self):
         # Override adapter settings from setUp()
