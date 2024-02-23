@@ -3,7 +3,7 @@ from typing import Optional, Tuple
 import pytest
 
 from dbt.adapters.base.relation import BaseRelation
-from dbt.contracts.graph.model_config import OnConfigurationChangeOption
+from dbt.adapters.contracts.relation import OnConfigurationChangeOption
 
 from dbt.tests.adapter.materialized_view.basic import MaterializedViewBasic
 from dbt.tests.adapter.materialized_view.changes import (
