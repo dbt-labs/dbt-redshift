@@ -156,21 +156,19 @@ class RedshiftCredentials(Credentials):
     def unique_field(self) -> str:
         return self.host
 
+
 class RedshiftSQLConnectionWrapper:
     """Wrap a Redshift SQL connector in a way that stores backend pid"""
 
     _conn: redshift_connector.Connection
     _backend_pid: int
 
-    def __init__(
-        self,
-        conn: redshift_connector.Connection
-    ):
+    def __init__(self, conn: redshift_connector.Connection):
         self._conn = conn
         self._backend_pid = self._get_backend_pid()
 
     def __getattr__(self, name):
-       return getattr(self._conn, name)
+        return getattr(self._conn, name)
 
     def _get_backend_pid(self):
         sql = "select pg_backend_pid()"

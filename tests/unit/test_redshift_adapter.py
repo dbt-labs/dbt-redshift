@@ -462,7 +462,7 @@ class TestRedshiftAdapter(unittest.TestCase):
             [
                 call("select pg_backend_pid()"),
             ]
-        )        
+        )
 
     def test_cancel_open_connections_empty(self):
         self.assertEqual(len(list(self.adapter.cancel_open_connections())), 0)
@@ -497,7 +497,6 @@ class TestRedshiftAdapter(unittest.TestCase):
             )
 
         master.handle.backend_pid.assert_not_called()
-
 
     @mock.patch("redshift_connector.connect", MagicMock())
     def test_backend_pid_used_in_pg_terminate_backend(self):
