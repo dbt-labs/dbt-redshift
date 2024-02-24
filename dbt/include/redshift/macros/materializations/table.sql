@@ -39,14 +39,18 @@
     {% if existing_relation is not none %}
         {% if existing_relation.can_be_renamed %}
             {{ adapter.rename_relation(existing_relation, backup_relation) }}
+	    {{ adapter.rename_relation(intermediate_relation, target_relation) }}
+
         {% else %}
-	    drop table if exists {{ existing_relation }} cascade;
-	    alter table {{ intermediate_relation }} rename to {{ target_relation }}
+	    BEGIN
+	        drop table if exists {{ existing_relation }} cascade;
+	        alter table {{ intermediate_relation }} rename to {{ target_relation }}
+            {{ adapter.commit() }}
         {% endif %}
     {% endif %}
+  {% else %}
+    {{ adapter.rename_relation(intermediate_relation, target_relation) }}
   {% endif %}
-
-  {{ adapter.rename_relation(intermediate_relation, target_relation) }}
 
   {% do create_indexes(target_relation) %}
 
