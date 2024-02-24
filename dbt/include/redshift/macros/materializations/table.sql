@@ -39,12 +39,12 @@
     {% if existing_relation is not none %}
         {% if existing_relation.can_be_renamed %}
             {{ adapter.rename_relation(existing_relation, backup_relation) }}
-        {% else  %}
-            {{ drop_relation_if_exists(existing_relation) }}
+        {% else %}
+	    drop table if exists {{ existing_relation }} cascade;
+	    alter table {{ intermediate_relation }} rename to {{ target_relation }}
         {% endif %}
     {% endif %}
   {% endif %}
-
 
   {{ adapter.rename_relation(intermediate_relation, target_relation) }}
 
