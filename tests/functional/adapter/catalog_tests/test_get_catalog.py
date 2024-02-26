@@ -1,4 +1,4 @@
-from dbt.adapters.contracts.relation import RelationType
+from dbt.contracts.relation import RelationType
 from dbt.tests.util import get_connection
 import pytest
 
