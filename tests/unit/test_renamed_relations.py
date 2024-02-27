@@ -1,4 +1,4 @@
-from dbt.adapters.postgres.relation import RedshiftRelation
+from dbt.adapters.redshift.relation import RedshiftRelation
 from dbt.adapters.contracts.relation import RelationType
 
 

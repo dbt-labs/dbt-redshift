@@ -1,8 +1,8 @@
 # install latest changes in dbt-core + dbt-postgres
 # TODO: how to switch from HEAD to x.y.latest branches after minor releases?
 git+https://github.com/dbt-labs/dbt-postgres.git@main
-git+https://github.com/dbt-labs/dbt-core.git#egg=dbt-core&subdirectory=core
-git+https://github.com/dbt-labs/dbt-adapters.git@ADAP-108/fix_renamed_relations_for_1.8
+git+https://github.com/dbt-labs/dbt-core.git@ADAP-9681/fix_renamed_relations_override_pre_1.8#egg=dbt-core&subdirectory=core
+git+https://github.com/dbt-labs/dbt-adapters.git
 git+https://github.com/dbt-labs/dbt-adapters.git#subdirectory=dbt-tests-adapter
 
 # if version 1.x or greater -> pin to major version
