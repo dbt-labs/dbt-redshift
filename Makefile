@@ -1,5 +1,19 @@
 .DEFAULT_GOAL:=help
 
+CI_FLAGS =\
+	DBT_TEST_USER_1=$(if $(DBT_TEST_USER_1),$(DBT_TEST_USER_1),dbt_test_user_1)\
+	DBT_TEST_USER_2=$(if $(DBT_TEST_USER_2),$(DBT_TEST_USER_2),dbt_test_user_2)\
+	DBT_TEST_USER_3=$(if $(DBT_TEST_USER_3),$(DBT_TEST_USER_3),dbt_test_user_3)\
+	DBT_TEST_GROUP_1=$(if $(DBT_TEST_GROUP_1),$(DBT_TEST_GROUP_1),dbt_test_group_1)\
+	DBT_TEST_GROUP_2=$(if $(DBT_TEST_GROUP_2),$(DBT_TEST_GROUP_2),dbt_test_group_2)\
+	DBT_TEST_GROUP_3=$(if $(DBT_TEST_GROUP_3),$(DBT_TEST_GROUP_3),dbt_test_group_3)\
+	DBT_TEST_ROLE_1=$(if $(DBT_TEST_ROLE_1),$(DBT_TEST_ROLE_1),dbt_test_role_1)\
+	DBT_TEST_ROLE_2=$(if $(DBT_TEST_ROLE_2),$(DBT_TEST_ROLE_2),dbt_test_role_2)\
+	DBT_TEST_ROLE_3=$(if $(DBT_TEST_ROLE_3),$(DBT_TEST_ROLE_3),dbt_test_role_3)\
+	RUSTFLAGS=$(if $(RUSTFLAGS),$(RUSTFLAGS),"-D warnings")\
+	LOG_DIR=$(if $(LOG_DIR),$(LOG_DIR),./logs)\
+	DBT_LOG_FORMAT=$(if $(DBT_LOG_FORMAT),$(DBT_LOG_FORMAT),json)
+
 .PHONY: dev
 dev: ## Installs adapter in develop mode along with development dependencies
 	@\
