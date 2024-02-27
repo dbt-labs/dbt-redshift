@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from dbt.adapters.contracts.relation import RelationConfig
-from typing import Optional
+from typing import FrozenSet, Optional
 
 from dbt.adapters.base.relation import BaseRelation
 from dbt.adapters.relation_configs import (
