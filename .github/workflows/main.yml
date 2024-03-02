@@ -59,7 +59,6 @@ jobs:
           python -m pip --version
           pre-commit --version
           mypy --version
-          python -c "import dbt.adapters.redshift"
 
       - name: pre-commit hooks
         run: pre-commit run --all-files --show-diff-on-failure
