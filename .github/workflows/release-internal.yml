@@ -119,6 +119,7 @@ jobs:
       version_number: ${{ inputs.version_number }}
       changelog_path: ${{ needs.bump-version-generate-changelog.outputs.changelog_path }}
       build_script_path: "scripts/build-dist.sh"
+      s3_bucket_name: core-team-artifacts
       package_test_command: ${{ inputs.package_test_command }}
       test_run: False
       nightly_release: False
