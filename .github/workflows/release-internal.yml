@@ -62,7 +62,6 @@ jobs:
     steps:
       - name: "[DEBUG] Print Variables"
         run: |
-          echo The last commit sha in the release: ${{ inputs.sha }}
           echo The release version number:         ${{ inputs.version_number }}
           echo Package test command:               ${{ inputs.package_test_command }}
 
@@ -76,6 +75,7 @@ jobs:
         id: set_sha
         run: |
           echo "starting_sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
+          echo "$(git rev-parse HEAD)"
 
   bump-version-generate-changelog:
     name: Bump package version, Generate changelog
@@ -112,7 +112,7 @@ jobs:
     if: ${{ !failure() && !cancelled() }}
     needs: [job-setup, bump-version-generate-changelog]
 
-    uses: dbt-labs/dbt-release/.github/workflows/build.yml@main
+    uses: versusfacit/dbt-release/.github/workflows/build.yml@main
 
     with:
       sha: ${{ needs.bump-version-generate-changelog.outputs.final_sha }}
