@@ -133,7 +133,7 @@ jobs:
 
     needs: [bump-version-generate-changelog, build-test-package]
 
-    uses: dbt-labs/dbt-release/.github/workflows/internal-archive-release.yml@main
+    uses: versusfacit/dbt-release/.github/workflows/internal-archive-release.yml@main
 
     with:
       sha: ${{ needs.bump-version-generate-changelog.outputs.final_sha }}
