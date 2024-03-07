@@ -1,0 +1,159 @@
+# **what?**
+# Release workflow provides the following steps:
+# - checkout the given commit
+# - validate version in sources and changelog file for given version
+# - bump the version and generate a changelog if needed
+# - merge all changes to the target branch if needed
+# - run unit and integration tests against given commit
+# - build and package that SHA
+# - release it to internal repo
+#
+# **why?**
+# Ensure an automated and tested release process
+#
+# **when?**
+# This workflow can be run manually on demand or can be called by other workflows
+name: Release internal patch
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_number:
+        description: "The release version number (i.e. 1.0.0b1)"
+        type: string
+        required: true
+      test_run:
+        description: "Test run (Publish release as draft)"
+        type: boolean
+        default: true
+        required: false
+      package_test_command:
+        description: "Package test command"
+        type: string
+        default: "python -c \"import dbt.adapters.redshift\""
+        required: true
+  workflow_call:
+    inputs:
+      version_number:
+        description: "The release version number (i.e. 1.0.0b1)"
+        type: string
+        required: true
+      test_run:
+        description: "Test run (Publish release as draft)"
+        type: boolean
+        default: true
+        required: false
+      package_test_command:
+        description: "Package test command"
+        type: string
+        default: "python -c \"import dbt.adapters.redshift\""
+        required: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  job-setup:
+    name: Job Setup
+    runs-on: ubuntu-latest
+    outputs:
+      starting_sha: ${{ steps.set_sha.outputs.starting_sha }}
+    steps:
+      - name: "[DEBUG] Print Variables"
+        run: |
+          echo The last commit sha in the release: ${{ inputs.sha }}
+          echo The release version number:         ${{ inputs.version_number }}
+          echo Package test command:               ${{ inputs.package_test_command }}
+
+      - name: "Checkout main branch"
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      # Will be the last sha on the main branch
+      - name: "Capture sha"
+        id: set_sha
+        run: |
+          echo "starting_sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
+
+  bump-version-generate-changelog:
+    name: Bump package version, Generate changelog
+    needs: [job-setup]
+
+    uses: dbt-labs/dbt-release/.github/workflows/release-prep.yml@main
+
+    with:
+      sha: ${{ inputs.sha }}
+      version_number: ${{ inputs.version_number }}
+      target_branch: ${{ inputs.target_branch }}
+      env_setup_script_path: "scripts/env-setup.sh"
+      test_run: False
+      nightly_release: False
+
+    secrets: inherit
+
+  log-outputs-bump-version-generate-changelog:
+    name: "[Log output] Bump package version, Generate changelog"
+    if: ${{ !failure() && !cancelled() }}
+
+    needs: [bump-version-generate-changelog]
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Print variables
+        run: |
+          echo Final SHA     : ${{ needs.bump-version-generate-changelog.outputs.final_sha }}
+          echo Changelog path: ${{ needs.bump-version-generate-changelog.outputs.changelog_path }}
+
+  build-test-package:
+    name: Build, Test, Package
+    if: ${{ !failure() && !cancelled() }}
+    needs: [job-setup, bump-version-generate-changelog]
+
+    uses: dbt-labs/dbt-release/.github/workflows/build.yml@main
+
+    with:
+      sha: ${{ needs.bump-version-generate-changelog.outputs.final_sha }}
+      version_number: ${{ inputs.version_number }}
+      changelog_path: ${{ needs.bump-version-generate-changelog.outputs.changelog_path }}
+      build_script_path: "scripts/build-dist.sh"
+      package_test_command: ${{ inputs.package_test_command }}
+      test_run: False
+      nightly_release: False
+
+    secrets:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+  internal-release:
+    name: Internal Archive Release
+    if: ${{ !failure() && !cancelled() }}
+
+    needs: [bump-version-generate-changelog, build-test-package]
+
+    uses: dbt-labs/dbt-release/.github/workflows/internal-archive-release.yml@main
+
+    with:
+      sha: ${{ needs.bump-version-generate-changelog.outputs.final_sha }}
+      version_number: ${{ inputs.version_number }}
+
+  slack-notification:
+    name: Slack Notification
+    if: ${{ failure() }}
+
+    needs:
+      [
+        bump-version-generate-changelog,
+        build-test-package,
+        internal-release,
+      ]
+
+    uses: dbt-labs/dbt-release/.github/workflows/slack-post-notification.yml@main
+    with:
+      status: "failure"
+
+    secrets:
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_DEV_ADAPTER_ALERTS }}
+
