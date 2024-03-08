@@ -87,8 +87,8 @@ jobs:
       version_number: ${{ inputs.version_number }}
       target_branch: ${{ inputs.target_branch }}
       env_setup_script_path: "scripts/env-setup.sh"
-      test_run: False
-      nightly_release: False
+      test_run: false
+      nightly_release: false
 
     secrets: inherit
 
