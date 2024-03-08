@@ -75,13 +75,12 @@ jobs:
         id: set_sha
         run: |
           echo "starting_sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
-          echo "$(git rev-parse HEAD)"
 
   bump-version-generate-changelog:
     name: Bump package version, Generate changelog
     needs: [job-setup]
 
-    uses: dbt-labs/dbt-release/.github/workflows/release-prep.yml@main
+    uses: versusfacit/dbt-release/.github/workflows/release-prep.yml@main
 
     with:
       sha: ${{ inputs.sha }}
@@ -93,68 +92,68 @@ jobs:
 
     secrets: inherit
 
-  log-outputs-bump-version-generate-changelog:
-    name: "[Log output] Bump package version, Generate changelog"
-    if: ${{ !failure() && !cancelled() }}
+  # log-outputs-bump-version-generate-changelog:
+  #   name: "[Log output] Bump package version, Generate changelog"
+  #   if: ${{ !failure() && !cancelled() }}
 
-    needs: [bump-version-generate-changelog]
+  #   needs: [bump-version-generate-changelog]
 
-    runs-on: ubuntu-latest
+  #   runs-on: ubuntu-latest
 
-    steps:
-      - name: Print variables
-        run: |
-          echo Final SHA     : ${{ needs.bump-version-generate-changelog.outputs.final_sha }}
-          echo Changelog path: ${{ needs.bump-version-generate-changelog.outputs.changelog_path }}
+  #   steps:
+  #     - name: Print variables
+  #       run: |
+  #         echo Final SHA     : ${{ needs.bump-version-generate-changelog.outputs.final_sha }}
+  #         echo Changelog path: ${{ needs.bump-version-generate-changelog.outputs.changelog_path }}
 
-  build-test-package:
-    name: Build, Test, Package
-    if: ${{ !failure() && !cancelled() }}
-    needs: [job-setup, bump-version-generate-changelog]
+  # build-test-package:
+  #   name: Build, Test, Package
+  #   if: ${{ !failure() && !cancelled() }}
+  #   needs: [job-setup, bump-version-generate-changelog]
 
-    uses: versusfacit/dbt-release/.github/workflows/build.yml@main
+  #   uses: versusfacit/dbt-release/.github/workflows/build.yml@main
 
-    with:
-      sha: ${{ needs.bump-version-generate-changelog.outputs.final_sha }}
-      version_number: ${{ inputs.version_number }}
-      changelog_path: ${{ needs.bump-version-generate-changelog.outputs.changelog_path }}
-      build_script_path: "scripts/build-dist.sh"
-      s3_bucket_name: core-team-artifacts
-      package_test_command: ${{ inputs.package_test_command }}
-      test_run: False
-      nightly_release: False
+  #   with:
+  #     sha: ${{ needs.bump-version-generate-changelog.outputs.final_sha }}
+  #     version_number: ${{ inputs.version_number }}
+  #     changelog_path: ${{ needs.bump-version-generate-changelog.outputs.changelog_path }}
+  #     build_script_path: "scripts/build-dist.sh"
+  #     s3_bucket_name: core-team-artifacts
+  #     package_test_command: ${{ inputs.package_test_command }}
+  #     test_run: False
+  #     nightly_release: False
 
-    secrets:
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  #   secrets:
+  #     AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  #     AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
-  internal-release:
-    name: Internal Archive Release
-    if: ${{ !failure() && !cancelled() }}
+  # internal-release:
+  #   name: Internal Archive Release
+  #   if: ${{ !failure() && !cancelled() }}
 
-    needs: [bump-version-generate-changelog, build-test-package]
+  #   needs: [bump-version-generate-changelog, build-test-package]
 
-    uses: versusfacit/dbt-release/.github/workflows/internal-archive-release.yml@main
+  #   uses: versusfacit/dbt-release/.github/workflows/internal-archive-release.yml@main
 
-    with:
-      sha: ${{ needs.bump-version-generate-changelog.outputs.final_sha }}
-      version_number: ${{ inputs.version_number }}
+  #   with:
+  #     sha: ${{ needs.bump-version-generate-changelog.outputs.final_sha }}
+  #     version_number: ${{ inputs.version_number }}
 
-  slack-notification:
-    name: Slack Notification
-    if: ${{ failure() }}
+  # slack-notification:
+  #   name: Slack Notification
+  #   if: ${{ failure() }}
 
-    needs:
-      [
-        bump-version-generate-changelog,
-        build-test-package,
-        internal-release,
-      ]
+  #   needs:
+  #     [
+  #       bump-version-generate-changelog,
+  #       build-test-package,
+  #       internal-release,
+  #     ]
 
-    uses: dbt-labs/dbt-release/.github/workflows/slack-post-notification.yml@main
-    with:
-      status: "failure"
+  #   uses: dbt-labs/dbt-release/.github/workflows/slack-post-notification.yml@main
+  #   with:
+  #     status: "failure"
 
-    secrets:
-      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_DEV_ADAPTER_ALERTS }}
+  #   secrets:
+  #     SLACK_WEBHOOK_URL: ${{ secrets.SLACK_DEV_ADAPTER_ALERTS }}
 
