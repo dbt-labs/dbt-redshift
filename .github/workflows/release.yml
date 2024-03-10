@@ -48,7 +48,7 @@ on:
       package_test_command:
         description: "Package test command"
         type: string
-        default: "dbt --version"
+        default: "python -c \"import dbt.adapters.redshift\""
         required: true
       test_run:
         description: "Test run (Publish release as draft)"
@@ -92,7 +92,7 @@ on:
       package_test_command:
         description: "Package test command"
         type: string
-        default: "dbt --version"
+        default: "python -c \"import dbt.adapters.redshift\""
         required: true
       test_run:
         description: "Test run (Publish release as draft)"
