@@ -27,6 +27,11 @@ on:
         type: string
         default: "python -c \"import dbt.adapters.redshift\""
         required: true
+      dbms_name:
+        description: "The name of the warehouse the adapter connects to."
+        type: string
+        default: "redshift"
+        required: true
   workflow_call:
     inputs:
       version_number:
@@ -38,6 +43,11 @@ on:
         type: string
         default: "python -c \"import dbt.adapters.redshift\""
         required: true
+      dbms_name:
+        description: "The name of the warehouse the adapter connects to."
+        type: string
+        default: "redshift"
+        required: true
 
 defaults:
   run:
@@ -47,7 +57,7 @@ env:
   PYTHON_TARGET_VERSION: 3.11
 
 jobs:
-  invoke-resuable-workflow:
+  invoke-reusable-workflow:
     name: Build and Release Internally
 
     uses: VersusFacit/dbt-release/.github/workflows/internal-archive-release.yml@main
@@ -55,5 +65,6 @@ jobs:
     with:
       version_number: ${{ inputs.version_number }}
       package_test_command: ${{ inputs.package_test_command }}
+      dbms_name: ${{ inputs.dbms_name }}
 
     secrets: inherit
