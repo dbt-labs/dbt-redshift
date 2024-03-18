@@ -36,14 +36,15 @@ def _plugin_version() -> str:
     exec(VERSION.read_text(), attributes)
     return attributes["version"]
 
+
 def _plugin_version_trim() -> str:
     """
     Pull the package version from the main package version file
     """
     attributes = {}
     exec(VERSION.read_text(), attributes)
-    pattern = r'\+build\d+$'
-    return re.sub(pattern, '', attributes["version"])
+    pattern = r"\+build\d+$"
+    return re.sub(pattern, "", attributes["version"])
 
 
 setup(
