@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import re
 import sys
 
 if sys.version_info < (3, 8):
@@ -33,7 +34,8 @@ def _plugin_version() -> str:
     """
     attributes = {}
     exec(VERSION.read_text(), attributes)
-    return attributes["version"]
+    pattern = r'\.build\d+$'
+    return re.sub(pattern, '', attributes["version"])
 
 
 setup(
