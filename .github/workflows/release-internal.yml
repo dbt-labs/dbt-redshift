@@ -22,6 +22,10 @@ on:
         description: "The release version number (i.e. 1.0.0b1)"
         type: string
         required: true
+      sha:
+        description: "The sha to use (leave empty to use latest on main)"
+        type: string
+        required: false
       package_test_command:
         description: "Package test command"
         type: string
@@ -38,6 +42,10 @@ on:
         description: "The release version number (i.e. 1.0.0b1)"
         type: string
         required: true
+      sha:
+        description: "The sha to use (leave empty to use latest on main)"
+        type: string
+        required: false
       package_test_command:
         description: "Package test command"
         type: string
@@ -66,5 +74,6 @@ jobs:
       version_number: ${{ inputs.version_number }}
       package_test_command: ${{ inputs.package_test_command }}
       dbms_name: ${{ inputs.dbms_name }}
+      sha: ${{ inputs.sha }}
 
     secrets: inherit
