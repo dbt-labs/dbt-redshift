@@ -1,18 +1,3 @@
-# **what?**
-# Release workflow provides the following steps:
-# - checkout the given commit
-# - validate version in sources and changelog file for given version
-# - bump the version and generate a changelog if needed
-# - merge all changes to the target branch if needed
-# - run unit and integration tests against given commit
-# - build and package that SHA
-# - release it to internal repo
-#
-# **why?**
-# Ensure an automated and tested release process
-#
-# **when?**
-# This workflow can be run manually on demand or can be called by other workflows
 name: Release internal patch
 
 on:
