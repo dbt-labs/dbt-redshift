@@ -50,7 +50,7 @@ jobs:
   invoke-resuable-workflow:
     name: Build and Release Internally
 
-    uses: versusfacit/dbt-release/.github/workflows/internal-archive-release.yml@main
+    uses: VersusFacit/dbt-release/.github/workflows/internal-archive-release.yml@main
 
     with:
       version_number: ${{ inputs.version_number }}
