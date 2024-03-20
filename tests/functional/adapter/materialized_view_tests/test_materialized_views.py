@@ -75,9 +75,6 @@ class TestRedshiftMaterializedViewsBasic(MaterializedViewBasic):
         )
         assert self.query_relation_type(project, my_materialized_view) == "materialized_view"
 
-    def test_materialized_view_replaces_table(self, project, my_table):
-        super().test_materialized_view_replaces_table(project, my_table)
-
 
 class RedshiftMaterializedViewChanges(MaterializedViewChanges):
     @pytest.fixture(scope="class", autouse=True)
