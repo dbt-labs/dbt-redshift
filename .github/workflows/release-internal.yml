@@ -1,17 +1,14 @@
 # What?
 #
-# Send a sha as a fully fledged relase to an internal archive for further processing.
+# Tag and release an arbitrary sha. Uploads to an internal archive for further processing.
 #
 # How?
 #
-# Checkout the sha
-# Test it
-# Build it
-# Upload it
+# After checking out and testing the provided sha, the image is built and uploaded.
 #
 # When?
 #
-# Manual trigger
+# Manual trigger.
 
 name: Release internal patch
 
