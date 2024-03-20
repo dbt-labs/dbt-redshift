@@ -1,3 +1,18 @@
+# What?
+#
+# Send a sha as a fully fledged relase to an internal archive for further processing.
+#
+# How?
+#
+# Checkout the sha
+# Test it
+# Build it
+# Upload it
+#
+# When?
+#
+# Manual trigger
+
 name: Release internal patch
 
 on:
