@@ -59,7 +59,6 @@ jobs:
           python -m pip --version
           pre-commit --version
           mypy --version
-          dbt --version
 
       - name: pre-commit hooks
         run: pre-commit run --all-files --show-diff-on-failure
@@ -204,7 +203,7 @@ jobs:
 
       - name: Check wheel distributions
         run: |
-          dbt --version
+          python -c "import dbt.adapters.redshift"
 
       - name: Install source distributions
         run: |
@@ -212,4 +211,4 @@ jobs:
 
       - name: Check source distributions
         run: |
-          dbt --version
+          python -c "import dbt.adapters.redshift"

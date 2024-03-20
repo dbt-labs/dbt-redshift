@@ -10,7 +10,7 @@ git+https://github.com/dbt-labs/dbt-postgres.git
 black~=23.12
 bumpversion~=0.6.0
 click~=8.1
-ddtrace~=2.3
+ddtrace==2.3.0
 flake8~=6.1
 flaky~=3.7
 freezegun~=1.3
