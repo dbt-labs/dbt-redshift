@@ -43,13 +43,7 @@ def _plugin_version_trim() -> str:
     """
     attributes = {}
     exec(VERSION.read_text(), attributes)
-    print("================")
-    print("================")
-    print(attributes["version"])
     pattern = r"\+build\d+$"
-    print(re.sub(pattern, "", attributes["version"]))
-    print("================")
-    print("================")
     return re.sub(pattern, "", attributes["version"])
 
 
