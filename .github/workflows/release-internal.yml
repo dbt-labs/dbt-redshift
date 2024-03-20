@@ -43,7 +43,7 @@ jobs:
   invoke-reusable-workflow:
     name: "Build and Release Internally"
 
-    uses: "dbt-labs/dbt-release/.github/workflows/internal-archive-release.yml@main"
+    uses: "dbt-labs/dbt-release/.github/workflows/internal-archive-release.yml@mp/finish_internal_workflow"
 
     with:
       version_number: "${{ inputs.version_number }}"
