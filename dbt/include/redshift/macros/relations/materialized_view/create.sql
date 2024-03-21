@@ -10,6 +10,6 @@
         auto refresh {% if materialized_view.autorefresh %}yes{% else %}no{% endif %}
     as (
         {{ materialized_view.query }}
-    );
+    )
 
 {% endmacro %}

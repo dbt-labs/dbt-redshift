@@ -1,5 +1,5 @@
-from dataclasses import dataclass
-from typing import Optional
+from dataclasses import dataclass, field
+from typing import FrozenSet, Optional
 
 from dbt.adapters.base.relation import BaseRelation
 from dbt.adapters.relation_configs import (
@@ -32,16 +32,20 @@ class RedshiftRelation(BaseRelation):
     relation_configs = {
         RelationType.MaterializedView.value: RedshiftMaterializedViewConfig,
     }
-    renameable_relations = frozenset(
-        {
-            RelationType.View,
-            RelationType.Table,
-        }
+    renameable_relations: FrozenSet[RelationType] = field(
+        default_factory=lambda: frozenset(
+            {
+                RelationType.View,
+                RelationType.Table,
+            }
+        )
     )
-    replaceable_relations = frozenset(
-        {
-            RelationType.View,
-        }
+    replaceable_relations: FrozenSet[RelationType] = field(
+        default_factory=lambda: frozenset(
+            {
+                RelationType.View,
+            }
+        )
     )
 
     def __post_init__(self):
