@@ -20,9 +20,10 @@ on:
         type: string
         required: true
       sha:
-        description: "The sha to use (leave empty to use latest on main)"
+        description: "The ref (sha or branch name) to use"
         type: string
-        required: false
+        default: "main"
+        required: true
       package_test_command:
         description: "Package test command"
         type: string
