@@ -1,5 +1,6 @@
+from dbt.contracts.relation import RelationType
+
 from dbt.adapters.redshift.relation import RedshiftRelation
-from dbt.adapters.contracts.relation import RelationType
 
 
 def test_renameable_relation():
