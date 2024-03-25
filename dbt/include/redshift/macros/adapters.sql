@@ -110,7 +110,7 @@
       with bound_views as (
         select
           ordinal_position,
-          table_schema,
+          schema_name,
           column_name,
           data_type,
           character_maximum_length,
@@ -119,14 +119,14 @@
 
         from svv_all_columns
         where table_name = '{{ relation.identifier }}' and
-          table_schema = '{{ relation.schema }}'and
+          schema_name = '{{ relation.schema }}'and
           database_name = '{{ relation.database }}'
     ),
 
     unbound_views as (
       select
         ordinal_position,
-        view_schema,
+        schema_name,
         col_name,
         case
           when col_type ilike 'character varying%' then
@@ -155,7 +155,7 @@
         end as numeric_scale
 
       from pg_get_late_binding_view_cols()
-      cols(view_schema name, view_name name, col_name name,
+      cols(schema_name name, view_name name, col_name name,
            col_type varchar, ordinal_position int)
       where view_name = '{{ relation.identifier }}'
     ),
@@ -175,7 +175,7 @@
 
     from unioned
     {% if relation.schema %}
-    where table_schema = '{{ relation.schema }}'
+    where schema_name = '{{ relation.schema }}'
     {% endif %}
     order by ordinal_position
   {% endcall %}
