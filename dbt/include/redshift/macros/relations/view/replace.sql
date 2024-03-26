@@ -13,6 +13,6 @@
     {{ get_assert_columns_equivalent(sql) }}
   {%- endif %} as (
     {{ sql }}
-  ) {{ bind_qualifier }};
+  ) {{ bind_qualifier }}
 
 {%- endmacro %}
