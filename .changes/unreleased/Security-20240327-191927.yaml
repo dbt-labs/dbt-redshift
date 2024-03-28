@@ -1,0 +1,6 @@
+kind: Security
+body: Pin `black>=24.3` in `dev-requirements.txt`
+time: 2024-03-27T19:19:27.243854-04:00
+custom:
+  Author: mikealfare
+  PR: "743"
