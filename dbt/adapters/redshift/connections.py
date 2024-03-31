@@ -1,14 +1,12 @@
 import re
 from multiprocessing import Lock
 from contextlib import contextmanager
-from typing import Tuple, Union, Optional, List
+from typing import Tuple, Union, Optional, List, TYPE_CHECKING
 from dataclasses import dataclass, field
 
-import agate
 import sqlparse
 import redshift_connector
 from dbt.adapters.exceptions import FailedToConnectError
-from dbt_common.clients import agate_helper
 from redshift_connector.utils.oids import get_datatype_name
 
 from dbt.adapters.sql import SQLConnectionManager
@@ -18,6 +16,9 @@ from dbt_common.contracts.util import Replaceable
 from dbt_common.dataclass_schema import dbtClassMixin, StrEnum, ValidationError
 from dbt_common.helper_types import Port
 from dbt_common.exceptions import DbtRuntimeError, CompilationError, DbtDatabaseError
+
+if TYPE_CHECKING:
+    import agate
 
 
 class SSLConfigError(CompilationError):
@@ -340,13 +341,15 @@ class RedshiftConnectionManager(SQLConnectionManager):
         auto_begin: bool = False,
         fetch: bool = False,
         limit: Optional[int] = None,
-    ) -> Tuple[AdapterResponse, agate.Table]:
+    ) -> Tuple[AdapterResponse, "agate.Table"]:
         sql = self._add_query_comment(sql)
         _, cursor = self.add_query(sql, auto_begin)
         response = self.get_response(cursor)
         if fetch:
             table = self.get_result_from_cursor(cursor, limit)
         else:
+            from dbt_common.clients import agate_helper
+
             table = agate_helper.empty_table()
         return response, table
 
