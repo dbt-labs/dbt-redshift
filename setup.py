@@ -86,7 +86,7 @@ setup(
         f"dbt-postgres~={_core_version()}",
         # dbt-redshift depends deeply on this package. it does not follow SemVer, therefore there have been breaking changes in previous patch releases
         # Pin to the patch or minor version, and bump in each new minor version of dbt-redshift.
-        "redshift-connector<=2.0.918, >=2.0.913, !=2.0.914",
+        "redshift-connector<2.0.918,>=2.0.913,!=2.0.914",
         # installed via dbt-core but referenced directly; don't pin to avoid version conflicts with dbt-core
         "agate",
     ],
