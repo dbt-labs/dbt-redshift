@@ -18,7 +18,7 @@ class TestMacroQueryCommentsRedshift(BaseMacroQueryComments):
 
 
 class TestMacroArgsQueryCommentsRedshift(BaseMacroArgsQueryComments):
-    @pytest.skip(
+    @pytest.mark.skip(
         "This test is incorrectly comparing the version of `dbt-core`"
         "to the version of `dbt-postgres`, which is not always the same."
     )
