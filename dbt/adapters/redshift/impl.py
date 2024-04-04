@@ -1,14 +1,12 @@
 import os
 from dataclasses import dataclass
 from dbt_common.contracts.constraints import ConstraintType
-from typing import Optional, Set, Any, Dict, Type, List, Tuple
+from typing import Optional, Set, Any, Dict, Type
 from collections import namedtuple
 from dbt.adapters.base import PythonJobHelper
-from dbt.adapters.base.impl import AdapterConfig, ConstraintSupport, FreshnessResponse
+from dbt.adapters.base.impl import AdapterConfig, ConstraintSupport
 from dbt.adapters.base.meta import available
-from dbt.adapters.base.relation import BaseRelation
 from dbt.adapters.capability import Capability, CapabilityDict, CapabilitySupport, Support
-from dbt.adapters.contracts.macros import MacroResolverProtocol
 from dbt.adapters.sql import SQLAdapter
 from dbt.adapters.contracts.connection import AdapterResponse
 from dbt.adapters.events.logging import AdapterLogger
@@ -186,12 +184,3 @@ class RedshiftAdapter(SQLAdapter):
     def debug_query(self):
         """Override for DebugTask method"""
         self.execute("select 1 as id")
-
-    def calculate_freshness_from_metadata_batch(
-        self,
-        sources: List[BaseRelation],
-        macro_resolver: Optional[MacroResolverProtocol] = None,
-    ) -> Tuple[List[Optional[AdapterResponse]], Dict[BaseRelation, FreshnessResponse]]:
-        conn = self.connections.get_if_exists()
-        self.connections.open(conn)
-        return super().calculate_freshness_from_metadata_batch(sources, macro_resolver)
