@@ -157,30 +157,6 @@ class RedshiftCredentials(Credentials):
         return self.host
 
 
-class RedshiftSQLConnectionWrapper:
-    """Wrap a Redshift SQL connector in a way that stores backend pid"""
-
-    _conn: redshift_connector.Connection
-    _backend_pid: int
-
-    def __init__(self, conn: redshift_connector.Connection):
-        self._conn = conn
-        self._backend_pid = self._get_backend_pid()
-
-    def __getattr__(self, name):
-        return getattr(self._conn, name)
-
-    def _get_backend_pid(self):
-        sql = "select pg_backend_pid()"
-        cursor = self.cursor().execute(sql)
-        res = cursor.fetchone()
-        return res[0]
-
-    @property
-    def backend_pid(self):
-        return self._backend_pid
-
-
 class RedshiftConnectMethodFactory:
     credentials: RedshiftCredentials
 
@@ -218,7 +194,6 @@ class RedshiftConnectMethodFactory:
                     password=self.credentials.password,
                     **kwargs,
                 )
-                c = RedshiftSQLConnectionWrapper(c)
                 if self.credentials.autocommit:
                     c.autocommit = True
                 if self.credentials.role:
@@ -243,7 +218,6 @@ class RedshiftConnectMethodFactory:
                     profile=self.credentials.iam_profile,
                     **kwargs,
                 )
-                c = RedshiftSQLConnectionWrapper(c)
                 if self.credentials.autocommit:
                     c.autocommit = True
                 if self.credentials.role:
@@ -260,18 +234,25 @@ class RedshiftConnectionManager(SQLConnectionManager):
     TYPE = "redshift"
 
     def cancel(self, connection: Connection):
+        pid = connection.backend_pid
+        sql = f"select pg_terminate_backend({pid})"
+        logger.debug(f"Cancel query on: '{connection.name}' with PID: {pid}")
+        logger.debug(sql)
+
         try:
-            pid = connection.handle.backend_pid
+            self.add_query(sql)
         except redshift_connector.InterfaceError as e:
             if "is closed" in str(e):
                 logger.debug(f"Connection {connection.name} was already closed")
                 return
             raise
 
-        sql = f"select pg_terminate_backend({pid})"
-        logger.debug(f"Cancel query on: '{connection.name}' with PID: {pid}")
-        logger.debug(sql)
-        self.add_query(sql)
+    @classmethod
+    def _get_backend_pid(cls, connection):
+        with connection.handle.cursor() as c:
+            sql = "select pg_backend_pid()"
+            res = c.execute(sql).fetchone()
+        return res[0]
 
     @classmethod
     def get_response(cls, cursor: redshift_connector.Cursor) -> AdapterResponse:
@@ -343,7 +324,7 @@ class RedshiftConnectionManager(SQLConnectionManager):
             redshift_connector.DataError,
         ]
 
-        return cls.retry_connection(
+        open_connection = cls.retry_connection(
             connection,
             connect=connect_method_factory.get_connect_method(),
             logger=logger,
@@ -351,6 +332,8 @@ class RedshiftConnectionManager(SQLConnectionManager):
             retry_timeout=exponential_backoff,
             retryable_exceptions=retryable_exceptions,
         )
+        open_connection.backend_pid = cls._get_backend_pid(open_connection)
+        return open_connection
 
     def execute(
         self,

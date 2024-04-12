@@ -451,14 +451,16 @@ class TestRedshiftAdapter(unittest.TestCase):
     def test_connection_has_backend_pid(self):
         backend_pid = 42
 
-        cursor = mock.Mock()
-        cursor().execute().fetchone.return_value = (backend_pid,)
+        cursor = mock.MagicMock()
+        execute = cursor().__enter__().execute
+        execute().fetchone.return_value = (backend_pid,)
         redshift_connector.connect().cursor = cursor
 
         connection = self.adapter.acquire_connection("dummy")
-        assert connection.handle.backend_pid == backend_pid
+        connection.handle
+        assert connection.backend_pid == backend_pid
 
-        cursor().execute.assert_has_calls(
+        execute.assert_has_calls(
             [
                 call("select pg_backend_pid()"),
             ]
@@ -492,7 +494,7 @@ class TestRedshiftAdapter(unittest.TestCase):
             self.assertEqual(len(list(self.adapter.cancel_open_connections())), 1)
             add_query.assert_has_calls(
                 [
-                    call(f"select pg_terminate_backend({model.handle.backend_pid})"),
+                    call(f"select pg_terminate_backend({model.backend_pid})"),
                 ]
             )
 
@@ -504,8 +506,8 @@ class TestRedshiftAdapter(unittest.TestCase):
             backend_pid = 42
             query_result = (backend_pid,)
 
-            cursor = mock.Mock()
-            cursor().execute().fetchone.return_value = query_result
+            cursor = mock.MagicMock()
+            cursor().__enter__().execute().fetchone.return_value = query_result
             redshift_connector.connect().cursor = cursor
 
             connection = self.adapter.acquire_connection("dummy")
