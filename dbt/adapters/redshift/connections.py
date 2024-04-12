@@ -234,7 +234,7 @@ class RedshiftConnectionManager(SQLConnectionManager):
     TYPE = "redshift"
 
     def cancel(self, connection: Connection):
-        pid = connection.backend_pid # type: ignore
+        pid = connection.backend_pid  # type: ignore
         sql = f"select pg_terminate_backend({pid})"
         logger.debug(f"Cancel query on: '{connection.name}' with PID: {pid}")
         logger.debug(sql)
@@ -332,7 +332,7 @@ class RedshiftConnectionManager(SQLConnectionManager):
             retry_timeout=exponential_backoff,
             retryable_exceptions=retryable_exceptions,
         )
-        open_connection.backend_pid = cls._get_backend_pid(open_connection) # type: ignore
+        open_connection.backend_pid = cls._get_backend_pid(open_connection)  # type: ignore
         return open_connection
 
     def execute(
