@@ -1,8 +1,8 @@
 # install latest changes in dbt-core + dbt-postgres
-git+https://github.com/dbt-labs/dbt-adapters.git@batch-metadata-freshness
-git+https://github.com/dbt-labs/dbt-adapters.git@batch-metadata-freshness#subdirectory=dbt-tests-adapter
+git+https://github.com/dbt-labs/dbt-adapters.git
+git+https://github.com/dbt-labs/dbt-adapters.git#subdirectory=dbt-tests-adapter
 git+https://github.com/dbt-labs/dbt-common.git
-git+https://github.com/dbt-labs/dbt-core.git@batch-metadata-freshness#subdirectory=core
+git+https://github.com/dbt-labs/dbt-core.git#subdirectory=core
 git+https://github.com/dbt-labs/dbt-postgres.git
 
 # if version 1.x or greater -> pin to major version
