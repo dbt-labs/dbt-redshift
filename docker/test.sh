@@ -17,6 +17,6 @@ clear \
 "#########################################\n"\
 && docker build --tag dbt-redshift-1.0.0b1 \
   --target dbt-redshift \
-  --build-arg dbt_redshift_ref=dbt-redshift@v1.0.0b1 \
+  --build-arg commit_ref=v1.0.0b1 \
   docker \
 && docker run dbt-redshift-1.0.0b1 --version
