@@ -233,27 +233,26 @@ class RedshiftConnectMethodFactory:
 class RedshiftConnectionManager(SQLConnectionManager):
     TYPE = "redshift"
 
-    def _get_backend_pid(self):
-        sql = "select pg_backend_pid()"
-        _, cursor = self.add_query(sql)
-
-        res = cursor.fetchone()
-        return res[0]
-
     def cancel(self, connection: Connection):
+        pid = connection.backend_pid  # type: ignore
+        sql = f"select pg_terminate_backend({pid})"
+        logger.debug(f"Cancel query on: '{connection.name}' with PID: {pid}")
+        logger.debug(sql)
+
         try:
-            pid = self._get_backend_pid()
+            self.add_query(sql)
         except redshift_connector.InterfaceError as e:
             if "is closed" in str(e):
                 logger.debug(f"Connection {connection.name} was already closed")
                 return
             raise
 
-        sql = f"select pg_terminate_backend({pid})"
-        cursor = connection.handle.cursor()
-        logger.debug(f"Cancel query on: '{connection.name}' with PID: {pid}")
-        logger.debug(sql)
-        cursor.execute(sql)
+    @classmethod
+    def _get_backend_pid(cls, connection):
+        with connection.handle.cursor() as c:
+            sql = "select pg_backend_pid()"
+            res = c.execute(sql).fetchone()
+        return res[0]
 
     @classmethod
     def get_response(cls, cursor: redshift_connector.Cursor) -> AdapterResponse:
@@ -325,7 +324,7 @@ class RedshiftConnectionManager(SQLConnectionManager):
             redshift_connector.DataError,
         ]
 
-        return cls.retry_connection(
+        open_connection = cls.retry_connection(
             connection,
             connect=connect_method_factory.get_connect_method(),
             logger=logger,
@@ -333,6 +332,8 @@ class RedshiftConnectionManager(SQLConnectionManager):
             retry_timeout=exponential_backoff,
             retryable_exceptions=retryable_exceptions,
         )
+        open_connection.backend_pid = cls._get_backend_pid(open_connection)  # type: ignore
+        return open_connection
 
     def execute(
         self,
