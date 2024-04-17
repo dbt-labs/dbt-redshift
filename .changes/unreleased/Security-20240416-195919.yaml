@@ -1,0 +1,6 @@
+kind: Security
+body: update sqlparse pinned dependency and addres security concern GHSA-2m57-hf25-phgg along with dbt-core
+time: 2024-04-16T19:59:19.233806-05:00
+custom:
+  Author: McKnight-42
+  PR: "768"
