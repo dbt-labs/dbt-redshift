@@ -1,0 +1,6 @@
+kind: Dependencies
+body: Unpin sqlparse to ensure it matches what is installed by dbt-core
+time: 2024-04-17T08:20:33.964465-05:00
+custom:
+  Author: emmyoop
+  PR: "769"
