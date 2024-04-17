@@ -68,7 +68,7 @@ setup(
         # add dbt-core to ensure backwards compatibility of installation, this is not a functional dependency
         "dbt-core>=1.8.0a1",
         # installed via dbt-core but referenced directly; don't pin to avoid version conflicts with dbt-core
-        "sqlparse>=0.2.3,<0.5",
+        "sqlparse",
         "agate",
     ],
     zip_safe=False,
