@@ -2,7 +2,7 @@
 git+https://github.com/dbt-labs/dbt-adapters.git
 git+https://github.com/dbt-labs/dbt-adapters.git#subdirectory=dbt-tests-adapter
 git+https://github.com/dbt-labs/dbt-common.git
-git+https://github.com/dbt-labs/dbt-core.git#subdirectory=core
+git+https://github.com/dbt-labs/dbt-core.git#subdirectory=core@v1.8.0b2
 git+https://github.com/dbt-labs/dbt-postgres.git
 
 # if version 1.x or greater -> pin to major version

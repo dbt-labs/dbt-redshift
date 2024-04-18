@@ -66,7 +66,7 @@ setup(
         # Pin to the patch or minor version, and bump in each new minor version of dbt-redshift.
         "redshift-connector<2.0.918,>=2.0.913,!=2.0.914",
         # add dbt-core to ensure backwards compatibility of installation, this is not a functional dependency
-        "dbt-core>=1.8.0a1",
+        "dbt-core>=1.8.0a1,<1.8.0b3",
         # installed via dbt-core but referenced directly; don't pin to avoid version conflicts with dbt-core
         "sqlparse>=0.2.3,<0.5",
         "agate",
