@@ -181,9 +181,9 @@ jobs:
           aws configure set region $AWS_REGION
           aws configure set output json
         env:
-          AWS_ACCESS_KEY_ID: ${{ env.REDSHIFT_TEST_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ env.REDSHIFT_TEST_SECRET_ACCESS_KEY }}
-          AWS_REGION: ${{ env.REDSHIFT_TEST_AWS_REGION }}
+          AWS_ACCESS_KEY_ID: ${{ vars.REDSHIFT_TEST_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.REDSHIFT_TEST_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ vars.REDSHIFT_TEST_REGION }}
 
       - name: Run tox (redshift)
         if: matrix.adapter == 'redshift'
