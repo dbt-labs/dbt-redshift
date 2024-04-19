@@ -121,6 +121,8 @@ class RedshiftCredentials(Credentials):
     region: Optional[str] = None
     # opt-in by default per team deliberation on https://peps.python.org/pep-0249/#autocommit
     autocommit: Optional[bool] = True
+    access_key_id: Optional[str] = None
+    secret_access_key: Optional[str] = None
 
     _ALIASES = {"dbname": "database", "pass": "password"}
 
@@ -142,7 +144,6 @@ class RedshiftCredentials(Credentials):
             "region",
             "sslmode",
             "region",
-            "iam_profile",
             "autocreate",
             "db_groups",
             "ra3_node",
@@ -150,6 +151,7 @@ class RedshiftCredentials(Credentials):
             "role",
             "retries",
             "autocommit",
+            "access_key_id",
         )
 
     @property
@@ -208,6 +210,19 @@ class RedshiftConnectMethodFactory:
                 )
 
             def connect():
+                if profile := self.credentials.iam_profile:
+                    creds = {"profile": profile}
+                elif access_key_id := self.credentials.access_key_id:
+                    secret_access_key = self.credentials.secret_access_key
+                    creds = {
+                        "access_key_id": access_key_id,
+                        "secret_access_key": secret_access_key,
+                    }
+                else:
+                    raise FailedToConnectError(
+                        "Failed to use IAM method. Either `iam_profile` or "
+                        "`access_key_id` and `secret_access_key` are required to connect."
+                    )
                 logger.debug("Connecting to redshift with IAM based auth...")
                 c = redshift_connector.connect(
                     iam=True,
@@ -215,7 +230,7 @@ class RedshiftConnectMethodFactory:
                     password="",
                     user="",
                     cluster_identifier=self.credentials.cluster_id,
-                    profile=self.credentials.iam_profile,
+                    **creds,
                     **kwargs,
                 )
                 if self.credentials.autocommit:
