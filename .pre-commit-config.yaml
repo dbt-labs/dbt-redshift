@@ -11,10 +11,12 @@ repos:
     -   id: end-of-file-fixer
     -   id: trailing-whitespace
     -   id: check-case-conflict
+
 -   repo: https://github.com/dbt-labs/pre-commit-hooks
     rev: v0.1.0a1
     hooks:
     -   id: dbt-core-in-adapters-check
+
 -   repo: https://github.com/psf/black
     rev: 24.4.0
     hooks:
@@ -32,6 +34,7 @@ repos:
     -   id: flake8
         exclude: tests/
         args:
+        -   --max-line-length=99
         -   select=E,F,W
         -   ignore=E203,E501,E741,W503,W504
         -   per-file-ignores=*/__init__.py:F401
