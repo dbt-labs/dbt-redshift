@@ -1,0 +1,6 @@
+kind: Features
+body: Support TableLastModifiedMetadataBatch capability
+time: 2024-04-04T17:14:41.313087-07:00
+custom:
+  Author: michelleark
+  Issue: "755"
