@@ -210,19 +210,14 @@ class RedshiftConnectMethodFactory:
                 )
 
             def connect():
-                if profile := self.credentials.iam_profile:
-                    creds = {"profile": profile}
-                elif access_key_id := self.credentials.access_key_id:
+                if access_key_id := self.credentials.access_key_id:
                     secret_access_key = self.credentials.secret_access_key
                     creds = {
                         "access_key_id": access_key_id,
                         "secret_access_key": secret_access_key,
                     }
                 else:
-                    raise FailedToConnectError(
-                        "Failed to use IAM method. Either `iam_profile` or "
-                        "`access_key_id` and `secret_access_key` are required to connect."
-                    )
+                    creds = {"profile": self.credentials.iam_profile}
                 logger.debug("Connecting to redshift with IAM based auth...")
                 c = redshift_connector.connect(
                     iam=True,

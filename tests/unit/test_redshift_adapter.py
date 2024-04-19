@@ -130,6 +130,35 @@ class TestRedshiftAdapter(unittest.TestCase):
         )
 
     @mock.patch("redshift_connector.connect", MagicMock())
+    def test_explicit_iam_conn_with_parameters(self):
+        self.config.credentials = self.config.credentials.replace(
+            method="iam",
+            cluster_id="my_redshift",
+            host="thishostshouldnotexist.test.us-east-1",
+            access_key_id="my_access_key_id",
+            secret_access_key="my_secret_access_key",
+        )
+        connection = self.adapter.acquire_connection("dummy")
+        connection.handle
+        redshift_connector.connect.assert_called_once_with(
+            iam=True,
+            host="thishostshouldnotexist.test.us-east-1",
+            access_key_id="my_access_key_id",
+            secret_access_key="my_secret_access_key",
+            database="redshift",
+            db_user="root",
+            password="",
+            user="",
+            cluster_identifier="my_redshift",
+            region=None,
+            timeout=None,
+            auto_create=False,
+            db_groups=[],
+            port=5439,
+            **DEFAULT_SSL_CONFIG,
+        )
+
+    @mock.patch("redshift_connector.connect", MagicMock())
     def test_conn_timeout_30(self):
         self.config.credentials = self.config.credentials.replace(connect_timeout=30)
         connection = self.adapter.acquire_connection("dummy")
