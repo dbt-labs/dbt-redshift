@@ -21,6 +21,7 @@ name: "Bot changelog"
 
 on:
     pull_request:
+
         types:
         -   opened
         -   labeled

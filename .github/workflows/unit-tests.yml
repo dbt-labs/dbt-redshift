@@ -1,0 +1,102 @@
+name: "Unit tests"
+
+on:
+    pull_request_target:
+    push:
+        branches:
+        -   "main"
+        -   "*.latest"
+    workflow_call:
+        inputs:
+            branch:
+                description: "The branch/tag to run integration tests on"
+                type: string
+                default: "main"
+            dbt-adapters-branch:
+                description: "The branch/tag of `dbt-adapters` to use"
+                type: string
+                default: "main"
+            dbt-common-branch:
+                description: "The branch/tag of `dbt-common` to use"
+                type: string
+                default: "main"
+            dbt-core-branch:
+                description: "The branch/tag of `dbt-core` to use"
+                type: string
+                default: "main"
+    workflow_dispatch:
+        inputs:
+            branch:
+                description: "The branch/tag to run integration tests on"
+                type: string
+                default: "main"
+            dbt-adapters-branch:
+                description: "The branch/tag of `dbt-adapters` to use"
+                type: string
+                default: "main"
+            dbt-common-branch:
+                description: "The branch/tag of `dbt-common` to use"
+                type: string
+                default: "main"
+            dbt-core-branch:
+                description: "The branch/tag of `dbt-core` to use"
+                type: string
+                default: "main"
+
+permissions: read-all
+
+concurrency:
+    group: "${{ github.workflow }}-${{ github.event_name }}-${{ contains(github.event_name, 'pull_request') && github.event.pull_request.head.ref || github.sha }}"
+    cancel-in-progress: true
+
+jobs:
+    unit-tests:
+        name: "Unit tests"
+        runs-on: ubuntu-latest
+        strategy:
+            fail-fast: false
+            matrix:
+                python-version: ${{ fromJSON(vars.DBT_TEST_PYTHON_ALL_VERSIONS) }}
+        steps:
+        -   name: "Check out ${{ github.repository }}@${{ inputs.branch }} (non-PR)"
+            if: github.event_name != 'pull_request_target'
+            uses: actions/checkout@v4
+            with:
+                ref: ${{ inputs.branch }}
+                persist-credentials: false
+
+        -   name: "Check out ${{ github.repository }}@${{ inputs.branch }} (PR)"
+            if: github.event_name == 'pull_request_target'
+            uses: actions/checkout@v4
+            with:
+                ref: ${{ github.event.pull_request.head.sha }}
+
+        -   name: "Setup environment"
+            uses: dbt-labs/dbt-adapters/.github/actions/setup-environment@update-workflows
+            with:
+                python-version: ${{ vars.DBT_TEST_PYTHON_VERSION }}
+
+        -   name: "Update development branches"
+            if: ${{ contains(github.event_name, 'workflow_') }}
+            uses: ./.github/actions/update-dev-branches
+            with:
+                dbt-adapters-branch: ${{ inputs.dbt-adapters-branch }}
+                dbt-common-branch: ${{ inputs.dbt-common-branch }}
+                dbt-core-branch: ${{ inputs.dbt-core-branch }}
+
+        -   name: "Run unit tests"
+            shell: bash
+            run: hatch run unit-tests:all
+
+    aggregate-results:
+        name: "Successful unit tests"
+        needs: unit-tests
+        if: ${{ !failure() && !cancelled() }}
+        runs-on: ubuntu-latest
+        steps:
+        -   name: "Unit tests completed successfully"
+            shell: bash
+            run: |
+                title="Unit tests"
+                message="Unit tests completed successfully!"
+                echo "::notice title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"

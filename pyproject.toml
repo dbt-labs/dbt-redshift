@@ -1,0 +1,137 @@
+[project]
+dynamic = ["version"]
+name = "dbt-redshift"
+description = "The Redshift adapter plugin for dbt"
+readme = "README.md"
+keywords = ["dbt", "redshift", "dbt-redshift", "adapter", "database", "elt", "dbt-core", "dbt Core", "dbt Cloud", "dbt Labs"]
+requires-python = ">=3.8.0"
+authors = [
+    { name = "dbt Labs", email = "info@dbtlabs.com" },
+]
+maintainers = [
+    { name = "dbt Labs", email = "info@dbtlabs.com" },
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: MacOS :: MacOS X",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+]
+dependencies = [
+    "dbt-adapters>=0.1.0a1,<2.0",
+    "dbt-common>=0.1.0a1,<2.0",
+    # `dbt-redshift` depends deeply on `redshift-connector`
+    # This package has experienced breaking changes in previous patch releases
+    # Pin to the patch version and bump version cautiously
+    "redshift-connector<2.0.918,>=2.0.913,!=2.0.914",
+    "dbt-postgres>=1.8.0a1,<1.9",
+    "sqlparse>=0.5.0,<0.6.0",
+    "agate>=1.0,<2.0",
+    # Add `dbt-core` to ensure backwards compatibility of installation
+    # This is not a functional dependency
+    "dbt-core>=1.8.0b3",
+]
+
+[project.urls]
+Homepage = "https://github.com/dbt-labs/dbt-redshift"
+Documentation = "https://docs.getdbt.com"
+Repository = "https://github.com/dbt-labs/dbt-redshift.git"
+Issues = "https://github.com/dbt-labs/dbt-redshift/issues"
+Changelog = "https://github.com/dbt-labs/dbt-redshift/blob/main/CHANGELOG.md"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.sdist]
+include = ["dbt"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["dbt"]
+
+[tool.hatch.version]
+path = "dbt/adapters/redshift/__version__.py"
+
+[tool.hatch.envs.default]
+dependencies = [
+    "dbt-adapters @ git+https://github.com/dbt-labs/dbt-adapters.git",
+    "dbt-common @ git+https://github.com/dbt-labs/dbt-common.git",
+    "dbt-postgres @ git+https://github.com/dbt-labs/dbt-postgres.git",
+    "ipdb==0.13.13",
+    'pre-commit==3.7.0;python_version>="3.9"',
+    'pre-commit==3.5.0;python_version=="3.8"',
+]
+[tool.hatch.envs.default.scripts]
+dev = "pre-commit install"
+code-quality = "pre-commit run {args:--all-files}"
+clean = "git clean -f -X"
+
+[tool.hatch.envs.unit-tests]
+dependencies = [
+    "dbt-adapters @ git+https://github.com/dbt-labs/dbt-adapters.git",
+    "dbt-common @ git+https://github.com/dbt-labs/dbt-common.git",
+    "dbt-core @ git+https://github.com/dbt-labs/dbt-core.git#subdirectory=core",
+    "dbt-postgres @ git+https://github.com/dbt-labs/dbt-postgres.git",
+    "ddtrace==2.3.0",
+    "freezegun",
+    "pytest",
+    "pytest-csv",
+    "pytest-dotenv",
+    "pytest-logbook",
+    "pytest-mock",
+    "pytest-xdist",
+]
+[tool.hatch.envs.unit-tests.scripts]
+all = "python -m pytest {args:tests/unit}"
+
+[tool.hatch.envs.integration-tests]
+template = "unit-tests"
+extra-dependencies = [
+    "dbt-tests-adapter @ git+https://github.com/dbt-labs/dbt-adapters.git#subdirectory=dbt-tests-adapter",
+]
+[tool.hatch.envs.integration-tests.scripts]
+all = [
+    'python -m pytest --dist=loadscope tests/functional -k "not tests/functional/adapter/utils and not tests/functional/adapter/incremental"',
+    'python -m pytest --dist=loadscope tests/functional/adapter/incremental',
+    'python -m pytest --dist=loadscope tests/functional/adapter/utils',
+]
+[tool.hatch.envs.build]
+detached = true
+dependencies = [
+    "wheel",
+    "twine",
+    "check-wheel-contents",
+]
+[tool.hatch.envs.build.scripts]
+check-all = [
+    "- check-wheel",
+    "- check-sdist",
+]
+check-wheel = [
+    "twine check dist/*",
+    "find ./dist/dbt*.whl -maxdepth 1 -type f | xargs python -m pip install --force-reinstall --find-links=dist/",
+    "pip freeze | grep dbt-redshift",
+]
+check-sdist = [
+    "check-wheel-contents dist/*.whl --ignore W007,W008",
+    "find ./dist/dbt*.gz -maxdepth 1 -type f | xargs python -m pip install --force-reinstall --find-links=dist/",
+    "pip freeze | grep dbt-redshift",
+]
+
+[tool.pytest]
+color = true
+verbose = true
+env_files = ["test.env"]
+testpaths = [
+    "tests/functional",
+    "tests/unit",
+]
+filterwarnings = [
+    "ignore:.*'soft_unicode' has been renamed to 'soft_str'*:DeprecationWarning",
+    "ignore:unclosed file .*:ResourceWarning",
+]

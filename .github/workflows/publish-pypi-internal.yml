@@ -1,0 +1,36 @@
+# What?
+# Tag and release an arbitrary ref. Uploads to an internal archive.
+#
+# How?
+# After checking out and testing the provided ref, the image is built and uploaded.
+#
+# When?
+# - manually
+name: "Publish to internal PyPI"
+
+on:
+    workflow_dispatch:
+        inputs:
+            version:
+                description: "The release version number (i.e. 1.0.0b1)"
+                type: string
+                required: true
+            ref:
+                description: "The ref (sha or branch name) to use"
+                type: string
+                required: true
+            test-command:
+                description: "Package test command"
+                type: string
+                default: "python -c \"import dbt.adapters.redshift\""
+
+jobs:
+    build-and-publish:
+        name: "Build and release to internal PyPI"
+        uses: dbt-labs/dbt-release/.github/workflows/internal-archive-release.yml@main
+        with:
+            version_number: "${{ inputs.version }}"
+            package_test_command: "${{ inputs.test-command }}"
+            dbms_name: "redshift"
+            ref: ${{ inputs.ref }}
+        secrets: inherit

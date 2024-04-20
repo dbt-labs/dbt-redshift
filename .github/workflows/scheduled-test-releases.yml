@@ -1,0 +1,72 @@
+# **what?**
+# Nightly releases to GitHub and PyPI. This workflow produces the following outcome:
+# - generate and validate data for night release (commit SHA, version number, release branch);
+# - pass data to release workflow;
+# - night release will be pushed to GitHub as a draft release;
+# - night build will be pushed to test PyPI;
+#
+# **why?**
+# Ensure an automated and tested release process for nightly builds
+#
+# **when?**
+# - scheduled with the repository variable DBT_SCHEDULED_TEST_RELEASES_SCHEDULE
+# - manually
+name: "Scheduled test releases"
+
+on:
+    workflow_dispatch:  # for manual triggering
+    schedule:
+    -   cron: ${{ vars.DBT_SCHEDULED_TEST_RELEASES_SCHEDULE }}
+
+permissions:
+    contents: write  # this is the permission that allows creating a new release
+
+defaults:
+    run:
+        shell: bash
+
+jobs:
+    release-inputs:
+        name: "Get test release inputs"
+        runs-on: ubuntu-latest
+        outputs:
+            sha: ${{ steps.commit.outputs.sha }}
+            version: ${{ steps.release-version.outputs.version }}
+
+        steps:
+        -   name: "Checkout ${{ github.repository }}"
+            uses: actions/checkout@v3
+
+        -   name: "Set: commit"
+            id: commit
+            run: echo "sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
+
+        -   name: "Set: version"
+            id: current-version
+            run: echo "version=$(hatch version)" >> $GITHUB_OUTPUT
+
+        -   name: "Audit Version And Parse Into Parts"
+            id: semver
+            uses: dbt-labs/actions/parse-semver@v1.1.0
+            with:
+                version: ${{ steps.current-version.outputs.version }}
+
+        -   name: "Set: release version"
+            id: release-version
+            run: |
+                version="${{ steps.semver.outputs.major }}"
+                version+=".${{ steps.semver.outputs.minor }}"
+                version+=".$(${{ steps.semver.outputs.patch }}+1)"
+                version+="dev$(date +'%m%d%Y')"
+                echo "version=$version" >> $GITHUB_OUTPUT
+
+    release:
+        name: "Release test release"
+        needs: release-inputs
+        uses: ./.github/workflows/release.yml
+        with:
+            sha: ${{ needs.release-inputs.outputs.sha }}
+            version: ${{ needs.release-inputs.outputs.version }}
+            branch: "main"
+            deploy-environment: "test"
+            publish-slack-override: true

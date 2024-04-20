@@ -19,7 +19,8 @@ on:
         -   labeled
 
 permissions:
-    pull-requests: write  # to create the PR
+
+    pull-requests: write# to create the PR
     contents: write  # to create the comment if the process fails
 
 jobs:
