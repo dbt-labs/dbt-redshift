@@ -219,6 +219,20 @@ jobs:
             version: ${{ inputs.version }}
             deploy-environment: ${{ inputs.deploy-environment }}
 
+    publish-pypi-internal:
+        name: "Publish to internal PyPI"
+        if: ${{ !failure() && !cancelled() }}
+        needs:
+        -   release-inputs
+        -   merge-changes
+        uses: dbt-labs/dbt-release/.github/workflows/internal-archive-release.yml@main
+        with:
+            version_number: "${{ inputs.version }}"
+            package_test_command: "python -c \"import dbt.adapters.redshift\""
+            dbms_name: "redshift"
+            ref: ${{ needs.merge-changes.outputs.sha }}
+        secrets: inherit
+
     slack-notification:
         name: "Slack notification"
         if: ${{ failure() && (inputs.deploy-environment == 'prod' || inputs.publish-slack-override) }}
