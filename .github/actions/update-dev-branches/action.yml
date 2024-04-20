@@ -1,0 +1,38 @@
+name: "Update dev branches"
+description: "Update dev branches for testing cross-repo changes"
+
+inputs:
+    dbt-adapters-branch:
+        description: "The branch/tag of `dbt-adapters` to use"
+        default: ""
+    dbt-common-branch:
+        description: "The branch/tag of `dbt-common` to use"
+        default: ""
+    dbt-core-branch:
+        description: "The branch/tag of `dbt-core` to use"
+        default: ""
+
+runs:
+    using: composite
+    steps:
+    -   name: "[DEBUG] Inputs"
+        shell: bash
+        run: |
+            echo dbt-adapters : ${{ inputs.dbt-adapters-branch }}
+            echo dbt-common   : ${{ inputs.dbt-common-branch }}
+            echo dbt-core     : ${{ inputs.dbt-core-branch }}
+
+    -   name: "Update `dbt-adapters` branch"
+        if: ${{ inputs.dbt-adapters-branch }}
+        shell: bash
+        run: ./.github/actions/update-dev-branches/update_dev_branch.sh "dbt-adapters" ${{ inputs.dbt-adapters-branch }}
+
+    -   name: "Update `dbt-common` branch"
+        if: ${{ inputs.dbt-common-branch }}
+        shell: bash
+        run: ./.github/actions/update-dev-branches/update_dev_branch.sh "dbt-common" ${{ inputs.dbt-common-branch }}
+
+    -   name: "Update `dbt-core` branch"
+        if: ${{ inputs.dbt-core-branch }}
+        shell: bash
+        run: ./.github/actions/update-dev-branches/update_dev_branch.sh "dbt-core" ${{ inputs.dbt-core-branch }}

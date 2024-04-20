@@ -1,0 +1,145 @@
+name: "Integration tests"
+
+on:
+    pull_request_target:
+    push:
+        branches:
+        -   "main"
+        -   "*.latest"
+    workflow_call:
+        inputs:
+            branch:
+                description: "The branch/tag to run integration tests on"
+                type: string
+                default: "main"
+            dbt-adapters-branch:
+                description: "The branch/tag of `dbt-adapters` to use"
+                type: string
+                default: "main"
+            dbt-common-branch:
+                description: "The branch/tag of `dbt-common` to use"
+                type: string
+                default: "main"
+            dbt-core-branch:
+                description: "The branch/tag of `dbt-core` to use"
+                type: string
+                default: "main"
+    workflow_dispatch:
+        inputs:
+            branch:
+                description: "The branch/tag to run integration tests on"
+                type: string
+                default: "main"
+            dbt-adapters-branch:
+                description: "The branch/tag of `dbt-adapters` to use"
+                type: string
+                default: "main"
+            dbt-common-branch:
+                description: "The branch/tag of `dbt-common` to use"
+                type: string
+                default: "main"
+            dbt-core-branch:
+                description: "The branch/tag of `dbt-core` to use"
+                type: string
+                default: "main"
+
+permissions: read-all
+
+concurrency:
+    group: "${{ github.workflow }}-${{ github.event_name }}-${{ contains(github.event_name, 'pull_request') && github.event.pull_request.head.ref || github.sha }}"
+    cancel-in-progress: true
+
+jobs:
+    require-approval-on-forks:
+        # if it's a pull request from a fork that has not been approved yet, don't run tests
+        if: >-
+            github.event_name == 'pull_request_target' &&
+            github.event.pull_request.head.repo.full_name != github.repository &&
+            !contains(github.event.pull_request.labels.*.name, 'ok to test')
+        runs-on: ubuntu-latest
+        permissions:
+            pull-requests: write
+        steps:
+        -   name: "Author requires permission to run tests"
+            uses: unsplash/comment-on-pr@master
+            env:
+                GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            with:
+                msg: |
+                    "Thanks for your contribution! "\
+                    "Since this is a fork, integration tests need to be approved prior to running. "\
+                    "@dbt-labs/core will review this PR and approve running integration tests."
+                check_for_duplicate_msg: true
+
+    integration-tests:
+        name: "Integration tests"
+        needs: require-approval-on-forks
+        runs-on: ubuntu-latest
+        strategy:
+            fail-fast: false
+            matrix:
+                os: [ubuntu-latest]
+                python-version: ${{ fromJSON(vars.DBT_TEST_PYTHON_ALL_VERSIONS) }}
+                include:
+                -   os: macos-latest
+                    python-version: ${{ vars.DBT_TEST_PYTHON_VERSION }}
+                -   os: windows-latest
+                    python-version: ${{ vars.DBT_TEST_PYTHON_VERSION }}
+        env:
+            REDSHIFT_TEST_HOST: ${{ secrets.REDSHIFT_TEST_HOST }}
+            REDSHIFT_TEST_PORT: ${{ vars.REDSHIFT_TEST_PORT }}
+            REDSHIFT_TEST_DBNAME: ${{ vars.REDSHIFT_TEST_DBNAME }}
+            REDSHIFT_TEST_USER: ${{ vars.REDSHIFT_TEST_USER }}
+            REDSHIFT_TEST_PASS: ${{ secrets.REDSHIFT_TEST_PASS }}
+            DBT_TEST_USER_1: ${{ vars.REDSHIFT_TEST_USER_1 }}
+            DBT_TEST_USER_2: ${{ vars.REDSHIFT_TEST_USER_2 }}
+            DBT_TEST_USER_3: ${{ vars.REDSHIFT_TEST_USER_3 }}
+            DBT_INVOCATION_ENV: ${{ vars.DBT_INVOCATION_ENV }}
+            DD_CIVISIBILITY_AGENTLESS_ENABLED: true
+            DD_API_KEY: ${{ secrets.DATADOG_API_KEY }}
+            DD_SITE: ${{ vars.DD_SITE }}
+            DD_ENV: ${{ vars.DD_ENV }}
+            DD_SERVICE: ${{ github.event.repository.name }}
+        steps:
+        -   name: "Check out ${{ github.repository }}@${{ inputs.branch }} (non-PR)"
+            if: github.event_name != 'pull_request_target'
+            uses: actions/checkout@v4
+            with:
+                ref: ${{ inputs.branch }}
+                persist-credentials: false
+
+        -   name: "Check out ${{ github.repository }}@${{ inputs.branch }} (PR)"
+            if: github.event_name == 'pull_request_target'
+            uses: actions/checkout@v4
+            with:
+                ref: ${{ github.event.pull_request.head.sha }}
+
+        -   name: "Setup environment"
+            uses: dbt-labs/dbt-adapters/.github/actions/setup-environment@update-workflows
+            with:
+                python-version: ${{ matrix.python-version }}
+
+        -   name: "Update development branches"
+            if: ${{ contains(github.event_name, 'workflow_') }}
+            uses: ./.github/actions/update-dev-branches
+            with:
+                dbt-adapters-branch: ${{ inputs.dbt-adapters-branch }}
+                dbt-common-branch: ${{ inputs.dbt-common-branch }}
+                dbt-core-branch: ${{ inputs.dbt-core-branch }}
+
+        -   name: "Run integration tests"
+            shell: bash
+            run: hatch run integration-tests:all
+
+    aggregate-results:
+        name: "Successful integration tests"
+        needs: integration-tests
+        if: ${{ !failure() && !cancelled() }}
+        runs-on: ubuntu-latest
+        steps:
+        -   name: "Integration tests completed successfully"
+            shell: bash
+            run: |
+                title="Integration tests"
+                message="Integration tests completed successfully!"
+                echo "::notice title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"

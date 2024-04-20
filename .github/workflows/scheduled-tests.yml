@@ -1,0 +1,72 @@
+# **what?**
+# The purpose of this workflow is to trigger CI to run for each release
+# branch on a regular cadence. If the CI workflow fails for a branch, it
+# will post to dev-core-alerts to raise awareness.
+#
+# **why?**
+# Ensures release branches are always shippable and not broken.
+# Also, can catch any dependencies shifting beneath us that might
+# introduce breaking changes (could also impact Cloud).
+
+# **when?**
+# - scheduled with the repository variable DBT_SCHEDULED_TESTS_SCHEDULE
+# - manually
+name: "Scheduled tests"
+
+on:
+    schedule:
+    -   cron: ${{ vars.DBT_SCHEDULED_TESTS_SCHEDULE }}
+    workflow_dispatch:
+
+permissions: read-all
+
+jobs:
+    code-quality:
+        name: "Code quality"
+        uses: dbt-labs/dbt-redshift/.github/workflows/code-quality.yml
+        strategy:
+            matrix:
+                branch: ${{ fromJSON(vars.DBT_SCHEDULED_TESTS_BRANCHES) }}
+        with:
+            branch: ${{ matrix.branch }}
+
+    integration-tests:
+        name: "Integration tests"
+        uses: dbt-labs/dbt-redshift/.github/workflows/integration-tests.yml
+        strategy:
+            matrix:
+                branch: ${{ fromJSON(vars.DBT_SCHEDULED_TESTS_BRANCHES) }}
+        with:
+            branch: ${{ matrix.branch }}
+
+    unit-tests:
+        name: "Unit tests"
+        uses: dbt-labs/dbt-redshift/.github/workflows/unit-tests.yml
+        strategy:
+            matrix:
+                branch: ${{ fromJSON(vars.DBT_SCHEDULED_TESTS_BRANCHES) }}
+        with:
+            branch: ${{ matrix.branch }}
+
+    verify-build-artifacts:
+        name: "Unit tests"
+        uses: dbt-labs/dbt-redshift/.github/workflows/build-artifacts.yml
+        strategy:
+            matrix:
+                branch: ${{ fromJSON(vars.DBT_SCHEDULED_TESTS_BRANCHES) }}
+        with:
+            branch: ${{ matrix.branch }}
+
+    post-failure:
+        runs-on: ubuntu-latest
+        needs: test
+        if: ${{ failure() }}
+        steps:
+        -   name: Posting scheduled run failures
+            uses: ravsamhq/notify-slack-action@v2
+            if: ${{ github.event_name == 'schedule' }}
+            with:
+                  notification_title: 'Redshift nightly integration test failed'
+                  status: ${{ job.status }}
+        env:
+            SLACK_WEBHOOK_URL: ${{ secrets.SLACK_DEV_ADAPTER_ALERTS }}
