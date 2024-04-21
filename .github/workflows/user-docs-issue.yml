@@ -1,0 +1,46 @@
+# **what?**
+# - open an issue in docs.getdbt.com
+#
+# **why?**
+# - reduce barriers for keeping docs up to date
+# - link docs issues to implementation issues
+#
+# **when?**
+# - an issue with the `user docs` label is closed
+# - a closed issue is labelled with the `user docs` label
+name: "User docs issue"
+
+on:
+    issues:
+        types:
+        -   labeled
+        -   closed
+
+defaults:
+    run:
+        shell: bash
+
+permissions:
+    issues: write
+
+jobs:
+    open-docs-getdbt-issue:
+        # We only want to run this when the PR has been merged or the label in the labeled event is `user docs`.
+        # Otherwise, it runs the risk of duplication of issues being created due to merge and label both
+        # triggering this workflow to run and neither having generated the comment before the other runs.
+        # This lives here instead of the shared workflow because this is where we decide if it should run or not.
+        if: |
+            github.event.issue.closed == true &&
+            github.event.issue.reason == 'completed' &&
+            (
+                (github.event.action == 'closed' && contains(github.event.issue.labels.*.name, 'user docs')) ||
+                (github.event.action == 'labeled' && github.event.label.name == 'user docs')
+            )
+        uses: dbt-labs/actions/.github/workflows/open-issue-in-repo.yml@main
+        with:
+            issue_repository: "dbt-labs/docs.getdbt.com"
+            issue_title: "Docs Changes Needed for ${{ github.repository }}#${{ github.event.issue.number }}"
+            issue_body: "At a minimum, update body to include a link to the page on docs.getdbt.com requiring updates and what part(s) of the page you would like to see updated."
+        secrets: inherit
+
+# TODO: remove `user docs` label to prevent re-triggering
