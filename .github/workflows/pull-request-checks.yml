@@ -1,0 +1,44 @@
+name: "Pull request checks"
+
+on:
+    pull_request_target:
+        types:
+        -   opened
+        -   synchronize
+
+permissions: read-all
+
+concurrency:
+    group: "${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.head.ref }}"
+    cancel-in-progress: true
+
+jobs:
+    code-quality:
+        name: "Run code quality"
+        uses: dbt-labs/actions/.github/workflows/code-quality.yml
+        with:
+            ref: ${{ github.event.pull_request.head.ref }}
+            check-command: "hatch run code-quality"
+            python-version: ${{ vars.DBT_TEST_PYTHON_VERSION }}
+
+    unit-tests:
+        name: "Run unit tests"
+        uses: dbt-labs/actions/.github/workflows/unit-tests.yml
+        with:
+            ref: ${{ github.event.pull_request.head.ref }}
+            test-command: "hatch run unit-tests:all"
+            python-versions: ${{ vars.DBT_TEST_PYTHON_ALL_VERSIONS }}
+
+    integration-tests:
+        name: "Run unit tests"
+        uses: dbt-labs/actions/.github/workflows/integration-tests.yml
+        with:
+            ref: ${{ github.event.pull_request.head.ref }}
+            test-command: "hatch run integration-tests:all"
+            python-versions-ubuntu: ${{ vars.DBT_TEST_PYTHON_ALL_VERSIONS }}
+            python-versions-macos: ${{ vars.DBT_TEST_PYTHON_VERSION }}
+            python-versions-windows: ${{ vars.DBT_TEST_PYTHON_VERSION }}
+
+    verify-build-artifacts:
+        name: "Verify build artifacts"
+        uses: dbt-labs/actions/.github/workflows/build-artifacts.yml@add-hatch-actions

@@ -1,29 +1,6 @@
-name: "Integration tests"
+name: "Dev branch integration tests"
 
 on:
-    pull_request_target:
-    push:
-        branches:
-        -   "main"
-        -   "*.latest"
-    workflow_call:
-        inputs:
-            branch:
-                description: "The branch/tag to run integration tests on"
-                type: string
-                default: "main"
-            dbt-adapters-branch:
-                description: "The branch/tag of `dbt-adapters` to use"
-                type: string
-                default: "main"
-            dbt-common-branch:
-                description: "The branch/tag of `dbt-common` to use"
-                type: string
-                default: "main"
-            dbt-core-branch:
-                description: "The branch/tag of `dbt-core` to use"
-                type: string
-                default: "main"
     workflow_dispatch:
         inputs:
             branch:
@@ -46,7 +23,7 @@ on:
 permissions: read-all
 
 concurrency:
-    group: "${{ github.workflow }}-${{ github.event_name }}-${{ contains(github.event_name, 'pull_request') && github.event.pull_request.head.ref || github.sha }}"
+    group: "${{ github.workflow }}-${{ github.event_name }}-${{ github.sha }}"
     cancel-in-progress: true
 
 jobs:
@@ -67,7 +44,7 @@ jobs:
             with:
                 msg: |
                     "Thanks for your contribution! "\
-                    "Since this is a fork, integration tests need to be approved prior to running. "\
+                    "This PR was created from a fork, integration tests need to be approved prior to running. "\
                     "@dbt-labs/core will review this PR and approve running integration tests."
                 check_for_duplicate_msg: true
 
@@ -115,7 +92,7 @@ jobs:
                 ref: ${{ github.event.pull_request.head.sha }}
 
         -   name: "Setup environment"
-            uses: dbt-labs/dbt-adapters/.github/actions/setup-environment@update-workflows
+            uses: dbt-labs/actions/setup-environment@add-hatch-actions
             with:
                 python-version: ${{ matrix.python-version }}
 
@@ -132,14 +109,28 @@ jobs:
             run: hatch run integration-tests:all
 
     aggregate-results:
-        name: "Successful integration tests"
+        name: "Collect integration tests results"
         needs: integration-tests
-        if: ${{ !failure() && !cancelled() }}
+        if: always() && !cancelled()
         runs-on: ubuntu-latest
         steps:
-        -   name: "Integration tests completed successfully"
+        -   name: "[INFO] Integration tests - FAILED"
+            if: failure()
             shell: bash
             run: |
-                title="Integration tests"
-                message="Integration tests completed successfully!"
-                echo "::notice title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
+                echo "::notice title=[$WORKFLOW]: $TITLE::$MESSAGE"
+                exit 1
+            env:
+                WORKFLOW: ${{ env.NOTIFICATION_PREFIX }}
+                TITLE: "Integration tests - FAILED"
+                MESSAGE: "Integration tests failed!"
+
+        -   name: "[INFO] Integration tests - PASSED"
+            if: ${{ !failure() }}  # includes skipped
+            shell: bash
+            run: |
+                echo "::notice title=[$WORKFLOW]: $TITLE::$MESSAGE"
+            env:
+                WORKFLOW: ${{ env.NOTIFICATION_PREFIX }}
+                TITLE: "Integration tests - PASSED"
+                MESSAGE: "Integration tests completed successfully!"

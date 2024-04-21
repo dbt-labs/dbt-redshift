@@ -23,16 +23,7 @@ permissions: read-all
 jobs:
     code-quality:
         name: "Code quality"
-        uses: dbt-labs/dbt-redshift/.github/workflows/code-quality.yml
-        strategy:
-            matrix:
-                branch: ${{ fromJSON(vars.DBT_SCHEDULED_TESTS_BRANCHES) }}
-        with:
-            branch: ${{ matrix.branch }}
-
-    integration-tests:
-        name: "Integration tests"
-        uses: dbt-labs/dbt-redshift/.github/workflows/integration-tests.yml
+        uses: ./.github/workflows/code-quality.yml
         strategy:
             matrix:
                 branch: ${{ fromJSON(vars.DBT_SCHEDULED_TESTS_BRANCHES) }}
@@ -41,7 +32,16 @@ jobs:
 
     unit-tests:
         name: "Unit tests"
-        uses: dbt-labs/dbt-redshift/.github/workflows/unit-tests.yml
+        uses: ./.github/workflows/unit-tests.yml
+        strategy:
+            matrix:
+                branch: ${{ fromJSON(vars.DBT_SCHEDULED_TESTS_BRANCHES) }}
+        with:
+            branch: ${{ matrix.branch }}
+
+    integration-tests:
+        name: "Integration tests"
+        uses: ./.github/workflows/integration-tests.yml
         strategy:
             matrix:
                 branch: ${{ fromJSON(vars.DBT_SCHEDULED_TESTS_BRANCHES) }}
@@ -49,8 +49,8 @@ jobs:
             branch: ${{ matrix.branch }}
 
     verify-build-artifacts:
-        name: "Unit tests"
-        uses: dbt-labs/dbt-redshift/.github/workflows/build-artifacts.yml
+        name: "Verify build artifacts"
+        uses: dbt-labs/actions/.github/workflows/build-artifacts.yml@add-hatch-actions
         strategy:
             matrix:
                 branch: ${{ fromJSON(vars.DBT_SCHEDULED_TESTS_BRANCHES) }}

@@ -14,9 +14,9 @@
 name: "Scheduled test releases"
 
 on:
-    workflow_dispatch:  # for manual triggering
     schedule:
     -   cron: ${{ vars.DBT_SCHEDULED_TEST_RELEASES_SCHEDULE }}
+    workflow_dispatch:
 
 permissions:
     contents: write  # this is the permission that allows creating a new release
@@ -32,9 +32,8 @@ jobs:
         outputs:
             sha: ${{ steps.commit.outputs.sha }}
             version: ${{ steps.release-version.outputs.version }}
-
         steps:
-        -   name: "Checkout ${{ github.repository }}"
+        -   name: "Checkout `${{ github.repository }}`"
             uses: actions/checkout@v3
 
         -   name: "Set: commit"
@@ -67,6 +66,5 @@ jobs:
         with:
             sha: ${{ needs.release-inputs.outputs.sha }}
             version: ${{ needs.release-inputs.outputs.version }}
-            branch: "main"
             deploy-environment: "test"
             publish-slack-override: true
