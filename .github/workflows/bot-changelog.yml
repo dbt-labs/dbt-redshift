@@ -2,11 +2,11 @@
 # - create a `changie` entry for automated PRs using this template:
 #
 #     kind: <per action matrix> (e.g. Dependencies)
-# body: <PR title>
-# time: <current timestamp>
-# custom:
-#     Author: <PR User Login (generally the bot)>
-#     PR: <PR number>
+#     body: <PR title>
+#     time: <current timestamp>
+#     custom:
+#       Author: <PR User Login (generally the bot)>
+#       PR: <PR number>
 #
 # **why?**
 # - automate and standardize `changie` entry generation for automated PRs
@@ -21,7 +21,6 @@ name: "Bot changelog"
 
 on:
     pull_request:
-
         types:
         -   opened
         -   labeled

@@ -162,7 +162,7 @@ jobs:
         -   release-branch
         -   version-bump
         -   changelog
-        uses: ./.github/workflows/integration-tests.yml
+        uses: dbt-labs/actions/.github/workflows/integration-tests.yml@add-hatch-actions
         with:
             branch: ${{ needs.release-branch.outputs.branch }}
             test-command: "hatch run unit-tests:all"
