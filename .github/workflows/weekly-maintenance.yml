@@ -9,7 +9,7 @@
 # - allow automated processes to leave artifacts for debugging and troubleshooting
 #
 # **when?**
-# - weekly base on DBT_WEEKLY_MAINTENANCE_SCHEDULE
+# - weekly based on DBT_WEEKLY_MAINTENANCE_SCHEDULE
 # - manually
 #
 # Runs on Saturday to avoid running at the same time as production release and breaking the release.
