@@ -9,17 +9,17 @@
 # Ensure an automated and tested release process for nightly builds
 #
 # **when?**
-# - scheduled with the repository variable DBT_SCHEDULED_TEST_RELEASES_SCHEDULE
+# - daily based on DBT_DAILY_DEV_RELEASE_SCHEDULE
 # - manually
-name: "Scheduled test releases"
+name: "Daily test releases"
 
 on:
     schedule:
-    -   cron: ${{ vars.DBT_SCHEDULED_TEST_RELEASES_SCHEDULE }}
+    -   cron: ${{ vars.DBT_DAILY_DEV_RELEASE_SCHEDULE }}
     workflow_dispatch:
 
 permissions:
-    contents: write  # this is the permission that allows creating a new release
+    contents: write  # allows creating a new release
 
 defaults:
     run:

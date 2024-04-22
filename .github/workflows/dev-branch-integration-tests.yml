@@ -56,12 +56,12 @@ jobs:
             fail-fast: false
             matrix:
                 os: [ubuntu-latest]
-                python-version: ${{ fromJSON(vars.DBT_TEST_PYTHON_ALL_VERSIONS) }}
+                python-version: ${{ fromJSON(vars.DBT_PYTHON_VERSIONS) }}
                 include:
                 -   os: macos-latest
-                    python-version: ${{ vars.DBT_TEST_PYTHON_VERSION }}
+                    python-version: ${{ vars.DBT_PYTHON_VERSION }}
                 -   os: windows-latest
-                    python-version: ${{ vars.DBT_TEST_PYTHON_VERSION }}
+                    python-version: ${{ vars.DBT_PYTHON_VERSION }}
         env:
             REDSHIFT_TEST_HOST: ${{ secrets.REDSHIFT_TEST_HOST }}
             REDSHIFT_TEST_PORT: ${{ vars.REDSHIFT_TEST_PORT }}
