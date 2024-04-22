@@ -23,7 +23,7 @@ class RedshiftDistStyle(StrEnum):
 
     @classmethod
     def default(cls) -> "RedshiftDistStyle":
-        return cls.auto
+        return cls("auto")
 
 
 @dataclass(frozen=True, eq=True, unsafe_hash=True)
@@ -102,7 +102,7 @@ class RedshiftDistConfig(RedshiftRelationConfigBase, RelationConfigValidationMix
             config = {"diststyle": diststyle}
 
         else:
-            config = {"diststyle": RedshiftDistStyle.key.value, "distkey": dist}
+            config = {"diststyle": RedshiftDistStyle.key.value, "distkey": dist}  # type: ignore
 
         return config
 
