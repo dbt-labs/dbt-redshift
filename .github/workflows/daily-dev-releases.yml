@@ -9,13 +9,13 @@
 # Ensure an automated and tested release process for nightly builds
 #
 # **when?**
-# - daily based on DBT_DAILY_DEV_RELEASE_SCHEDULE
+# - daily 9:00 AM UTC
 # - manually
 name: "Daily test releases"
 
 on:
     schedule:
-    -   cron: ${{ vars.DBT_DAILY_DEV_RELEASE_SCHEDULE }}
+    -   cron: 0 9 * * *
     workflow_dispatch:
 
 permissions:
