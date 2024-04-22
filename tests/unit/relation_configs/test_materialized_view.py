@@ -14,8 +14,8 @@ def test_redshift_materialized_view_config_handles_all_valid_bools(bool_value):
         query="select * from sometable",
     )
     model_node = Mock()
-    model_node.config.extra.get = (
-        lambda x, y=None: bool_value if x in ["auto_refresh", "backup"] else "someDistValue"
+    model_node.config.extra.get = lambda x, y=None: (
+        bool_value if x in ["auto_refresh", "backup"] else "someDistValue"
     )
     config_dict = config.parse_model_node(model_node)
     assert isinstance(config_dict["autorefresh"], bool)
@@ -33,8 +33,8 @@ def test_redshift_materialized_view_config_throws_expected_exception_with_invali
         query="select * from sometable",
     )
     model_node = Mock()
-    model_node.config.extra.get = (
-        lambda x, y=None: bool_value if x in ["auto_refresh", "backup"] else "someDistValue"
+    model_node.config.extra.get = lambda x, y=None: (
+        bool_value if x in ["auto_refresh", "backup"] else "someDistValue"
     )
     with pytest.raises(TypeError):
         config.parse_model_node(model_node)
@@ -48,8 +48,8 @@ def test_redshift_materialized_view_config_throws_expected_exception_with_invali
         query="select * from sometable",
     )
     model_node = Mock()
-    model_node.config.extra.get = (
-        lambda x, y=None: "notABool" if x in ["auto_refresh", "backup"] else "someDistValue"
+    model_node.config.extra.get = lambda x, y=None: (
+        "notABool" if x in ["auto_refresh", "backup"] else "someDistValue"
     )
     with pytest.raises(ValueError):
         config.parse_model_node(model_node)
