@@ -135,56 +135,22 @@ jobs:
             version: ${{ inputs.version }}
         secrets: inherit
 
-    code-quality:
-        name: "Run code quality"
-        needs:
-        -   release-branch
-        -   version-bump
-        -   changelog
-        uses: dbt-labs/actions/.github/workflows/code-quality.yml@add-hatch-actions
-        with:
-            branch: ${{ needs.release-branch.outputs.branch }}
-            check-command: "hatch run code-quality"
-
-    unit-tests:
-        name: "Run unit tests"
-        needs:
-        -   release-branch
-        -   version-bump
-        -   changelog
-        uses: dbt-labs/actions/.github/workflows/unit-tests.yml@add-hatch-actions
-        with:
-            ref: ${{ needs.release-branch.outputs.branch }}
-
-    integration-tests:
-        name: "Run unit tests"
-        needs:
-        -   release-branch
-        -   version-bump
-        -   changelog
-        uses: dbt-labs/actions/.github/workflows/integration-tests.yml@add-hatch-actions
-        with:
-            branch: ${{ needs.release-branch.outputs.branch }}
-            test-command: "hatch run unit-tests:all"
-
-    build-artifacts:
-        name: "Build artifacts"
-        if: ${{ !failure() && !cancelled() }}
+    ci-test-suite:
+        name: "Run code quality, unit tests, and integration tests, and build artifacts"
         needs:
         -   release-inputs
         -   release-branch
-        -   code-quality
-        -   unit-tests
-        -   integration-tests
-        uses: dbt-labs/actions/.github/workflows/build-artifacts.yml@add-hatch-actions
+        -   version-bump
+        -   changelog
+        uses: ./.github/workflows/ci-test-suite.yml
         with:
-            branch: ${{ needs.release-branch.outputs.branch }}
+            ref: ${{ needs.release-branch.outputs.branch }}
             archive-name: ${{ needs.release-inputs.outputs.archive-name }}
 
     merge-changes:
         name: "Merge the version bump and changelog updates"
         needs:
-        -   build-artifacts
+        -   ci-test-suite
         -   release-branch
         runs-on: ubuntu-latest
         outputs:

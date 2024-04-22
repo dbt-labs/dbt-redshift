@@ -1,0 +1,53 @@
+name: "CI test suite"
+
+on:
+    workflow_call:
+        inputs:
+            ref:
+                description: "The branch/tag/commit to run integration tests on"
+                type: string
+                required: true
+            archive-name:
+                description: "Name of the archive for build artifacts, used during a release"
+                type: string
+                default: ""
+
+permissions: read-all
+
+concurrency:
+    group: "${{ github.workflow }}-${{ github.event_name }}-${{ inputs.ref }}"
+    cancel-in-progress: true
+
+jobs:
+    code-quality:
+        name: "Run code quality"
+        uses: dbt-labs/actions/.github/workflows/code-quality.yml@add-hatch-actions
+        with:
+            ref: ${{ inputs.ref }}
+            check-command: "hatch run code-quality"
+            python-version: ${{ vars.DBT_PYTHON_VERSION }}
+
+    unit-tests:
+        name: "Run unit tests"
+        uses: dbt-labs/actions/.github/workflows/unit-tests.yml@add-hatch-actions
+        with:
+            ref: ${{ inputs.ref }}
+            test-command: "hatch run unit-tests:all"
+            python-versions: ${{ vars.DBT_PYTHON_VERSIONS }}
+
+    integration-tests:
+        name: "Run integration tests"
+        uses: dbt-labs/actions/.github/workflows/integration-tests.yml@add-hatch-actions
+        with:
+            ref: ${{ inputs.ref }}
+            test-command: "hatch run integration-tests:all"
+            python-versions-ubuntu: ${{ vars.DBT_PYTHON_VERSIONS }}
+            python-versions-macos: ${{ vars.DBT_PYTHON_VERSION }}
+            python-versions-windows: ${{ vars.DBT_PYTHON_VERSION }}
+
+    build-artifacts:
+        name: "Verify build artifacts"
+        uses: dbt-labs/actions/.github/workflows/build-release-artifacts.yml@add-hatch-actions
+        with:
+            ref: ${{ inputs.ref }}
+            archive-name: ${{ needs.release-inputs.outputs.archive-name }}

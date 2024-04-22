@@ -1,61 +1,29 @@
 # **what?**
-# The purpose of this workflow is to trigger CI to run for each release
-# branch on a regular cadence. If the CI workflow fails for a branch, it
-# will post to dev-core-alerts to raise awareness.
+# - run scheduled CI on protected branches
+# - post a failure message in #dev-adapter-alerts for failures
 #
 # **why?**
-# Ensures release branches are always shippable and not broken.
-# Also, can catch any dependencies shifting beneath us that might
-# introduce breaking changes (could also impact Cloud).
-
+# - ensure release branches are always shippable
+# - raise awareness of dependencies shifting beneath us
+#
 # **when?**
-# - daily based on DBT_DAILY_CHECKS_SCHEDULE
+# - daily at 5:00 AM UTC
 # - manually
 name: "Daily checks"
 
 on:
     schedule:
-    -   cron: ${{ vars.DBT_DAILY_CHECKS_SCHEDULE }}
+    -   cron: 0 5 * * *
     workflow_dispatch:
 
 permissions: read-all
 
 jobs:
-    code-quality:
-        name: "Code quality"
-        uses: ./.github/workflows/code-quality.yml
-        strategy:
-            matrix:
-                branch: ${{ fromJSON(vars.DBT_DAILY_CHECKS_BRANCHES) }}
+    ci-test-suite:
+        name: "CI test suite"
+        uses: ./.github/workflows/ci-test-suite.yml
         with:
-            branch: ${{ matrix.branch }}
-
-    unit-tests:
-        name: "Unit tests"
-        uses: ./.github/workflows/unit-tests.yml
-        strategy:
-            matrix:
-                branch: ${{ fromJSON(vars.DBT_DAILY_CHECKS_BRANCHES) }}
-        with:
-            branch: ${{ matrix.branch }}
-
-    integration-tests:
-        name: "Integration tests"
-        uses: ./.github/workflows/integration-tests.yml
-        strategy:
-            matrix:
-                branch: ${{ fromJSON(vars.DBT_DAILY_CHECKS_BRANCHES) }}
-        with:
-            branch: ${{ matrix.branch }}
-
-    build-artifacts:
-        name: "Build artifacts"
-        uses: dbt-labs/actions/.github/workflows/build-artifacts.yml@add-hatch-actions
-        strategy:
-            matrix:
-                branch: ${{ fromJSON(vars.DBT_DAILY_CHECKS_BRANCHES) }}
-        with:
-            branch: ${{ matrix.branch }}
+            ref: "main"
 
     post-failure:
         runs-on: ubuntu-latest
