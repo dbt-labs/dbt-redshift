@@ -9,15 +9,15 @@
 # - allow automated processes to leave artifacts for debugging and troubleshooting
 #
 # **when?**
-# - every Saturday at noon UTC
+# - weekly base on DBT_WEEKLY_MAINTENANCE_SCHEDULE
 # - manually
 #
 # Runs on Saturday to avoid running at the same time as production release and breaking the release.
-name: "Repo maintenance"
+name: "Weekly maintenance"
 
 on:
     schedule:
-    -   cron: '0 12 * * SAT'  # noon UTC on Saturday
+    -   cron: ${{ vars.DBT_WEEKLY_MAINTENANCE_SCHEDULE }}
     workflow_dispatch:
 
 permissions:
