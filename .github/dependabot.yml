@@ -1,12 +1,13 @@
 version: 2
+
 updates:
-  - package-ecosystem: "pip"
+-   package-ecosystem: "pip"
     directory: "/"
     schedule:
-      interval: "daily"
+        interval: "daily"
     rebase-strategy: "disabled"
-  - package-ecosystem: "github-actions"
+-   package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "weekly"
+        interval: "weekly"
     rebase-strategy: "disabled"
