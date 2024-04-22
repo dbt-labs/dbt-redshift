@@ -50,7 +50,7 @@ class UserSSLMode(StrEnum):
     @classmethod
     def default(cls) -> "UserSSLMode":
         # default for `psycopg2`, which aligns with dbt-redshift 1.4 and provides backwards compatibility
-        return cls.prefer
+        return cls("prefer")
 
 
 class RedshiftSSLMode(StrEnum):
@@ -60,11 +60,11 @@ class RedshiftSSLMode(StrEnum):
 
 SSL_MODE_TRANSLATION = {
     UserSSLMode.disable: None,
-    UserSSLMode.allow: RedshiftSSLMode.verify_ca,
-    UserSSLMode.prefer: RedshiftSSLMode.verify_ca,
-    UserSSLMode.require: RedshiftSSLMode.verify_ca,
-    UserSSLMode.verify_ca: RedshiftSSLMode.verify_ca,
-    UserSSLMode.verify_full: RedshiftSSLMode.verify_full,
+    UserSSLMode.allow: RedshiftSSLMode("verify-ca"),
+    UserSSLMode.prefer: RedshiftSSLMode("verify-ca"),
+    UserSSLMode.require: RedshiftSSLMode("verify-ca"),
+    UserSSLMode.verify_ca: RedshiftSSLMode("verify-ca"),
+    UserSSLMode.verify_full: RedshiftSSLMode("verify-full"),
 }
 
 
