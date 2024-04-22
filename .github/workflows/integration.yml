@@ -174,6 +174,17 @@ jobs:
           pip install bumpversion
           ./.github/scripts/update_dbt_core_branch.sh ${{ inputs.dbt-core-branch }}
 
+      - name: Create AWS IAM profile
+        run: |
+          aws configure set aws_access_key_id $AWS_ACCESS_KEY_ID
+          aws configure set aws_secret_access_key $AWS_SECRET_ACCESS_KEY
+          aws configure set region $AWS_REGION
+          aws configure set output json
+        env:
+          AWS_ACCESS_KEY_ID: ${{ vars.REDSHIFT_TEST_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.REDSHIFT_TEST_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ vars.REDSHIFT_TEST_REGION }}
+
       - name: Run tox (redshift)
         if: matrix.adapter == 'redshift'
         env:
@@ -182,6 +193,10 @@ jobs:
           REDSHIFT_TEST_USER: ${{ secrets.REDSHIFT_TEST_USER }}
           REDSHIFT_TEST_PORT: ${{ secrets.REDSHIFT_TEST_PORT }}
           REDSHIFT_TEST_HOST: ${{ secrets.REDSHIFT_TEST_HOST }}
+          REDSHIFT_TEST_CLUSTER_ID: ${{ vars.REDSHIFT_TEST_CLUSTER_ID }}
+          REDSHIFT_TEST_IAM_PROFILE: ${{ vars.REDSHIFT_TEST_IAM_PROFILE }}
+          REDSHIFT_TEST_ACCESS_KEY_ID: ${{ vars.REDSHIFT_TEST_ACCESS_KEY_ID }}
+          REDSHIFT_TEST_SECRET_ACCESS_KEY: ${{ secrets.REDSHIFT_TEST_SECRET_ACCESS_KEY }}
           DBT_TEST_USER_1: dbt_test_user_1
           DBT_TEST_USER_2: dbt_test_user_2
           DBT_TEST_USER_3: dbt_test_user_3
