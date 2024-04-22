@@ -1,42 +1,40 @@
 # **what?**
-# Calls a centralize3d workflow that will:
-# 1. Cut a new branch (generally `*.latest`)
-# 2. Also cleans up all files in `.changes/unreleased` and `.changes/previous version on
-# `main` and bumps `main` to the input version.
-
+# - create a new branch from `main` (generally `*.latest`)
+# - clean up files in `.changes/unreleased` and `.changes/<version> on `main`
+# - bump `main` to the input version
+#
 # **why?**
-# Generally reduces the workload of engineers and reduces error.  Allow automation.
-
+# - automate and standardize workflow
+# - reduce the workload of engineers for routine actions
+# - reduce change for human error
+#
 # **when?**
-# This will run when called manually.
-
-name: Cut new release branch
+# - manually
+name: "Cut release branch"
 
 on:
-  workflow_dispatch:
-    inputs:
-      version_to_bump_main:
-        description: 'The alpha version main should bump to (ex. 1.6.0a1)'
-        required: true
-      new_branch_name:
-        description: 'The full name of the new branch (ex. 1.5.latest)'
-        required: true
-
-defaults:
-  run:
-    shell: bash
+    workflow_dispatch:
+        inputs:
+            next-version:
+                description: "The alpha version main should bump to (e.g. 1.6.0a1)"
+                type: string
+                required: true
+            release-branch:
+                description: "The full name of the new branch (e.g. 1.5.latest)"
+                type: string
+                required: true
 
 permissions:
-  contents: write
+    contents: write
 
 jobs:
-  cut_branch:
-    name: "Cut branch and clean up main for dbt-redshift"
-    uses: dbt-labs/actions/.github/workflows/cut-release-branch.yml@main
-    with:
-      version_to_bump_main: ${{ inputs.version_to_bump_main }}
-      new_branch_name: ${{ inputs.new_branch_name }}
-      PR_title: "Cleanup main after cutting new ${{ inputs.new_branch_name }} branch"
-      PR_body: "This PR will fail CI until the dbt-core PR has been merged due to release version conflicts."
-    secrets:
-      FISHTOWN_BOT_PAT: ${{ secrets.FISHTOWN_BOT_PAT }}
+    cut-release-branch:
+        name: "Create ${{ inputs.release-branch }} and clean up `main`"
+        uses: dbt-labs/actions/.github/workflows/cut-release-branch.yml@main
+        with:
+            version_to_bump_main: ${{ inputs.next-version }}
+            new_branch_name: ${{ inputs.release-branch }}
+            PR_title: "Prepare `main` for `${{ inputs.next-version }}`"
+            PR_body: "Cleanup `main` after cutting new `${{ inputs.release-branch }}` release branch"
+        secrets:
+            FISHTOWN_BOT_PAT: ${{ secrets.FISHTOWN_BOT_PAT }}
