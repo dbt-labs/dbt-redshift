@@ -11,11 +11,11 @@
 # **when?**
 # - scheduled with the repository variable DBT_SCHEDULED_TESTS_SCHEDULE
 # - manually
-name: "Scheduled tests"
+name: "Daily checks"
 
 on:
     schedule:
-    -   cron: ${{ vars.DBT_SCHEDULED_TESTS_SCHEDULE }}
+    -   cron: ${{ vars.DBT_DAILY_CHECKS_SCHEDULE }}
     workflow_dispatch:
 
 permissions: read-all
@@ -48,8 +48,8 @@ jobs:
         with:
             branch: ${{ matrix.branch }}
 
-    verify-build-artifacts:
-        name: "Verify build artifacts"
+    build-artifacts:
+        name: "Build artifacts"
         uses: dbt-labs/actions/.github/workflows/build-artifacts.yml@add-hatch-actions
         strategy:
             matrix:
