@@ -9,15 +9,13 @@
 # - allow automated processes to leave artifacts for debugging and troubleshooting
 #
 # **when?**
-# - weekly based on DBT_WEEKLY_MAINTENANCE_SCHEDULE
+# - weekly noon UTC on SAT (avoid production release windows)
 # - manually
-#
-# Runs on Saturday to avoid running at the same time as production release and breaking the release.
 name: "Weekly maintenance"
 
 on:
     schedule:
-    -   cron: ${{ vars.DBT_WEEKLY_MAINTENANCE_SCHEDULE }}
+    -   cron: 0 12 * * SAT
     workflow_dispatch:
 
 permissions:
