@@ -4,7 +4,7 @@ from multiprocessing import get_context
 from unittest import mock
 
 from dbt_common.exceptions import DbtRuntimeError
-from unittest.mock import MagicMock, Mock, call
+from unittest.mock import MagicMock, call
 
 import agate
 import dbt
@@ -255,8 +255,7 @@ class TestRedshiftAdapter(unittest.TestCase):
             **DEFAULT_SSL_CONFIG,
         )
 
-    @mock.patch("redshift_connector.connect", Mock())
-    @mock.patch("boto3.Session", Mock())
+    @mock.patch("redshift_connector.connect", MagicMock())
     def test_explicit_iam_role_conn_with_profile(self):
         self.config.credentials = self.config.credentials.replace(
             method="iam_role",
