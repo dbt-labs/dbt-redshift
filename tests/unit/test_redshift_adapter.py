@@ -283,8 +283,7 @@ class TestRedshiftAdapter(unittest.TestCase):
             **DEFAULT_SSL_CONFIG,
         )
 
-    @mock.patch("redshift_connector.connect", Mock())
-    @mock.patch("boto3.Session", Mock())
+    @mock.patch("redshift_connector.connect", MagicMock())
     def test_explicit_region(self):
         # Successful test
         self.config.credentials = self.config.credentials.replace(
