@@ -1,0 +1,72 @@
+name: "Unit tests"
+
+on:
+    workflow_call:
+        inputs:
+            ref:
+                description: "The branch/tag/commit to run integration tests on"
+                type: string
+                required: true
+            test-command:
+                description: "The command to run unit tests"
+                type: string
+                required: true
+            python-versions:
+                description: "The python versions to test against"
+                type: string
+                required: true
+
+permissions: read-all
+
+concurrency:
+    group: "${{ github.workflow }}-${{ github.event_name }}-${{ inputs.ref }}"
+    cancel-in-progress: true
+
+jobs:
+    unit-tests:
+        name: "Unit tests"
+        runs-on: ubuntu-latest
+        strategy:
+            fail-fast: false
+            matrix:
+                python-version: ${{ fromJSON(inputs.python-versions) }}
+        steps:
+        -   name: "Check out ${{ github.repository }}@${{ inputs.ref }}"
+            uses: actions/checkout@v4
+            with:
+                ref: ${{ inputs.ref }}
+                persist-credentials: false
+
+        -   name: "Setup environment"
+            uses: ./setup-environment
+            with:
+                python-version: ${{ matrix.python-version }}
+
+        -   name: "Run unit tests"
+            shell: bash
+            run: ${{ inputs.test-command }}
+
+    aggregate-results:
+        name: "Collect unit tests results"
+        needs: unit-tests
+        if: always() && !cancelled()
+        runs-on: ubuntu-latest
+        steps:
+        -   name: "[INFO] Unit tests - FAILED"
+            if: failure()
+            shell: bash
+            run: |
+                echo "::notice title=$TITLE::$MESSAGE"
+                exit 1
+            env:
+                TITLE: "Unit tests - FAILED"
+                MESSAGE: "Unit tests completed with failures!"
+
+        -   name: "[INFO] Unit tests - PASSED"
+            if: ${{ !failure() }}  # includes skipped
+            shell: bash
+            run: |
+                echo "::notice title=$TITLE::$MESSAGE"
+            env:
+                TITLE: "Unit tests - PASSED"
+                MESSAGE: "Unit tests completed successfully!"

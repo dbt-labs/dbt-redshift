@@ -1,0 +1,61 @@
+# **what?**
+# Run code quality checks, e.g. `black`, `flake8`, `mypy`, via `pre-commit`
+#
+# **why?**
+# Ensure code quality meets dbt Labs standards
+#
+# **when?**
+# - runs on all PRs into protected branches
+# - runs indirectly during releases and release tests
+# - can be manually run
+name: "Code quality"
+
+on:
+    workflow_call:
+        inputs:
+            ref:
+                description: "The branch/tag/commit to run code quality on"
+                type: string
+                required: true
+            check-command:
+                description: "The command to run code quality checks"
+                type: string
+                required: true
+            python-version:
+                description: "The python version to test against"
+                type: string
+                required: true
+
+permissions: read-all
+
+concurrency:
+    group: "${{ github.workflow }}-${{ github.event_name }}-${{ inputs.ref }}"
+    cancel-in-progress: true
+
+jobs:
+    code-quality:
+        name: "Code quality"
+        runs-on: ubuntu-latest
+        steps:
+        -   name: "Check out ${{ github.repository }}@${{ inputs.ref }}"
+            uses: actions/checkout@v4
+            with:
+                ref: ${{ inputs.ref }}
+                persist-credentials: false
+
+        -   name: "Setup environment"
+            uses: ./setup-environment
+            with:
+                python-version: ${{ inputs.python-version }}
+
+        -   name: "Run code quality"
+            shell: bash
+            run: ${{ inputs.check-command }}
+
+        -   name: "[INFO] Run code quality"
+            shell: bash
+            run: |
+                echo "::notice title=$TITLE::$MESSAGE"
+            env:
+                TITLE: "Run code quality"
+                MESSAGE: "Code quality checks completed successfully!"

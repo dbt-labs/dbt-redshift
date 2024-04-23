@@ -1,0 +1,115 @@
+name: "Integration tests"
+
+on:
+    workflow_call:
+        inputs:
+            ref:
+                description: "The branch/tag/commit to run integration tests on"
+                type: string
+                required: true
+            test-command:
+                description: "The command to run unit tests"
+                type: string
+                required: true
+            python-versions-ubuntu:
+                description: "The python versions to test against for ubuntu"
+                type: string
+                required: true
+            python-versions-macos:
+                description: "The python version to test against for macos"
+                type: string
+                required: true
+            python-versions-windows:
+                description: "The python version to test against for windows"
+                type: string
+                required: true
+
+permissions: read-all
+
+concurrency:
+    group: "${{ github.workflow }}-${{ github.event_name }}-${{ inputs.ref }}"
+    cancel-in-progress: true
+
+jobs:
+    require-approval-on-forks:
+        # if it's a pull request from a fork that has not been approved yet, don't run tests
+        if: >-
+            github.event_name == 'pull_request_target' &&
+            github.event.pull_request.head.repo.full_name != github.repository &&
+            !contains(github.event.pull_request.labels.*.name, 'ok to test')
+        runs-on: ubuntu-latest
+        permissions:
+            pull-requests: write
+        steps:
+        -   name: "Author requires permission to run tests"
+            uses: unsplash/comment-on-pr@master
+            env:
+                GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            with:
+                msg: |
+                    "Thanks for your contribution! "\
+                    "This PR was created from a fork, integration tests need to be approved prior to running. "\
+                    "@dbt-labs/core will review this PR and approve running integration tests."
+                check_for_duplicate_msg: true
+
+    integration-tests:
+        name: "Integration tests"
+        needs: require-approval-on-forks
+        runs-on: ubuntu-latest
+        strategy:
+            fail-fast: false
+            matrix:
+                os: [ubuntu-latest]
+                python-version: ${{ fromJSON(inputs.python-versions-ubuntu) }}
+                include:
+                -   os: macos-latest
+                    python-version: ${{ fromJSON(inputs.python-versions-macos) }}
+                -   os: windows-latest
+                    python-version: ${{ fromJSON(inputs.python-versions-windows) }}
+        env:
+            DBT_INVOCATION_ENV: ${{ vars.DBT_INVOCATION_ENV }}
+            DD_CIVISIBILITY_AGENTLESS_ENABLED: true
+            DD_API_KEY: ${{ secrets.DATADOG_API_KEY }}
+            DD_SITE: ${{ vars.DD_SITE }}
+            DD_ENV: ${{ vars.DD_ENV }}
+            DD_SERVICE: ${{ github.event.repository.name }}
+        steps:
+        -   name: "Check out ${{ github.repository }}@${{ inputs.ref }}"
+            uses: actions/checkout@v4
+            with:
+                ref: ${{ inputs.ref }}
+                persist-credentials: false
+
+        -   name: "Setup environment"
+            uses: ./setup-environment@add-hatch-actions
+            with:
+                python-version: ${{ matrix.python-version }}
+
+        -   name: "Run integration tests"
+            shell: bash
+            run: ${{ inputs.test-command }}
+
+    aggregate-results:
+        name: "Collect integration tests results"
+        needs: integration-tests
+        if: always() && !cancelled()
+        runs-on: ubuntu-latest
+        steps:
+        -   name: "[INFO] Integration tests - FAILED"
+            if: failure()
+            shell: bash
+            run: |
+                echo "::notice title=$TITLE::$MESSAGE"
+                exit 1
+            env:
+                TITLE: "Integration tests - FAILED"
+                MESSAGE: "Integration tests failed!"
+
+        -   name: "[INFO] Integration tests - PASSED"
+            if: ${{ !failure() }}  # includes skipped
+            shell: bash
+            run: |
+                echo "::notice title=$TITLE::$MESSAGE"
+            env:
+                TITLE: "Integration tests - PASSED"
+                MESSAGE: "Integration tests completed successfully!"
