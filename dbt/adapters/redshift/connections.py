@@ -166,8 +166,29 @@ class RedshiftConnectMethodFactory:
         self.credentials = credentials
 
     def get_connect_method(self):
-        method = self.credentials.method
-        base_kwargs = {
+
+        # Support missing 'method' for backwards compatibility
+        method = self.credentials.method or RedshiftConnectionMethod.DATABASE
+        if method == RedshiftConnectionMethod.DATABASE:
+            method_kwargs = self._database_kwargs
+        elif method == RedshiftConnectionMethod.IAM:
+            method_kwargs = self._iam_user_kwargs
+        else:
+            raise FailedToConnectError("Invalid 'method' in profile: '{}'".format(method))
+
+        def connect():
+            c = redshift_connector.connect(**self._base_kwargs, **method_kwargs)
+            if self.credentials.autocommit:
+                c.autocommit = True
+            if self.credentials.role:
+                c.cursor().execute("set role {}".format(self.credentials.role))
+            return c
+
+        return connect
+
+    @property
+    def _base_kwargs(self):
+        kwargs = {
             "host": self.credentials.host,
             "database": self.credentials.database,
             "port": int(self.credentials.port) if self.credentials.port else int(5439),
@@ -176,97 +197,59 @@ class RedshiftConnectMethodFactory:
             "region": self.credentials.region,
             "timeout": self.credentials.connect_timeout,
         }
-
         redshift_ssl_config = RedshiftSSLConfig.parse(self.credentials.sslmode)
-        base_kwargs.update(redshift_ssl_config.to_dict())
+        kwargs.update(redshift_ssl_config.to_dict())
+        return kwargs
 
-        # Support missing 'method' for backwards compatibility
-        if method == RedshiftConnectionMethod.DATABASE or method is None:
-            connect = self._database_connect(base_kwargs)
-
-        elif method == RedshiftConnectionMethod.IAM:
-            if not self.credentials.cluster_id and "serverless" not in self.credentials.host:
-                raise FailedToConnectError(
-                    "Failed to use IAM method:"
-                    "    'cluster_id' must be provided for provisioned cluster"
-                    "    'host' must be provided for serverless endpoint"
-                )
-
-            if self.credentials.access_key_id and self.credentials.secret_access_key:
-                connect = self._iam_user_direct(base_kwargs)
-            elif self.credentials.iam_profile:
-                connect = self._iam_user_profile(base_kwargs)
-            else:
-                raise FailedToConnectError(
-                    "Failed to use IAM method. IAM method requires one of:"
-                    "    'iam_profile'"
-                    "    'access_key_id' and `secret_access_key`"
-                )
-
-        else:
-            raise FailedToConnectError("Invalid 'method' in profile: '{}'".format(method))
-
-        return connect
-
-    def _database_connect(self, base_kwargs):
+    @property
+    def _database_kwargs(self):
         if self.credentials.password is None:
             raise FailedToConnectError("'password' field is required for 'database' credentials")
 
-        def connect():
-            logger.debug("Connecting to redshift with username/password based auth...")
-            c = redshift_connector.connect(
-                user=self.credentials.user,
-                password=self.credentials.password,
-                **base_kwargs,
+        logger.debug("Connecting to redshift with username/password based auth...")
+        return {
+            "user": self.credentials.user,
+            "password": self.credentials.password,
+        }
+
+    @property
+    def _iam_user_kwargs(self):
+        iam_kwargs = self._iam_kwargs
+
+        if self.credentials.access_key_id and self.credentials.secret_access_key:
+            iam_kwargs.update(
+                {
+                    "access_key_id": self.credentials.access_key_id,
+                    "secret_access_key": self.credentials.secret_access_key,
+                }
             )
-            if self.credentials.autocommit:
-                c.autocommit = True
-            if self.credentials.role:
-                c.cursor().execute("set role {}".format(self.credentials.role))
-            return c
 
-        return connect
-
-    def _iam_user_profile(self, base_kwargs):
-        def connect():
-            logger.debug("Connecting to redshift with IAM based auth using profile...")
-            c = redshift_connector.connect(
-                iam=True,
-                db_user=self.credentials.user,
-                password="",
-                user="",
-                cluster_identifier=self.credentials.cluster_id,
-                profile=self.credentials.iam_profile,
-                **base_kwargs,
+        else:
+            iam_kwargs.update(
+                {
+                    "profile": self.credentials.iam_profile,
+                }
             )
-            if self.credentials.autocommit:
-                c.autocommit = True
-            if self.credentials.role:
-                c.cursor().execute("set role {}".format(self.credentials.role))
-            return c
 
-        return connect
+        return iam_kwargs
 
-    def _iam_user_direct(self, base_kwargs):
-        def connect():
-            logger.debug("Connecting to redshift with IAM based auth using parameters...")
-            c = redshift_connector.connect(
-                iam=True,
-                db_user=self.credentials.user,
-                password="",
-                user="",
-                cluster_identifier=self.credentials.cluster_id,
-                access_key_id=self.credentials.access_key_id,
-                secret_access_key=self.credentials.secret_access_key,
-                **base_kwargs,
+    @property
+    def _iam_kwargs(self):
+        if not self.credentials.cluster_id and "serverless" not in self.credentials.host:
+            raise FailedToConnectError(
+                "Failed to use IAM method:"
+                "    'cluster_id' must be provided for provisioned cluster"
+                "    'host' must be provided for serverless endpoint"
             )
-            if self.credentials.autocommit:
-                c.autocommit = True
-            if self.credentials.role:
-                c.cursor().execute("set role {}".format(self.credentials.role))
-            return c
 
-        return connect
+        logger.debug("Connecting to redshift with IAM based auth...")
+        return {
+            "iam": True,
+            "db_user": self.credentials.user,
+            "password": "",
+            "user": "",
+            "cluster_identifier": self.credentials.cluster_id,
+        }
 
 
 class RedshiftConnectionManager(SQLConnectionManager):
