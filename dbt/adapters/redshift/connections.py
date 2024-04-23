@@ -177,10 +177,7 @@ class RedshiftConnectMethodFactory:
         elif method == RedshiftConnectionMethod.IAM_ROLE:
             kwargs = self._iam_role_kwargs
         else:
-            raise FailedToConnectError(
-                f"Invalid 'method' in profile: '{method}'"
-                "Must be one of: 'database', 'iam', or 'iam_role'"
-            )
+            raise FailedToConnectError(f"Invalid 'method' in profile: '{method}'")
 
         def connect():
             c = redshift_connector.connect(**kwargs)
