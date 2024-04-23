@@ -231,6 +231,60 @@ class TestRedshiftAdapter(unittest.TestCase):
         )
 
     @mock.patch("redshift_connector.connect", MagicMock())
+    def test_explicit_iamr_conn_without_profile(self):
+        self.config.credentials = self.config.credentials.replace(
+            method="iamr",
+            cluster_id="my_redshift",
+            host="thishostshouldnotexist.test.us-east-1",
+            user=None,
+        )
+        connection = self.adapter.acquire_connection("dummy")
+        connection.handle
+        redshift_connector.connect.assert_called_once_with(
+            iam=True,
+            host="thishostshouldnotexist.test.us-east-1",
+            database="redshift",
+            cluster_identifier="my_redshift",
+            region=None,
+            timeout=None,
+            auto_create=False,
+            db_groups=[],
+            profile=None,
+            port=5439,
+            group_federation=True,
+            **DEFAULT_SSL_CONFIG,
+        )
+
+    @mock.patch("redshift_connector.connect", Mock())
+    @mock.patch("boto3.Session", Mock())
+    def test_explicit_iamr_conn_with_profile(self):
+        self.config.credentials = self.config.credentials.replace(
+            method="iamr",
+            cluster_id="my_redshift",
+            iam_profile="test",
+            host="thishostshouldnotexist.test.us-east-1",
+            user=None,
+        )
+        connection = self.adapter.acquire_connection("dummy")
+        connection.handle
+
+        redshift_connector.connect.assert_called_once_with(
+            iam=True,
+            host="thishostshouldnotexist.test.us-east-1",
+            database="redshift",
+            cluster_identifier="my_redshift",
+            region=None,
+            auto_create=False,
+            db_groups=[],
+            profile="test",
+            timeout=None,
+            port=5439,
+            group_federation=True,
+            **DEFAULT_SSL_CONFIG,
+        )
+
+    @mock.patch("redshift_connector.connect", Mock())
+    @mock.patch("boto3.Session", Mock())
     def test_explicit_region(self):
         # Successful test
         self.config.credentials = self.config.credentials.replace(
