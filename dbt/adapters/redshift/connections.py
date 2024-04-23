@@ -37,7 +37,7 @@ logger = AdapterLogger("Redshift")
 class RedshiftConnectionMethod(StrEnum):
     DATABASE = "database"
     IAM = "iam"
-    IAMR = "iamr"
+    IAM_ROLE = "iam_role"
 
 
 class UserSSLMode(StrEnum):
@@ -174,7 +174,7 @@ class RedshiftConnectMethodFactory:
             method_kwargs = self._database_kwargs
         elif method == RedshiftConnectionMethod.IAM:
             method_kwargs = self._iam_user_kwargs
-        elif method == RedshiftConnectionMethod.IAMR:
+        elif method == RedshiftConnectionMethod.IAM_ROLE:
             method_kwargs = self._iam_role_kwargs
         else:
             raise FailedToConnectError(f"Invalid 'method' in profile: '{method}'")
@@ -206,13 +206,14 @@ class RedshiftConnectMethodFactory:
 
     @property
     def _database_kwargs(self):
+        logger.debug("Connecting to redshift with username/password based auth...")
+
         if self.credentials.user is None:
             raise FailedToConnectError("'user' field is required for 'database' credentials")
 
         if self.credentials.password is None:
             raise FailedToConnectError("'password' field is required for 'database' credentials")
 
-        logger.debug("Connecting to redshift with username/password based auth...")
         return {
             "user": self.credentials.user,
             "password": self.credentials.password,
@@ -220,6 +221,8 @@ class RedshiftConnectMethodFactory:
 
     @property
     def _iam_user_kwargs(self):
+        logger.debug("Connecting to redshift with IAM User based auth...")
+
         iam_kwargs = self._iam_kwargs
         iam_kwargs.update(
             {
@@ -248,6 +251,8 @@ class RedshiftConnectMethodFactory:
 
     @property
     def _iam_role_kwargs(self):
+        logger.debug("Connecting to redshift with IAM Role based auth...")
+
         iam_kwargs = self._iam_kwargs
         iam_kwargs.update(
             {
