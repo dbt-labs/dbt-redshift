@@ -176,13 +176,13 @@ jobs:
 
       - name: Create AWS IAM profile
         run: |
-          aws configure set aws_access_key_id $AWS_ACCESS_KEY_ID --profile $AWS_USER_PROFILE
-          aws configure set aws_secret_access_key $AWS_SECRET_ACCESS_KEY --profile $AWS_USER_PROFILE
-          aws configure set region $AWS_REGION --profile $AWS_USER_PROFILE
-          aws configure set output json --profile $AWS_USER_PROFILE
+          aws configure --profile $AWS_USER_PROFILE set aws_access_key_id $AWS_ACCESS_KEY_ID
+          aws configure --profile $AWS_USER_PROFILE set aws_secret_access_key $AWS_SECRET_ACCESS_KEY
+          aws configure --profile $AWS_USER_PROFILE set region $AWS_REGION
+          aws configure --profile $AWS_USER_PROFILE set output json
 
-          aws configure set source_profile $AWS_USER_PROFILE --profile $AWS_ROLE_PROFILE
-          aws configure set role_arn $AWS_ROLE_ARN --profile $AWS_ROLE_PROFILE
+          aws configure --profile $AWS_ROLE_PROFILE set source_profile $AWS_USER_PROFILE
+          aws configure --profile $AWS_ROLE_PROFILE set role_arn $AWS_ROLE_ARN
         env:
           AWS_ACCESS_KEY_ID: ${{ vars.REDSHIFT_TEST_IAM_USER_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.REDSHIFT_TEST_IAM_USER_SECRET_ACCESS_KEY }}
