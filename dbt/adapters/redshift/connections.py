@@ -174,14 +174,14 @@ class RedshiftConnectMethodFactory:
         elif method == RedshiftConnectionMethod.IAM:
             method_kwargs = self._iam_user_kwargs
         else:
-            raise FailedToConnectError("Invalid 'method' in profile: '{}'".format(method))
+            raise FailedToConnectError(f"Invalid 'method' in profile: '{method}'")
 
         def connect():
             c = redshift_connector.connect(**self._base_kwargs, **method_kwargs)
             if self.credentials.autocommit:
                 c.autocommit = True
             if self.credentials.role:
-                c.cursor().execute("set role {}".format(self.credentials.role))
+                c.cursor().execute(f"set role {self.credentials.role}")
             return c
 
         return connect
