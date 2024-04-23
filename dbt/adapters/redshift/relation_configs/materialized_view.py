@@ -57,7 +57,7 @@ class RedshiftMaterializedViewConfig(RedshiftRelationConfigBase, RelationConfigV
     database_name: str
     query: str
     backup: bool = field(default=True, compare=False, hash=False)
-    dist: RedshiftDistConfig = RedshiftDistConfig(diststyle=RedshiftDistStyle.even)
+    dist: RedshiftDistConfig = RedshiftDistConfig(diststyle=RedshiftDistStyle("even"))
     sort: RedshiftSortConfig = RedshiftSortConfig()
     autorefresh: bool = False
 
