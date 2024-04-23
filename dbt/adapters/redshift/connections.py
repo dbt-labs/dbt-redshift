@@ -193,7 +193,7 @@ class RedshiftConnectMethodFactory:
         return connect
 
     @property
-    def _database_kwargs(self) -> Dict[str, Optional[Any]]:
+    def _database_kwargs(self):
         logger.debug("Connecting to redshift with 'database' credentials method")
         kwargs = self._base_kwargs
 
@@ -210,7 +210,7 @@ class RedshiftConnectMethodFactory:
         return kwargs
 
     @property
-    def _iam_user_kwargs(self) -> Dict[str, Optional[Any]]:
+    def _iam_user_kwargs(self):
         logger.debug("Connecting to redshift with 'iam' credentials method")
         kwargs = self._iam_kwargs
         kwargs.update(user="", password="")
@@ -230,7 +230,7 @@ class RedshiftConnectMethodFactory:
         return kwargs
 
     @property
-    def _iam_kwargs(self) -> Dict[str, Optional[Any]]:
+    def _iam_kwargs(self):
         kwargs = self._base_kwargs
         kwargs.update(iam=True)
 
@@ -240,8 +240,9 @@ class RedshiftConnectMethodFactory:
             kwargs.update(cluster_identifier=None)
         else:
             raise FailedToConnectError(
-                "'cluster_id' must be provided for provisioned cluster"
-                "'host' must be provided for serverless endpoint"
+                "Failed to use IAM method:"
+                "    'cluster_id' must be provided for provisioned cluster"
+                "    'host' must be provided for serverless endpoint"
             )
 
         if self.credentials.access_key_id and self.credentials.secret_access_key:
@@ -259,7 +260,7 @@ class RedshiftConnectMethodFactory:
         return kwargs
 
     @property
-    def _base_kwargs(self) -> Dict[str, Optional[Any]]:
+    def _base_kwargs(self):
         kwargs = {
             "host": self.credentials.host,
             "database": self.credentials.database,
@@ -269,13 +270,8 @@ class RedshiftConnectMethodFactory:
             "region": self.credentials.region,
             "timeout": self.credentials.connect_timeout,
         }
-
-        if sslmode := self.credentials.sslmode:
-            redshift_ssl_config = RedshiftSSLConfig.parse(sslmode)
-            kwargs.update(redshift_ssl_config.to_dict())
-        else:
-            raise FailedToConnectError("remove 'sslmode' from config to inherit the default")
-
+        redshift_ssl_config = RedshiftSSLConfig.parse(self.credentials.sslmode)
+        kwargs.update(redshift_ssl_config.to_dict())
         return kwargs
 
 
