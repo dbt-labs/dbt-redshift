@@ -1,4 +1,4 @@
-name: "Unit tests"
+name: "Build artifacts"
 
 on:
     workflow_call:
@@ -7,6 +7,10 @@ on:
                 description: "The branch/tag/commit to run integration tests on"
                 type: string
                 required: true
+            archive-name:
+                description: "Name of the archive for build artifacts, used during a release"
+                type: string
+                default: ""
 
 permissions: read-all
 
@@ -15,8 +19,8 @@ concurrency:
     cancel-in-progress: true
 
 jobs:
-    unit-tests:
-        name: "Unit tests"
+    build-artifacts:
+        name: "Build artifacts"
         runs-on: ubuntu-latest
         strategy:
             fail-fast: false
@@ -34,28 +38,7 @@ jobs:
             with:
                 python-version: ${{ matrix.python-version }}
 
-        -   name: "Run unit tests"
-            shell: bash
-            run: hatch run unit-tests:all
-
-    aggregate-results:
-        name: "Collect unit tests results"
-        needs: unit-tests
-        if: always() && !cancelled()
-        runs-on: ubuntu-latest
-        steps:
-        -   name: "[INFO] Unit tests - FAILED"
-            if: failure()
-            shell: bash
-            run: echo "::notice title=$TITLE::$MESSAGE" && exit 1
-            env:
-                TITLE: "Unit tests - FAILED"
-                MESSAGE: "Unit tests completed with failures!"
-
-        -   name: "[INFO] Unit tests - PASSED"
-            if: ${{ !failure() }}  # includes skipped
-            shell: bash
-            run: echo "::notice title=$TITLE::$MESSAGE"
-            env:
-                TITLE: "Unit tests - PASSED"
-                MESSAGE: "Unit tests completed successfully!"
+        -   name: "Build artifacts"
+            uses: dbt-labs/actions/hatch/artifacts/create.yml@add-hatch-actions
+            with:
+                archive-name: ${{ inputs.archive-name }}

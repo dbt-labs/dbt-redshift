@@ -17,14 +17,6 @@ on:
                 description: "The branch/tag/commit to run code quality on"
                 type: string
                 required: true
-            check-command:
-                description: "The command to run code quality checks"
-                type: string
-                required: true
-            python-version:
-                description: "The python version to test against"
-                type: string
-                required: true
 
 permissions: read-all
 
@@ -44,18 +36,17 @@ jobs:
                 persist-credentials: false
 
         -   name: "Setup environment"
-            uses: ./setup-environment
+            uses: dbt-labs/actions/hatch/environment/create@add-hatch-actions
             with:
-                python-version: ${{ inputs.python-version }}
+                python-version: ${{ vars.DBT_PYTHON_VERSION }}
 
         -   name: "Run code quality"
             shell: bash
-            run: ${{ inputs.check-command }}
+            run: hatch run code-quality
 
         -   name: "[INFO] Run code quality"
             shell: bash
-            run: |
-                echo "::notice title=$TITLE::$MESSAGE"
+            run: echo "::notice title=$TITLE::$MESSAGE"
             env:
                 TITLE: "Run code quality"
                 MESSAGE: "Code quality checks completed successfully!"

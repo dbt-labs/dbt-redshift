@@ -36,6 +36,11 @@ jobs:
         -   name: "Checkout `${{ github.repository }}`"
             uses: actions/checkout@v3
 
+        -   name: "Setup environment"
+            uses: dbt-labs/actions/hatch/environment/create@add-hatch-actions
+            with:
+                ref: ${{ vars.DBT_PYTHON_VERSION }}
+
         -   name: "Set: commit"
             id: commit
             run: echo "sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
@@ -45,7 +50,7 @@ jobs:
             run: echo "version=$(hatch version)" >> $GITHUB_OUTPUT
 
         -   name: "Audit Version And Parse Into Parts"
-            id: semver
+            id: version
             uses: dbt-labs/actions/parse-semver@v1.1.0
             with:
                 version: ${{ steps.current-version.outputs.version }}
@@ -53,9 +58,9 @@ jobs:
         -   name: "Set: release version"
             id: release-version
             run: |
-                version="${{ steps.semver.outputs.major }}"
-                version+=".${{ steps.semver.outputs.minor }}"
-                version+=".$(${{ steps.semver.outputs.patch }}+1)"
+                version="${{ steps.version.outputs.major }}"
+                version+=".${{ steps.version.outputs.minor }}"
+                version+=".$(${{ steps.version.outputs.patch }}+1)"
                 version+="dev$(date +'%m%d%Y')"
                 echo "version=$version" >> $GITHUB_OUTPUT
 

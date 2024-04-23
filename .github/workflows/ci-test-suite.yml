@@ -24,30 +24,22 @@ jobs:
         uses: dbt-labs/actions/.github/workflows/code-quality.yml@add-hatch-actions
         with:
             ref: ${{ inputs.ref }}
-            check-command: "hatch run code-quality"
-            python-version: ${{ vars.DBT_PYTHON_VERSION }}
 
     unit-tests:
         name: "Run unit tests"
         uses: dbt-labs/actions/.github/workflows/unit-tests.yml@add-hatch-actions
         with:
             ref: ${{ inputs.ref }}
-            test-command: "hatch run unit-tests:all"
-            python-versions: ${{ vars.DBT_PYTHON_VERSIONS }}
 
     integration-tests:
         name: "Run integration tests"
         uses: dbt-labs/actions/.github/workflows/integration-tests.yml@add-hatch-actions
         with:
             ref: ${{ inputs.ref }}
-            test-command: "hatch run integration-tests:all"
-            python-versions-ubuntu: ${{ vars.DBT_PYTHON_VERSIONS }}
-            python-versions-macos: ${{ vars.DBT_PYTHON_VERSION }}
-            python-versions-windows: ${{ vars.DBT_PYTHON_VERSION }}
 
     build-artifacts:
         name: "Verify build artifacts"
-        uses: dbt-labs/actions/.github/workflows/build-release-artifacts.yml@add-hatch-actions
+        uses: dbt-labs/actions/.github/workflows/build-artifacts.yml@add-hatch-actions
         with:
             ref: ${{ inputs.ref }}
-            archive-name: ${{ needs.release-inputs.outputs.archive-name }}
+            archive-name: ${{ inputs.archive-name }}

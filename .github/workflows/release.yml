@@ -111,37 +111,27 @@ jobs:
 
         -   name: "Create release branch"
             id: branch
-            uses: dbt-labs/actions/create-temp-branch@add-hatch-actions
+            uses: dbt-labs/actions/github/branch/create@add-hatch-actions
             with:
-                branch-stub: "release/${{ inputs.version }}/"
+                branch-group: "release/${{ inputs.version }}"
 
-    bump-version:
-        name: "Bump version"
-        needs: release-branch
-        uses: dbt-labs/actions/.github/workflows/build-bump-version.yml@add-hatch-actions
-        with:
-            branch: ${{ needs.release-branch.outputs.branch }}
-            version: ${{ inputs.version }}
-        secrets: inherit
+        -   name: "Bump version"
+            uses: dbt-labs/actions/hatch/version/build.yml@add-hatch-actions
+            with:
+                branch: ${{ needs.release-branch.outputs.branch }}
+                version: ${{ inputs.version }}
 
-    changelog:
-        name: "Generate a new changelog"
-        needs:
-        -   release-branch
-        -   bump-version
-        uses: dbt-labs/actions/.github/workflows/build-changelog.yml@add-hatch-actions
-        with:
-            branch: ${{ needs.release-branch.outputs.branch }}
-            version: ${{ inputs.version }}
-        secrets: inherit
+        -   name: "Generate a new changelog"
+            uses: dbt-labs/actions/changie/changelog/create.yml@add-hatch-actions
+            with:
+                branch: ${{ needs.release-branch.outputs.branch }}
+                version: ${{ inputs.version }}
 
     ci-test-suite:
         name: "Run code quality, unit tests, and integration tests, and build artifacts"
         needs:
         -   release-inputs
         -   release-branch
-        -   version-bump
-        -   changelog
         uses: ./.github/workflows/ci-test-suite.yml
         with:
             ref: ${{ needs.release-branch.outputs.branch }}
@@ -164,7 +154,7 @@ jobs:
         -   name: "Merge `${{ needs.release-branch.outputs.branch }}` into `${{ inputs.branch }}`"
             if: ${{ inputs.deploy-environment == 'prod' }}
             id: merge
-            uses: dbt-labs/actions/github-merge@add-hatch-actions
+            uses: dbt-labs/actions/github/branch/merge@add-hatch-actions
             with:
                 source-branch: ${{ needs.release-branch.outputs.branch }}
                 target-branch: ${{ inputs.branch }}
@@ -195,9 +185,7 @@ jobs:
 
     publish-pypi:
         name: "Publish to PyPI"
-        needs:
-        -   release-inputs
-        -   merge-changes
+        needs: merge-changes
         if: ${{ !failure() && !cancelled() }}
         environment:
             name: ${{ inputs.deploy-environment }}
@@ -205,17 +193,15 @@ jobs:
         runs-on: ubuntu-latest
         steps:
         -   name: "Publish to PyPI"
-            uses: .github/actions/publish-pypi
+            uses: dbt-labs/actions/pypi/release/create
             with:
-              repository-url: ${{ vars.PYPI_REPOSITORY_URL }}
               archive-name: ${{ inputs.archive-name }}
+              index-url: ${{ vars.PYPI_REPOSITORY_URL }}
 
     publish-pypi-internal:
         name: "Publish to internal PyPI"
         if: ${{ !failure() && !cancelled() }}
-        needs:
-        -   release-inputs
-        -   merge-changes
+        needs: merge-changes
         uses: dbt-labs/dbt-release/.github/workflows/internal-archive-release.yml@main
         with:
             version_number: "${{ inputs.version }}"
