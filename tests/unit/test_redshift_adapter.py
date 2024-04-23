@@ -4,7 +4,7 @@ from multiprocessing import get_context
 from unittest import mock
 
 from dbt_common.exceptions import DbtRuntimeError
-from unittest.mock import MagicMock, call
+from unittest.mock import MagicMock, Mock, call
 
 import agate
 import dbt
@@ -231,9 +231,9 @@ class TestRedshiftAdapter(unittest.TestCase):
         )
 
     @mock.patch("redshift_connector.connect", MagicMock())
-    def test_explicit_iamr_conn_without_profile(self):
+    def test_explicit_iam_role_conn_without_profile(self):
         self.config.credentials = self.config.credentials.replace(
-            method="iamr",
+            method="iam_role",
             cluster_id="my_redshift",
             host="thishostshouldnotexist.test.us-east-1",
             user=None,
@@ -257,9 +257,9 @@ class TestRedshiftAdapter(unittest.TestCase):
 
     @mock.patch("redshift_connector.connect", Mock())
     @mock.patch("boto3.Session", Mock())
-    def test_explicit_iamr_conn_with_profile(self):
+    def test_explicit_iam_role_conn_with_profile(self):
         self.config.credentials = self.config.credentials.replace(
-            method="iamr",
+            method="iam_role",
             cluster_id="my_redshift",
             iam_profile="test",
             host="thishostshouldnotexist.test.us-east-1",

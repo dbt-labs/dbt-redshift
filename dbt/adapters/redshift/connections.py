@@ -1,7 +1,7 @@
 import re
 from multiprocessing import Lock
 from contextlib import contextmanager
-from typing import Tuple, Union, Optional, List
+from typing import Any, Dict, Tuple, Union, Optional, List
 from dataclasses import dataclass, field
 
 import agate
@@ -171,16 +171,19 @@ class RedshiftConnectMethodFactory:
         # Support missing 'method' for backwards compatibility
         method = self.credentials.method or RedshiftConnectionMethod.DATABASE
         if method == RedshiftConnectionMethod.DATABASE:
-            method_kwargs = self._database_kwargs
+            kwargs = self._database_kwargs
         elif method == RedshiftConnectionMethod.IAM:
-            method_kwargs = self._iam_user_kwargs
+            kwargs = self._iam_user_kwargs
         elif method == RedshiftConnectionMethod.IAM_ROLE:
-            method_kwargs = self._iam_role_kwargs
+            kwargs = self._iam_role_kwargs
         else:
-            raise FailedToConnectError(f"Invalid 'method' in profile: '{method}'")
+            raise FailedToConnectError(
+                f"Invalid 'method' in profile: '{method}'"
+                "Must be one of: 'database', 'iam', or 'iam_role'"
+            )
 
         def connect():
-            c = redshift_connector.connect(**self._base_kwargs, **method_kwargs)
+            c = redshift_connector.connect(**kwargs)
             if self.credentials.autocommit:
                 c.autocommit = True
             if self.credentials.role:
@@ -190,7 +193,73 @@ class RedshiftConnectMethodFactory:
         return connect
 
     @property
-    def _base_kwargs(self):
+    def _database_kwargs(self) -> Dict[str, Optional[Any]]:
+        logger.debug("Connecting to redshift with 'database' credentials method")
+        kwargs = self._base_kwargs
+
+        if self.credentials.user and self.credentials.password:
+            kwargs.update(
+                user=self.credentials.user,
+                password=self.credentials.password,
+            )
+        else:
+            raise FailedToConnectError(
+                "'user' and 'password' fields are required for 'database' credentials method"
+            )
+
+        return kwargs
+
+    @property
+    def _iam_user_kwargs(self) -> Dict[str, Optional[Any]]:
+        logger.debug("Connecting to redshift with 'iam' credentials method")
+        kwargs = self._iam_kwargs
+        kwargs.update(user="", password="")
+
+        if user := self.credentials.user:
+            kwargs.update(db_user=user)
+        else:
+            raise FailedToConnectError("'user' field is required for 'iam' credentials method")
+
+        return kwargs
+
+    @property
+    def _iam_role_kwargs(self) -> Dict[str, Optional[Any]]:
+        logger.debug("Connecting to redshift with 'iam_role' credentials method")
+        kwargs = self._iam_kwargs
+        kwargs.update(group_federation=True)
+        return kwargs
+
+    @property
+    def _iam_kwargs(self) -> Dict[str, Optional[Any]]:
+        kwargs = self._base_kwargs
+        kwargs.update(iam=True)
+
+        if cluster_id := self.credentials.cluster_id:
+            kwargs.update(cluster_identifier=cluster_id)
+        elif "serverless" in self.credentials.host:
+            kwargs.update(cluster_identifier=None)
+        else:
+            raise FailedToConnectError(
+                "'cluster_id' must be provided for provisioned cluster"
+                "'host' must be provided for serverless endpoint"
+            )
+
+        if self.credentials.access_key_id and self.credentials.secret_access_key:
+            kwargs.update(
+                access_key_id=self.credentials.access_key_id,
+                secret_access_key=self.credentials.secret_access_key,
+            )
+        elif self.credentials.access_key_id or self.credentials.secret_access_key:
+            raise FailedToConnectError(
+                "'access_key_id' and 'secret_access_key' are both needed if providing explicit credentials"
+            )
+        else:
+            kwargs.update(profile=self.credentials.iam_profile)
+
+        return kwargs
+
+    @property
+    def _base_kwargs(self) -> Dict[str, Optional[Any]]:
         kwargs = {
             "host": self.credentials.host,
             "database": self.credentials.database,
@@ -200,100 +269,14 @@ class RedshiftConnectMethodFactory:
             "region": self.credentials.region,
             "timeout": self.credentials.connect_timeout,
         }
-        redshift_ssl_config = RedshiftSSLConfig.parse(self.credentials.sslmode)
-        kwargs.update(redshift_ssl_config.to_dict())
+
+        if sslmode := self.credentials.sslmode:
+            redshift_ssl_config = RedshiftSSLConfig.parse(sslmode)
+            kwargs.update(redshift_ssl_config.to_dict())
+        else:
+            raise FailedToConnectError("remove 'sslmode' from config to inherit the default")
+
         return kwargs
-
-    @property
-    def _database_kwargs(self):
-        logger.debug("Connecting to redshift with username/password based auth...")
-
-        if self.credentials.user is None:
-            raise FailedToConnectError("'user' field is required for 'database' credentials")
-
-        if self.credentials.password is None:
-            raise FailedToConnectError("'password' field is required for 'database' credentials")
-
-        return {
-            "user": self.credentials.user,
-            "password": self.credentials.password,
-        }
-
-    @property
-    def _iam_user_kwargs(self):
-        logger.debug("Connecting to redshift with IAM User based auth...")
-
-        iam_kwargs = self._iam_kwargs
-        iam_kwargs.update(
-            {
-                "db_user": self.credentials.user,
-                "password": "",
-                "user": "",
-            }
-        )
-
-        if self.credentials.access_key_id and self.credentials.secret_access_key:
-            iam_kwargs.update(
-                {
-                    "access_key_id": self.credentials.access_key_id,
-                    "secret_access_key": self.credentials.secret_access_key,
-                }
-            )
-
-        else:
-            iam_kwargs.update(
-                {
-                    "profile": self.credentials.iam_profile,
-                }
-            )
-
-        return iam_kwargs
-
-    @property
-    def _iam_role_kwargs(self):
-        logger.debug("Connecting to redshift with IAM Role based auth...")
-
-        iam_kwargs = self._iam_kwargs
-        iam_kwargs.update(
-            {
-                "group_federation": True,
-            }
-        )
-
-        if self.credentials.access_key_id and self.credentials.secret_access_key:
-            iam_kwargs.update(
-                {
-                    "access_key_id": self.credentials.access_key_id,
-                    "secret_access_key": self.credentials.secret_access_key,
-                }
-            )
-
-        else:
-            iam_kwargs.update(
-                {
-                    "profile": self.credentials.iam_profile,
-                }
-            )
-
-        return iam_kwargs
-
-    @property
-    def _iam_kwargs(self):
-        if not self.credentials.cluster_id and "serverless" not in self.credentials.host:
-            raise FailedToConnectError(
-                "Failed to use IAM method:"
-                "    'cluster_id' must be provided for provisioned cluster"
-                "    'host' must be provided for serverless endpoint"
-            )
-
-        if self.credentials.user is None:
-            raise FailedToConnectError("'user' field is required for 'iam' credentials")
-
-        logger.debug("Connecting to redshift with IAM based auth...")
-        return {
-            "iam": True,
-            "cluster_identifier": self.credentials.cluster_id,
-        }
 
 
 class RedshiftConnectionManager(SQLConnectionManager):
