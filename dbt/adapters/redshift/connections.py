@@ -124,7 +124,6 @@ class RedshiftCredentials(Credentials):
     autocommit: Optional[bool] = True
     access_key_id: Optional[str] = None
     secret_access_key: Optional[str] = None
-    iam_role_arn: Optional[str] = None
 
     _ALIASES = {"dbname": "database", "pass": "password"}
 
@@ -154,7 +153,6 @@ class RedshiftCredentials(Credentials):
             "retries",
             "autocommit",
             "access_key_id",
-            "iam_role_arn",
         )
 
     @property
@@ -213,6 +211,18 @@ class RedshiftConnectMethodFactory:
         logger.debug("Connecting to redshift with 'iam' credentials method")
         kwargs = self._iam_kwargs
 
+        if self.credentials.access_key_id and self.credentials.secret_access_key:
+            kwargs.update(
+                access_key_id=self.credentials.access_key_id,
+                secret_access_key=self.credentials.secret_access_key,
+            )
+        elif self.credentials.access_key_id or self.credentials.secret_access_key:
+            raise FailedToConnectError(
+                "'access_key_id' and 'secret_access_key' are both needed if providing explicit credentials"
+            )
+        else:
+            kwargs.update(profile=self.credentials.iam_profile)
+
         if user := self.credentials.user:
             kwargs.update(db_user=user)
         else:
@@ -224,10 +234,17 @@ class RedshiftConnectMethodFactory:
     def _iam_role_kwargs(self) -> Dict[str, Optional[Any]]:
         logger.debug("Connecting to redshift with 'iam_role' credentials method")
         kwargs = self._iam_kwargs
-        kwargs.update(group_federation=True)
+        kwargs.update(
+            group_federation=True,
+            db_user=None,
+        )
 
-        if iam_role_arn := self.credentials.iam_role_arn:
-            kwargs.update(role_arn=iam_role_arn)
+        if iam_profile := self.credentials.iam_profile:
+            kwargs.update(profile=iam_profile)
+        else:
+            raise FailedToConnectError(
+                "'iam_profile' field is required for 'iam_role' credentials method"
+            )
 
         return kwargs
 
@@ -250,18 +267,6 @@ class RedshiftConnectMethodFactory:
                 "    'cluster_id' must be provided for provisioned cluster"
                 "    'host' must be provided for serverless endpoint"
             )
-
-        if self.credentials.access_key_id and self.credentials.secret_access_key:
-            kwargs.update(
-                access_key_id=self.credentials.access_key_id,
-                secret_access_key=self.credentials.secret_access_key,
-            )
-        elif self.credentials.access_key_id or self.credentials.secret_access_key:
-            raise FailedToConnectError(
-                "'access_key_id' and 'secret_access_key' are both needed if providing explicit credentials"
-            )
-        else:
-            kwargs.update(profile=self.credentials.iam_profile)
 
         return kwargs
 
