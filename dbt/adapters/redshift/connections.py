@@ -223,6 +223,18 @@ class RedshiftConnectMethodFactory:
         else:
             kwargs.update(profile=self.credentials.iam_profile)
 
+        if self.credentials.access_key_id and self.credentials.secret_access_key:
+            kwargs.update(
+                access_key_id=self.credentials.access_key_id,
+                secret_access_key=self.credentials.secret_access_key,
+            )
+        elif self.credentials.access_key_id or self.credentials.secret_access_key:
+            raise FailedToConnectError(
+                "'access_key_id' and 'secret_access_key' are both needed if providing explicit credentials"
+            )
+        else:
+            kwargs.update(profile=self.credentials.iam_profile)
+
         if user := self.credentials.user:
             kwargs.update(db_user=user)
         else:
