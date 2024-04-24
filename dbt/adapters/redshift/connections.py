@@ -207,7 +207,6 @@ class RedshiftConnectMethodFactory:
     def _iam_user_kwargs(self) -> Dict[str, Any]:
         logger.debug("Connecting to redshift with 'iam' credentials method")
         kwargs = self._iam_kwargs
-        kwargs.update(user="", password="")
 
         if self.credentials.access_key_id and self.credentials.secret_access_key:
             kwargs.update(
@@ -231,7 +230,11 @@ class RedshiftConnectMethodFactory:
     @property
     def _iam_kwargs(self) -> Dict[str, Any]:
         kwargs = self._base_kwargs
-        kwargs.update(iam=True)
+        kwargs.update(
+            iam=True,
+            user="",
+            password="",
+        )
 
         if cluster_id := self.credentials.cluster_id:
             kwargs.update(cluster_identifier=cluster_id)
