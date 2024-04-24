@@ -15,4 +15,5 @@ def dbt_profile_target():
         "user": os.getenv("REDSHIFT_TEST_USER"),
         "pass": os.getenv("REDSHIFT_TEST_PASS"),
         "dbname": os.getenv("REDSHIFT_TEST_DBNAME"),
+        "region": os.getenv("REDSHIFT_TEST_REGION"),
     }
