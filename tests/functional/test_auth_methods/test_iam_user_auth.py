@@ -41,7 +41,7 @@ class TestIAMUserAuthProfile(IAMUserAuth):
         }
 
 
-class TestIAMUserAuthDirect(IAMUserAuth):
+class TestIAMUserAuthExplicit(IAMUserAuth):
     @pytest.fixture(scope="class")
     def dbt_profile_target(self):
         return {
