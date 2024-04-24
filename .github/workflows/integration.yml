@@ -181,15 +181,18 @@ jobs:
           aws configure --profile $AWS_USER_PROFILE set region $AWS_REGION
           aws configure --profile $AWS_USER_PROFILE set output json
 
-          aws configure --profile $AWS_ROLE_PROFILE set source_profile $AWS_USER_PROFILE
+          aws configure --profile $AWS_ROLE_PROFILE set source_profile $AWS_ROLE_SOURCE_PROFILE
           aws configure --profile $AWS_ROLE_PROFILE set role_arn $AWS_ROLE_ARN
+          aws configure --profile $AWS_ROLE_PROFILE set region $AWS_REGION
+          aws configure --profile $AWS_ROLE_PROFILE set output json
         env:
+          AWS_USER_PROFILE: ${{ vars.REDSHIFT_TEST_IAM_USER_PROFILE }}
           AWS_ACCESS_KEY_ID: ${{ vars.REDSHIFT_TEST_IAM_USER_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.REDSHIFT_TEST_IAM_USER_SECRET_ACCESS_KEY }}
-          AWS_USER_PROFILE: ${{ vars.REDSHIFT_TEST_IAM_USER_PROFILE }}
-          AWS_REGION: ${{ vars.REDSHIFT_TEST_REGION }}
           AWS_ROLE_PROFILE: ${{ vars.REDSHIFT_TEST_IAM_ROLE_PROFILE }}
+          AWS_ROLE_SOURCE_PROFILE: ${{ vars.REDSHIFT_TEST_IAM_ROLE_SOURCE_PROFILE }}
           AWS_ROLE_ARN: ${{ secrets.REDSHIFT_TEST_IAM_ROLE_ARN }}
+          AWS_REGION: ${{ vars.REDSHIFT_TEST_REGION }}
 
       - name: Run tox (redshift)
         if: matrix.adapter == 'redshift'
@@ -205,7 +208,6 @@ jobs:
           REDSHIFT_TEST_IAM_USER_ACCESS_KEY_ID: ${{ vars.REDSHIFT_TEST_IAM_USER_ACCESS_KEY_ID }}
           REDSHIFT_TEST_IAM_USER_SECRET_ACCESS_KEY: ${{ secrets.REDSHIFT_TEST_IAM_USER_SECRET_ACCESS_KEY }}
           REDSHIFT_TEST_IAM_ROLE_PROFILE: ${{ vars.REDSHIFT_TEST_IAM_ROLE_PROFILE }}
-          REDSHIFT_TEST_IAM_ROLE_ARN: ${{ secrets.REDSHIFT_TEST_IAM_ROLE_ARN }}
           DBT_TEST_USER_1: dbt_test_user_1
           DBT_TEST_USER_2: dbt_test_user_2
           DBT_TEST_USER_3: dbt_test_user_3
