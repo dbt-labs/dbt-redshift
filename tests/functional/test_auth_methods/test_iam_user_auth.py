@@ -58,5 +58,4 @@ class TestIAMUserAuthExplicit(IAMUserAuth):
             "port": 0,
             "threads": 1,
             "retries": 6,
-            "region": "us-east-2",
         }
