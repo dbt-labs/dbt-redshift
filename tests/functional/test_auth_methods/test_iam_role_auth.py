@@ -40,7 +40,7 @@ class TestIAMRoleAuthProfile(IAMRoleAuth):
         }
 
 
-class TestIAMRoleAuthExplicit(IAMRoleAuth):
+class TestIAMRoleAuthExplicitUser(IAMRoleAuth):
     @pytest.fixture(scope="class")
     def dbt_profile_target(self):
         return {
@@ -49,6 +49,26 @@ class TestIAMRoleAuthExplicit(IAMRoleAuth):
             "iam_profile": "",
             "access_key_id": os.getenv("REDSHIFT_TEST_ACCESS_KEY_ID"),
             "secret_access_key": os.getenv("REDSHIFT_TEST_SECRET_ACCESS_KEY"),
+            "cluster_id": os.getenv("REDSHIFT_TEST_CLUSTER_ID"),
+            "dbname": os.getenv("REDSHIFT_TEST_DBNAME"),
+            "role": None,
+            "host": "",
+            "port": 0,
+            "threads": 1,
+            "retries": 6,
+        }
+
+
+class TestIAMRoleAuthExplicitRole(IAMRoleAuth):
+    @pytest.fixture(scope="class")
+    def dbt_profile_target(self):
+        return {
+            "type": "redshift",
+            "method": RedshiftConnectionMethod.IAM_ROLE.value,
+            "iam_profile": "",
+            "access_key_id": os.getenv("REDSHIFT_TEST_ACCESS_KEY_ID"),
+            "secret_access_key": os.getenv("REDSHIFT_TEST_SECRET_ACCESS_KEY"),
+            "iam_role_arn": os.getenv("REDSHIFT_TEST_IAM_ROLE_ARN"),
             "cluster_id": os.getenv("REDSHIFT_TEST_CLUSTER_ID"),
             "dbname": os.getenv("REDSHIFT_TEST_DBNAME"),
             "role": None,

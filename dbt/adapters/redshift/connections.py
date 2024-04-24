@@ -124,6 +124,7 @@ class RedshiftCredentials(Credentials):
     autocommit: Optional[bool] = True
     access_key_id: Optional[str] = None
     secret_access_key: Optional[str] = None
+    iam_role_arn: Optional[str] = None
 
     _ALIASES = {"dbname": "database", "pass": "password"}
 
@@ -153,6 +154,7 @@ class RedshiftCredentials(Credentials):
             "retries",
             "autocommit",
             "access_key_id",
+            "iam_role_arn",
         )
 
     @property
@@ -223,6 +225,10 @@ class RedshiftConnectMethodFactory:
         logger.debug("Connecting to redshift with 'iam_role' credentials method")
         kwargs = self._iam_kwargs
         kwargs.update(group_federation=True)
+
+        if iam_role_arn := self.credentials.iam_role_arn:
+            kwargs.update(role_arn=iam_role_arn)
+
         return kwargs
 
     @property
