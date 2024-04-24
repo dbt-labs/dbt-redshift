@@ -251,17 +251,11 @@ class RedshiftConnectMethodFactory:
     @property
     def _iam_kwargs(self) -> Dict[str, Any]:
         kwargs = self._base_kwargs
-        kwargs.update(
-            iam=True,
-            user="",
-            password="",
-        )
+        kwargs.update(iam=True)
 
         if cluster_id := self.credentials.cluster_id:
             kwargs.update(cluster_identifier=cluster_id)
-        elif "serverless" in self.credentials.host:
-            kwargs.update(cluster_identifier=None)
-        else:
+        elif "serverless" not in self.credentials.host:
             raise FailedToConnectError(
                 "Failed to use IAM method:"
                 "    'cluster_id' must be provided for provisioned cluster"
@@ -274,11 +268,11 @@ class RedshiftConnectMethodFactory:
     def _base_kwargs(self) -> Dict[str, Any]:
         kwargs = {
             "host": self.credentials.host,
-            "database": self.credentials.database,
             "port": int(self.credentials.port) if self.credentials.port else int(5439),
+            "database": self.credentials.database,
+            "region": self.credentials.region,
             "auto_create": self.credentials.autocreate,
             "db_groups": self.credentials.db_groups,
-            "region": self.credentials.region,
             "timeout": self.credentials.connect_timeout,
         }
         redshift_ssl_config = RedshiftSSLConfig.parse(self.credentials.sslmode)
