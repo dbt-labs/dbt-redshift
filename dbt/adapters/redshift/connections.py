@@ -1,7 +1,7 @@
 import re
 from multiprocessing import Lock
 from contextlib import contextmanager
-from typing import Tuple, Union, Optional, List
+from typing import Any, Callable, Dict, Tuple, Union, Optional, List
 from dataclasses import dataclass, field
 
 import agate
@@ -116,7 +116,7 @@ class RedshiftCredentials(Credentials):
     ra3_node: Optional[bool] = False
     connect_timeout: Optional[int] = None
     role: Optional[str] = None
-    sslmode: Optional[UserSSLMode] = field(default_factory=UserSSLMode.default)
+    sslmode: UserSSLMode = field(default_factory=UserSSLMode.default)
     retries: int = 1
     region: Optional[str] = None
     # opt-in by default per team deliberation on https://peps.python.org/pep-0249/#autocommit
@@ -162,10 +162,10 @@ class RedshiftCredentials(Credentials):
 class RedshiftConnectMethodFactory:
     credentials: RedshiftCredentials
 
-    def __init__(self, credentials):
+    def __init__(self, credentials) -> None:
         self.credentials = credentials
 
-    def get_connect_method(self):
+    def get_connect_method(self) -> Callable[[], redshift_connector.Connection]:
 
         # Support missing 'method' for backwards compatibility
         method = self.credentials.method or RedshiftConnectionMethod.DATABASE
@@ -176,7 +176,7 @@ class RedshiftConnectMethodFactory:
         else:
             raise FailedToConnectError(f"Invalid 'method' in profile: '{method}'")
 
-        def connect():
+        def connect() -> redshift_connector.Connection:
             c = redshift_connector.connect(**kwargs)
             if self.credentials.autocommit:
                 c.autocommit = True
@@ -187,7 +187,7 @@ class RedshiftConnectMethodFactory:
         return connect
 
     @property
-    def _database_kwargs(self):
+    def _database_kwargs(self) -> Dict[str, Any]:
         logger.debug("Connecting to redshift with 'database' credentials method")
         kwargs = self._base_kwargs
 
@@ -204,7 +204,7 @@ class RedshiftConnectMethodFactory:
         return kwargs
 
     @property
-    def _iam_user_kwargs(self):
+    def _iam_user_kwargs(self) -> Dict[str, Any]:
         logger.debug("Connecting to redshift with 'iam' credentials method")
         kwargs = self._iam_kwargs
         kwargs.update(user="", password="")
@@ -229,7 +229,7 @@ class RedshiftConnectMethodFactory:
         return kwargs
 
     @property
-    def _iam_kwargs(self):
+    def _iam_kwargs(self) -> Dict[str, Any]:
         kwargs = self._base_kwargs
         kwargs.update(iam=True)
 
@@ -247,7 +247,7 @@ class RedshiftConnectMethodFactory:
         return kwargs
 
     @property
-    def _base_kwargs(self):
+    def _base_kwargs(self) -> Dict[str, Any]:
         kwargs = {
             "host": self.credentials.host,
             "database": self.credentials.database,
