@@ -15,7 +15,7 @@ from tests.unit.utils import (
 )
 
 
-class TestRedshiftAdapter(TestCase):
+class TestConnection(TestCase):
 
     def setUp(self):
         profile_cfg = {
