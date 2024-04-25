@@ -415,18 +415,18 @@ class TestIAMRoleMethod(AuthMethod):
         connection.handle
         redshift_connector.connect.assert_called_once_with(
             iam=True,
-            host="",
+            host="thishostshouldnotexist.test.us-east-1",
             database="redshift",
-            db_user="",
+            cluster_identifier="my_redshift",
+            db_user=None,
             password="",
             user="",
-            cluster_identifier="my_redshift",
             region=None,
             timeout=None,
             auto_create=False,
             db_groups=[],
-            profile=None,
             port=5439,
+            group_federation=True,
             **DEFAULT_SSL_CONFIG,
         )
 
@@ -439,20 +439,20 @@ class TestIAMRoleMethod(AuthMethod):
         )
         connection = self.adapter.acquire_connection("dummy")
         connection.handle
-
         redshift_connector.connect.assert_called_once_with(
             iam=True,
-            host="",
+            host="thishostshouldnotexist.test.us-east-1",
             database="redshift",
             cluster_identifier="my_redshift",
-            region=None,
-            auto_create=False,
-            db_groups=[],
-            db_user="",
+            db_user=None,
             password="",
             user="",
-            profile="test",
+            region=None,
             timeout=None,
+            auto_create=False,
+            db_groups=[],
+            profile="test",
             port=5439,
+            group_federation=True,
             **DEFAULT_SSL_CONFIG,
         )
