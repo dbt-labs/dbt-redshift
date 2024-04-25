@@ -5,17 +5,29 @@ import pytest
 from dbt.adapters.redshift.connections import RedshiftConnectionMethod
 from dbt.tests.util import run_dbt
 
-from tests.functional.test_auth_methods import files
+
+MY_SEED = """
+id,name
+1,apple
+2,banana
+3,cherry
+""".strip()
 
 
-class IAMUserAuth:
+MY_VIEW = """
+select * from {{ ref("my_seed") }}
+"""
+
+
+class AuthMethodsConfig:
+
     @pytest.fixture(scope="class")
     def seeds(self):
-        yield {"my_seed.csv": files.MY_SEED}
+        yield {"my_seed.csv": MY_SEED}
 
     @pytest.fixture(scope="class")
     def models(self):
-        yield {"my_view.sql": files.MY_VIEW}
+        yield {"my_view.sql": MY_VIEW}
 
     def test_connection(self, project):
         run_dbt(["seed"])
@@ -23,7 +35,23 @@ class IAMUserAuth:
         assert len(results) == 1
 
 
-class TestIAMUserAuthProfile(IAMUserAuth):
+class TestDatabaseMethod(AuthMethodsConfig):
+    @pytest.fixture(scope="class")
+    def dbt_profile_target(self):
+        return {
+            "type": "redshift",
+            "method": RedshiftConnectionMethod.DATABASE.value,
+            "host": os.getenv("REDSHIFT_TEST_HOST"),
+            "port": int(os.getenv("REDSHIFT_TEST_PORT")),
+            "dbname": os.getenv("REDSHIFT_TEST_DBNAME"),
+            "user": os.getenv("REDSHIFT_TEST_USER"),
+            "pass": os.getenv("REDSHIFT_TEST_PASS"),
+            "threads": 1,
+            "retries": 6,
+        }
+
+
+class TestIAMUserMethodProfile(AuthMethodsConfig):
     @pytest.fixture(scope="class")
     def dbt_profile_target(self):
         return {
@@ -40,7 +68,7 @@ class TestIAMUserAuthProfile(IAMUserAuth):
         }
 
 
-class TestIAMUserAuthExplicit(IAMUserAuth):
+class TestIAMUserMethodExplicit(AuthMethodsConfig):
     @pytest.fixture(scope="class")
     def dbt_profile_target(self):
         return {
