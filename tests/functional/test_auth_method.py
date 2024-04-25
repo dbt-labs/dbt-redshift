@@ -19,7 +19,7 @@ select * from {{ ref("my_seed") }}
 """
 
 
-class AuthMethodsConfig:
+class AuthMethod:
 
     @pytest.fixture(scope="class")
     def seeds(self):
@@ -35,7 +35,7 @@ class AuthMethodsConfig:
         assert len(results) == 1
 
 
-class TestDatabaseMethod(AuthMethodsConfig):
+class TestDatabaseMethod(AuthMethod):
     @pytest.fixture(scope="class")
     def dbt_profile_target(self):
         return {
@@ -51,7 +51,7 @@ class TestDatabaseMethod(AuthMethodsConfig):
         }
 
 
-class TestIAMUserMethodProfile(AuthMethodsConfig):
+class TestIAMUserMethodProfile(AuthMethod):
     @pytest.fixture(scope="class")
     def dbt_profile_target(self):
         return {
@@ -68,7 +68,7 @@ class TestIAMUserMethodProfile(AuthMethodsConfig):
         }
 
 
-class TestIAMUserMethodExplicit(AuthMethodsConfig):
+class TestIAMUserMethodExplicit(AuthMethod):
     @pytest.fixture(scope="class")
     def dbt_profile_target(self):
         return {
@@ -80,6 +80,22 @@ class TestIAMUserMethodExplicit(AuthMethodsConfig):
             "secret_access_key": os.getenv("REDSHIFT_TEST_IAM_USER_SECRET_ACCESS_KEY"),
             "region": os.getenv("REDSHIFT_TEST_REGION"),
             "user": os.getenv("REDSHIFT_TEST_USER"),
+            "threads": 1,
+            "retries": 6,
+            "host": "",  # host is a required field in dbt-core
+            "port": 0,  # port is a required field in dbt-core
+        }
+
+
+class TestIAMRoleAuthProfile(AuthMethod):
+    @pytest.fixture(scope="class")
+    def dbt_profile_target(self):
+        return {
+            "type": "redshift",
+            "method": RedshiftConnectionMethod.IAM_ROLE.value,
+            "cluster_id": os.getenv("REDSHIFT_TEST_CLUSTER_ID"),
+            "dbname": os.getenv("REDSHIFT_TEST_DBNAME"),
+            "iam_profile": os.getenv("REDSHIFT_TEST_IAM_ROLE_PROFILE"),
             "threads": 1,
             "retries": 6,
             "host": "",  # host is a required field in dbt-core
