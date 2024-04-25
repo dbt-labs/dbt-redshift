@@ -19,7 +19,7 @@ select * from {{ ref("my_seed") }}
 """
 
 
-class AuthMethodsBase:
+class AuthMethodsConfig:
 
     @pytest.fixture(scope="class")
     def seeds(self):
@@ -35,7 +35,7 @@ class AuthMethodsBase:
         assert len(results) == 1
 
 
-class TestDatabaseMethod(AuthMethodsBase):
+class TestDatabaseMethod(AuthMethodsConfig):
     @pytest.fixture(scope="class")
     def dbt_profile_target(self):
         return {
@@ -51,7 +51,7 @@ class TestDatabaseMethod(AuthMethodsBase):
         }
 
 
-class TestIAMUserMethodProfile(AuthMethodsBase):
+class TestIAMUserMethodProfile(AuthMethodsConfig):
     @pytest.fixture(scope="class")
     def dbt_profile_target(self):
         return {
@@ -68,7 +68,7 @@ class TestIAMUserMethodProfile(AuthMethodsBase):
         }
 
 
-class TestIAMUserMethodExplicit(AuthMethodsBase):
+class TestIAMUserMethodExplicit(AuthMethodsConfig):
     @pytest.fixture(scope="class")
     def dbt_profile_target(self):
         return {
