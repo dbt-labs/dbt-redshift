@@ -29,15 +29,11 @@ class TestIAMRoleAuthProfile(IAMRoleAuth):
         return {
             "type": "redshift",
             "method": RedshiftConnectionMethod.IAM_ROLE.value,
-            "iam_profile": os.getenv("REDSHIFT_TEST_IAM_ROLE_PROFILE"),
-            "access_key_id": None,
-            "secret_access_key": None,
-            "iam_role_arn": None,
             "cluster_id": os.getenv("REDSHIFT_TEST_CLUSTER_ID"),
             "dbname": os.getenv("REDSHIFT_TEST_DBNAME"),
-            "role": None,
-            "host": "",
-            "port": 0,
+            "iam_profile": os.getenv("REDSHIFT_TEST_IAM_ROLE_PROFILE"),
             "threads": 1,
             "retries": 6,
+            "host": "",  # host is a required field in dbt-core
+            "port": 0,  # port is a required field in dbt-core
         }
