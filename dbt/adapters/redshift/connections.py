@@ -241,10 +241,6 @@ class RedshiftConnectMethodFactory:
 
         if iam_profile := self.credentials.iam_profile:
             kwargs.update(profile=iam_profile)
-        else:
-            raise FailedToConnectError(
-                "'iam_profile' field is required for 'iam_role' credentials method"
-            )
 
         return kwargs
 
