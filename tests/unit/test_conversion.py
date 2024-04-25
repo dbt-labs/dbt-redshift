@@ -5,7 +5,7 @@ from dbt.adapters.redshift import RedshiftAdapter
 from tests.unit.utils import TestAdapterConversions
 
 
-class TestRedshiftAdapterConversions(TestAdapterConversions):
+class TestConversion(TestAdapterConversions):
     def test_convert_text_type(self):
         rows = [
             ["", "a1", "stringval1"],

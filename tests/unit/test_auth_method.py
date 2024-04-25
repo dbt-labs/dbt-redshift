@@ -16,7 +16,7 @@ from tests.unit.utils import config_from_parts_or_dicts, inject_adapter
 DEFAULT_SSL_CONFIG = RedshiftSSLConfig().to_dict()
 
 
-class AuthMethods(TestCase):
+class AuthMethod(TestCase):
     def setUp(self):
         profile_cfg = {
             "outputs": {
@@ -56,7 +56,7 @@ class AuthMethods(TestCase):
         return self._adapter
 
 
-class TestInvalidMethod(AuthMethods):
+class TestInvalidMethod(AuthMethod):
     def test_invalid_auth_method(self):
         # we have to set method this way, otherwise it won't validate
         self.config.credentials.method = "badmethod"
@@ -124,7 +124,7 @@ class TestInvalidMethod(AuthMethods):
             )
 
 
-class TestDatabaseMethod(AuthMethods):
+class TestDatabaseMethod(AuthMethod):
     @mock.patch("redshift_connector.connect", MagicMock())
     def test_default(self):
         connection = self.adapter.acquire_connection("dummy")
@@ -195,7 +195,7 @@ class TestDatabaseMethod(AuthMethods):
         self.adapter.verify_database("redshift")
 
 
-class TestIAMUserMethod(AuthMethods):
+class TestIAMUserMethod(AuthMethod):
 
     def test_iam_optionals(self):
         profile_cfg = {
@@ -310,7 +310,7 @@ class TestIAMUserMethod(AuthMethods):
         )
 
 
-class TestIAMUserMethodServerless(AuthMethods):
+class TestIAMUserMethodServerless(AuthMethod):
 
     @mock.patch("redshift_connector.connect", MagicMock())
     def test_profile_default_region(self):

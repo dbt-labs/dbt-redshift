@@ -12,7 +12,7 @@ from dbt.adapters.redshift import (
 from tests.unit.utils import config_from_parts_or_dicts, inject_adapter
 
 
-class TestRedshiftAdapter(TestCase):
+class TestQuery(TestCase):
     def setUp(self):
         profile_cfg = {
             "outputs": {
