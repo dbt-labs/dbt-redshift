@@ -1,9 +1,9 @@
 # install latest changes in dbt-core + dbt-postgres
-git+https://github.com/dbt-labs/dbt-adapters.git
-git+https://github.com/dbt-labs/dbt-adapters.git#subdirectory=dbt-tests-adapter
-git+https://github.com/dbt-labs/dbt-common.git
-git+https://github.com/dbt-labs/dbt-core.git#subdirectory=core
-git+https://github.com/dbt-labs/dbt-postgres.git
+git+https://github.com/dbt-labs/dbt-adapters.git@dbeatty/date-macro
+git+https://github.com/dbt-labs/dbt-adapters.git@dbeatty/date-macro#subdirectory=dbt-tests-adapter
+git+https://github.com/dbt-labs/dbt-common.git@main
+git+https://github.com/dbt-labs/dbt-core.git@main#subdirectory=core
+git+https://github.com/dbt-labs/dbt-postgres.git@dbeatty/date-macro
 
 # dev
 ipdb~=0.13.13
