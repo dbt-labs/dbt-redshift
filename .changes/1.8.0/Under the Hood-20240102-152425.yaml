@@ -1,6 +1,0 @@
-kind: Under the Hood
-body: Update base adapter references as part of decoupling migration
-time: 2024-01-02T15:24:25.890421-08:00
-custom:
-  Author: colin-rogers-dbt VersusFacit
-  Issue: "698"

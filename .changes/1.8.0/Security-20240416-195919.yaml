@@ -1,6 +1,0 @@
-kind: Security
-body: Bump sqlparse to >=0.5.0, <0.6.0 to address GHSA-2m57-hf25-phgg along with dbt-core
-time: 2024-04-16T19:59:19.233806-05:00
-custom:
-  Author: McKnight-42
-  PR: "768"
