@@ -1,6 +1,0 @@
-kind: Dependencies
-body: upgrade redshift driver to 2.0.918
-time: 2024-01-18T09:50:25.871857-08:00
-custom:
-  Author: colin-rogers-dbt
-  PR: "700"
