@@ -5,7 +5,6 @@ git+https://github.com/dbt-labs/dbt-common.git@main
 git+https://github.com/dbt-labs/dbt-core.git@main#subdirectory=core
 git+https://github.com/dbt-labs/dbt-postgres.git@dbeatty/date-macro
 
-
 # dev
 ipdb~=0.13.13
 pre-commit==3.7.0;python_version >="3.9"
