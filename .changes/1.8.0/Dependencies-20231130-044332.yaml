@@ -1,6 +1,0 @@
-kind: Dependencies
-body: Remove direct boto3 dependency
-time: 2023-11-30T04:43:32.872452+11:00
-custom:
-  Author: hexDoor
-  PR: "674"
