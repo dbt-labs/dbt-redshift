@@ -1,6 +1,0 @@
-kind: Fixes
-body: Fix handling of `backup` parameter during config change monitoring
-time: 2023-11-03T18:13:57.401994-04:00
-custom:
-  Author: mikealfare
-  Issue: "621"
