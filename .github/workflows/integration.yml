@@ -68,17 +68,25 @@ jobs:
       max-parallel: 3
       matrix:
         os: [ubuntu-latest]
-        python-version: [3.8, 3.9, 3.10, 3.11]
+        python-version: ["3.8", "3.9", "3.10", "3.11"]
         mark: [flaky, '"not flaky"']
         include:
           - os: macos-12
             python-version: 3.8
           - os: windows-latest
             python-version: 3.8
+          # Note: this is not intuitive
+          #     This forces flaky tests from the original matrix to run on -n1 and "not flaky" to run on -n4
+          #     The rest of the matrix values get inherited, including the added os/python-version combinations above.
+          #     See https://docs.github.com/en/actions/using-jobs/using-a-matrix-for-your-jobs for more information.
+          - mark: flaky
+            threads: -n1
+          - mark: '"not flaky"'
+            threads: -n4
 
     env:
       TOXENV: integration-redshift
-      PYTEST_ADDOPTS: "-v --color=yes -n4 --csv integration_results.csv"
+      PYTEST_ADDOPTS: "-v --color=yes --csv integration_results.csv"
       DBT_INVOCATION_ENV: github-actions
       DD_CIVISIBILITY_AGENTLESS_ENABLED: true
       DD_API_KEY: ${{ secrets.DATADOG_API_KEY }}
@@ -163,7 +171,7 @@ jobs:
           DBT_TEST_USER_1: dbt_test_user_1
           DBT_TEST_USER_2: dbt_test_user_2
           DBT_TEST_USER_3: dbt_test_user_3
-        run: tox -- -m ${{ matrix.mark }} --ddtrace
+        run: tox -- -m ${{ matrix.mark }} ${{ matrix.threads }} --ddtrace
 
       - uses: actions/upload-artifact@v3
         if: always()
