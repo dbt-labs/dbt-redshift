@@ -1,6 +1,0 @@
-kind: Fixes
-body: Fix describe_materialized_view for Redshift Serverless
-time: 2023-10-26T16:46:23.253837-06:00
-custom:
-  Author: reptillicus
-  Issue: "641"
