@@ -71,8 +71,6 @@ jobs:
         include:
           - os: macos-12
             python-version: 3.8
-          - os: windows-latest
-            python-version: 3.8
 
     env:
       TOXENV: integration-redshift
