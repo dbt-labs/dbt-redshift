@@ -1,6 +1,0 @@
-kind: Fixes
-body: dbt can cancel open queries upon interrupt
-time: 2024-03-26T12:37:03.17481-05:00
-custom:
-  Author: holly-evans
-  Issue: "705"
