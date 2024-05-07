@@ -1,6 +1,0 @@
-kind: Fixes
-body: Pin `redshift-connector` to <2.0.918 to avoid SSL error introduced in 2.0.918
-time: 2024-03-17T11:34:47.873169-04:00
-custom:
-  Author: mikealfare
-  Issue: "730"
