@@ -71,7 +71,7 @@ jobs:
         include:
           - os: macos-12
             python-version: 3.8
-          - os: windows-latest
+          - os: windows-2019
             python-version: 3.8
 
     env:
@@ -203,7 +203,7 @@ jobs:
         include:
           - os: macos-12
             python-version: 3.8
-          - os: windows-latest
+          - os: windows-2019
             python-version: 3.8
 
     env:
