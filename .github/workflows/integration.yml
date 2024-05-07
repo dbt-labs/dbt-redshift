@@ -79,6 +79,7 @@ jobs:
       PYTEST_ADDOPTS: "-v --color=yes -n4 --csv integration_results.csv"
       DBT_INVOCATION_ENV: github-actions
       DD_CIVISIBILITY_AGENTLESS_ENABLED: true
+      DD_INSTRUMENTATION_TELEMETRY_ENABLED: false
       DD_API_KEY: ${{ secrets.DATADOG_API_KEY }}
       DD_SITE: datadoghq.com
       DD_ENV: ci
@@ -211,6 +212,7 @@ jobs:
       PYTEST_ADDOPTS: "-v --color=yes -n1 --csv integration_results.csv"
       DBT_INVOCATION_ENV: github-actions
       DD_CIVISIBILITY_AGENTLESS_ENABLED: true
+      DD_INSTRUMENTATION_TELEMETRY_ENABLED: false
       DD_API_KEY: ${{ secrets.DATADOG_API_KEY }}
       DD_SITE: datadoghq.com
       DD_ENV: ci
