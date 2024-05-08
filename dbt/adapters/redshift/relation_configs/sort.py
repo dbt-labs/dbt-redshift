@@ -22,11 +22,11 @@ class RedshiftSortStyle(StrEnum):
 
     @classmethod
     def default(cls) -> "RedshiftSortStyle":
-        return cls.auto
+        return cls("auto")
 
     @classmethod
     def default_with_columns(cls) -> "RedshiftSortStyle":
-        return cls.compound
+        return cls("compound")
 
 
 @dataclass(frozen=True, eq=True, unsafe_hash=True)
