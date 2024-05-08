@@ -10,6 +10,7 @@ import redshift_connector
 from redshift_connector.utils.oids import get_datatype_name
 
 from dbt.adapters.sql import SQLConnectionManager
+import dbt.clients.agate_helper
 from dbt.contracts.connection import AdapterResponse, Connection, Credentials
 from dbt.contracts.util import Replaceable
 from dbt.dataclass_schema import FieldEncoder, dbtClassMixin, StrEnum, ValidationError
@@ -64,7 +65,7 @@ class UserSSLMode(StrEnum):
     @classmethod
     def default(cls) -> "UserSSLMode":
         # default for `psycopg2`, which aligns with dbt-redshift 1.4 and provides backwards compatibility
-        return cls.prefer
+        return cls("prefer")
 
 
 class RedshiftSSLMode(StrEnum):
@@ -74,11 +75,11 @@ class RedshiftSSLMode(StrEnum):
 
 SSL_MODE_TRANSLATION = {
     UserSSLMode.disable: None,
-    UserSSLMode.allow: RedshiftSSLMode.verify_ca,
-    UserSSLMode.prefer: RedshiftSSLMode.verify_ca,
-    UserSSLMode.require: RedshiftSSLMode.verify_ca,
-    UserSSLMode.verify_ca: RedshiftSSLMode.verify_ca,
-    UserSSLMode.verify_full: RedshiftSSLMode.verify_full,
+    UserSSLMode.allow: RedshiftSSLMode("verify-ca"),
+    UserSSLMode.prefer: RedshiftSSLMode("verify-ca"),
+    UserSSLMode.require: RedshiftSSLMode("verify-ca"),
+    UserSSLMode.verify_ca: RedshiftSSLMode("verify-ca"),
+    UserSSLMode.verify_full: RedshiftSSLMode("verify-full"),
 }
 
 
