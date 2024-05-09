@@ -65,21 +65,23 @@ jobs:
 
     strategy:
       fail-fast: false
+      max-parallel: 3
       matrix:
-        os: [ubuntu-latest]
-        python-version: ["3.8", "3.9", "3.10", "3.11"]
+        os: [ubuntu-22.04, macos12, windows-2022]
+        python-version: ["3.8"]
         include:
-          - os: macos-12
-            python-version: 3.8
-          - os: windows-2022
-            python-version: 3.8
+          - os: ubuntu-22.04
+            python-version: "3.9"
+          - os: ubuntu-22.04
+            python-version: "3.10"
+          - os: ubuntu-22.04
+            python-version: "3.11"
 
     env:
       TOXENV: integration-redshift
       PYTEST_ADDOPTS: "-v --color=yes -n4 --csv integration_results.csv"
       DBT_INVOCATION_ENV: github-actions
       DD_CIVISIBILITY_AGENTLESS_ENABLED: true
-      DD_INSTRUMENTATION_TELEMETRY_ENABLED: false
       DD_API_KEY: ${{ secrets.DATADOG_API_KEY }}
       DD_SITE: datadoghq.com
       DD_ENV: ci
@@ -183,7 +185,7 @@ jobs:
           path: integration_results.csv
 
   test-flaky:
-    name: redshift / python ${{ matrix.python-version }} / ${{ matrix.os }} - flaky
+    name: redshift / python ${{ matrix.python-version }} / ubuntu-22.04 - flaky
 
     # run this after the norm integration tests to avoid collisions
     needs: test
@@ -193,19 +195,13 @@ jobs:
       github.event_name != 'pull_request_target' ||
       github.event.pull_request.head.repo.full_name == github.repository ||
       contains(github.event.pull_request.labels.*.name, 'ok to test')
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-22.04
 
     strategy:
       fail-fast: false
       max-parallel: 1
       matrix:
-        os: [ ubuntu-latest ]
-        python-version: [ "3.8", "3.9", "3.10", "3.11" ]
-        include:
-          - os: macos-12
-            python-version: 3.8
-          - os: windows-2022
-            python-version: 3.8
+        python-version: ["3.8", "3.9", "3.10", "3.11"]
 
     env:
       TOXENV: integration-redshift
@@ -271,7 +267,7 @@ jobs:
         run: tox -- -m flaky --ddtrace
 
   require-label-comment:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     needs: test
 
@@ -294,7 +290,7 @@ jobs:
           check_for_duplicate_msg: true
 
   post-failure:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     needs: test
     if: ${{ failure() }}
 
