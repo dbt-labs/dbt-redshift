@@ -15,6 +15,8 @@ prompts:
         hide_input: true
     iam:
       _fixed_method: iam
+    iam_role:
+      _fixed_method: iam_role
   dbname:
     hint: 'default database that dbt will build objects in'
   schema:

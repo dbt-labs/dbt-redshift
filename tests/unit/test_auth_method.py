@@ -393,3 +393,66 @@ class TestIAMUserMethodServerless(AuthMethod):
                 **DEFAULT_SSL_CONFIG,
             )
         self.assertTrue("'host' must be provided" in context.exception.msg)
+
+
+class TestIAMRoleMethod(AuthMethod):
+
+    def test_no_cluster_id(self):
+        self.config.credentials = self.config.credentials.replace(method="iam_role")
+        with self.assertRaises(FailedToConnectError) as context:
+            connect_method_factory = RedshiftConnectMethodFactory(self.config.credentials)
+            connect_method_factory.get_connect_method()
+
+        self.assertTrue("'cluster_id' must be provided" in context.exception.msg)
+
+    @mock.patch("redshift_connector.connect", MagicMock())
+    def test_default(self):
+        self.config.credentials = self.config.credentials.replace(
+            method="iam_role",
+            cluster_id="my_redshift",
+        )
+        connection = self.adapter.acquire_connection("dummy")
+        connection.handle
+        redshift_connector.connect.assert_called_once_with(
+            iam=True,
+            host="thishostshouldnotexist.test.us-east-1",
+            database="redshift",
+            cluster_identifier="my_redshift",
+            db_user=None,
+            password="",
+            user="",
+            region=None,
+            timeout=None,
+            auto_create=False,
+            db_groups=[],
+            port=5439,
+            group_federation=True,
+            **DEFAULT_SSL_CONFIG,
+        )
+
+    @mock.patch("redshift_connector.connect", MagicMock())
+    def test_profile(self):
+        self.config.credentials = self.config.credentials.replace(
+            method="iam_role",
+            cluster_id="my_redshift",
+            iam_profile="test",
+        )
+        connection = self.adapter.acquire_connection("dummy")
+        connection.handle
+        redshift_connector.connect.assert_called_once_with(
+            iam=True,
+            host="thishostshouldnotexist.test.us-east-1",
+            database="redshift",
+            cluster_identifier="my_redshift",
+            db_user=None,
+            password="",
+            user="",
+            region=None,
+            timeout=None,
+            auto_create=False,
+            db_groups=[],
+            profile="test",
+            port=5439,
+            group_federation=True,
+            **DEFAULT_SSL_CONFIG,
+        )

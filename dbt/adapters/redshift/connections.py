@@ -37,6 +37,7 @@ logger = AdapterLogger("Redshift")
 class RedshiftConnectionMethod(StrEnum):
     DATABASE = "database"
     IAM = "iam"
+    IAM_ROLE = "iam_role"
 
 
 class UserSSLMode(StrEnum):
@@ -102,9 +103,9 @@ class RedshiftSSLConfig(dbtClassMixin, Replaceable):  # type: ignore
 @dataclass
 class RedshiftCredentials(Credentials):
     host: str
-    user: str
     port: Port
     method: str = RedshiftConnectionMethod.DATABASE  # type: ignore
+    user: Optional[str] = None
     password: Optional[str] = None  # type: ignore
     cluster_id: Optional[str] = field(
         default=None,
@@ -173,6 +174,8 @@ class RedshiftConnectMethodFactory:
             kwargs = self._database_kwargs
         elif method == RedshiftConnectionMethod.IAM:
             kwargs = self._iam_user_kwargs
+        elif method == RedshiftConnectionMethod.IAM_ROLE:
+            kwargs = self._iam_role_kwargs
         else:
             raise FailedToConnectError(f"Invalid 'method' in profile: '{method}'")
 
@@ -224,6 +227,20 @@ class RedshiftConnectMethodFactory:
             kwargs.update(db_user=user)
         else:
             raise FailedToConnectError("'user' field is required for 'iam' credentials method")
+
+        return kwargs
+
+    @property
+    def _iam_role_kwargs(self) -> Dict[str, Optional[Any]]:
+        logger.debug("Connecting to redshift with 'iam_role' credentials method")
+        kwargs = self._iam_kwargs
+        kwargs.update(
+            group_federation=True,
+            db_user=None,
+        )
+
+        if iam_profile := self.credentials.iam_profile:
+            kwargs.update(profile=iam_profile)
 
         return kwargs
 
