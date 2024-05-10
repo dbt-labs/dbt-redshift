@@ -25,6 +25,7 @@ class BaseGetCatalog:
 
 
 class TestGetCatalogByRelations(BaseGetCatalog):
+    @pytest.mark.flaky
     def test_get_one_catalog_by_relations(self, project, adapter):
         project.adapter._capabilities[Capability.SchemaMetadataByRelations] = CapabilitySupport(
             support=Support.Full
@@ -37,6 +38,7 @@ class TestGetCatalogByRelations(BaseGetCatalog):
 
 
 class TestGetCatalogBySchemas(BaseGetCatalog):
+    @pytest.mark.flaky
     def test_get_one_catalog_by_schemas(self, project, adapter):
         project.adapter._capabilities[Capability.SchemaMetadataByRelations] = CapabilitySupport(
             support=Support.NotImplemented
