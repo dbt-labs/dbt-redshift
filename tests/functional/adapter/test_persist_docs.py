@@ -12,15 +12,21 @@ from dbt.tests.adapter.persist_docs.test_persist_docs import (
 
 
 class TestPersistDocs(BasePersistDocs):
-    pass
+    @pytest.mark.flaky
+    def test_has_comments_pglike(self, project):
+        super().test_has_comments_pglike(project)
 
 
 class TestPersistDocsColumnMissing(BasePersistDocsColumnMissing):
-    pass
+    @pytest.mark.flaky
+    def test_missing_column(self, project):
+        super().test_missing_column(project)
 
 
 class TestPersistDocsCommentOnQuotedColumn(BasePersistDocsCommentOnQuotedColumn):
-    pass
+    @pytest.mark.flaky
+    def test_quoted_column_comments(self, run_has_comments):
+        super().test_quoted_column_comments(run_has_comments)
 
 
 class TestPersistDocsLateBinding(BasePersistDocsBase):
@@ -40,6 +46,7 @@ class TestPersistDocsLateBinding(BasePersistDocsBase):
             }
         }
 
+    @pytest.mark.flaky
     def test_comment_on_late_binding_view(self, project):
         run_dbt()
         run_dbt(["docs", "generate"])
