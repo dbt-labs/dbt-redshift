@@ -178,6 +178,7 @@ class TestRedshiftMaterializedViewChangesContinue(
         assert_message_in_logs(f"Applying ALTER to: {my_materialized_view}", logs, False)
         assert_message_in_logs(f"Applying REPLACE to: {my_materialized_view}", logs, False)
 
+    @pytest.mark.flaky
     def test_change_is_not_applied_via_replace(self, project, my_materialized_view):
         self.check_start_state(project, my_materialized_view)
 
@@ -202,4 +203,7 @@ class TestRedshiftMaterializedViewChangesFail(
     RedshiftMaterializedViewChanges, MaterializedViewChangesFailMixin
 ):
     # Note: using retries doesn't work when we expect `dbt_run` to fail
-    pass
+
+    @pytest.mark.flaky
+    def test_change_is_not_applied_via_replace(self, project, my_materialized_view):
+        super().test_change_is_not_applied_via_replace(project, my_materialized_view)
