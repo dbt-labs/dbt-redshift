@@ -1,15 +1,11 @@
 # What?
-#
 # Tag and release an arbitrary ref. Uploads to an internal archive for further processing.
 #
 # How?
-#
 # After checking out and testing the provided ref, the image is built and uploaded.
 #
 # When?
-#
 # Manual trigger.
-
 name: "Release internal patch"
 
 on:
@@ -34,16 +30,264 @@ defaults:
   run:
     shell: "bash"
 
+env:
+  PYTHON_TARGET_VERSION: 3.8
+  NOTIFICATION_PREFIX: "[Internal Archive Release]"
+  TEMP_PROFILE_NAME: "temp_aws_profile"
+
 jobs:
-  invoke-reusable-workflow:
-    name: "Build and Release Internally"
+  job-setup:
+    name: Job Setup
+    runs-on: ubuntu-latest
+    steps:
+      - name: "[DEBUG] Print Variables"
+        run: |
+          echo The release version number:         ${{ inputs.version_number }}
+          echo The release ref:                    ${{ inputs.ref }}
+          echo Package test command:               ${{ inputs.package_test_command }}
 
-    uses: "dbt-labs/dbt-release/.github/workflows/internal-archive-release.yml@main"
+      - name: "Checkout provided ref, default to branch main"
+        uses: actions/checkout@v4
+        with:
+          ref: "${{ inputs.ref }}"
 
-    with:
-      version_number: "${{ inputs.version_number }}"
-      package_test_command: "${{ inputs.package_test_command }}"
-      dbms_name: "redshift"
-      ref: "${{ inputs.ref }}"
+      - name: "Validate patch version input against patch version of ref"
+        id: validate_version
+        run: |
+          version_in_file="$(grep -E 'version(: str)? =' "dbt/adapters/redshift/__version__.py" | cut -d '"' -f2)"
 
-    secrets: "inherit"
+          if [[ "${{ inputs.version_number }}" != "${version_in_file}" ]]; then
+            message="Error: patch version input to this job ${{ inputs.version_number }} and version of code at input ref ${version_in_file} are not equal. Exiting..."
+            echo "::error $title::$message"
+            exit 1
+          fi
+
+  unit-tests:
+    name: 'Unit Tests'
+    runs-on: ubuntu-latest
+    needs: job-setup
+    env:
+      TOXENV: unit
+
+    steps:
+      - name: "Checkout provided ref, default to branch main"
+        uses: actions/checkout@v4
+        with:
+          ref: "${{ inputs.ref }}"
+
+      - name: "Set up Python - ${{ env.PYTHON_TARGET_VERSION }}"
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_TARGET_VERSION }}
+
+      - name: "Install Python Dependencies"
+        run: |
+          python -m pip install --user --upgrade pip
+          python -m pip install tox
+          python -m pip --version
+          python -m tox --version
+
+      - name: "Run Tests"
+        run: tox
+
+  integration-tests:
+    name: 'Integration Tests'
+    runs-on: ubuntu-latest
+    needs: unit-tests
+    env:
+      TOXENV: integration-redshift
+      PYTEST_ADDOPTS: "-v --color=yes -n4"
+      DBT_INVOCATION_ENV: github-actions
+    steps:
+      - name: "Checkout provided ref, default to branch main"
+        uses: actions/checkout@v4
+        with:
+          ref: "${{ inputs.ref }}"
+
+      - name: "Set up Python - ${{ env.PYTHON_TARGET_VERSION }}"
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_TARGET_VERSION }}
+
+      - name: "Install Python Dependencies"
+        run: |
+          python -m pip install --user --upgrade pip
+          python -m pip --version
+          python -m pip install tox
+          tox --version
+
+      - name: "Create AWS IAM profiles"
+        run: |
+          aws configure --profile $AWS_USER_PROFILE set aws_access_key_id $AWS_USER_ACCESS_KEY_ID
+          aws configure --profile $AWS_USER_PROFILE set aws_secret_access_key $AWS_USER_SECRET_ACCESS_KEY
+          aws configure --profile $AWS_USER_PROFILE set region $AWS_REGION
+          aws configure --profile $AWS_USER_PROFILE set output json
+
+          aws configure --profile $AWS_SOURCE_PROFILE set aws_access_key_id $AWS_ROLE_ACCESS_KEY_ID
+          aws configure --profile $AWS_SOURCE_PROFILE set aws_secret_access_key $AWS_ROLE_SECRET_ACCESS_KEY
+          aws configure --profile $AWS_SOURCE_PROFILE set region $AWS_REGION
+          aws configure --profile $AWS_SOURCE_PROFILE set output json
+
+          aws configure --profile $AWS_ROLE_PROFILE set source_profile $AWS_SOURCE_PROFILE
+          aws configure --profile $AWS_ROLE_PROFILE set role_arn $AWS_ROLE_ARN
+          aws configure --profile $AWS_ROLE_PROFILE set region $AWS_REGION
+          aws configure --profile $AWS_ROLE_PROFILE set output json
+        env:
+          AWS_USER_PROFILE: ${{ vars.REDSHIFT_TEST_IAM_USER_PROFILE }}
+          AWS_USER_ACCESS_KEY_ID: ${{ vars.REDSHIFT_TEST_IAM_USER_ACCESS_KEY_ID }}
+          AWS_USER_SECRET_ACCESS_KEY: ${{ secrets.REDSHIFT_TEST_IAM_USER_SECRET_ACCESS_KEY }}
+          AWS_SOURCE_PROFILE: ${{ vars.REDSHIFT_TEST_IAM_ROLE_PROFILE }}-user
+          AWS_ROLE_PROFILE: ${{ vars.REDSHIFT_TEST_IAM_ROLE_PROFILE }}
+          AWS_ROLE_ACCESS_KEY_ID: ${{ vars.REDSHIFT_TEST_IAM_ROLE_ACCESS_KEY_ID }}
+          AWS_ROLE_SECRET_ACCESS_KEY: ${{ secrets.REDSHIFT_TEST_IAM_ROLE_SECRET_ACCESS_KEY }}
+          AWS_ROLE_ARN: ${{ secrets.REDSHIFT_TEST_IAM_ROLE_ARN }}
+          AWS_REGION: ${{ vars.REDSHIFT_TEST_REGION }}
+
+      - name: "Run tox"
+        env:
+          REDSHIFT_TEST_DBNAME: ${{ secrets.REDSHIFT_TEST_DBNAME }}
+          REDSHIFT_TEST_PASS: ${{ secrets.REDSHIFT_TEST_PASS }}
+          REDSHIFT_TEST_USER: ${{ secrets.REDSHIFT_TEST_USER }}
+          REDSHIFT_TEST_PORT: ${{ secrets.REDSHIFT_TEST_PORT }}
+          REDSHIFT_TEST_HOST: ${{ secrets.REDSHIFT_TEST_HOST }}
+          REDSHIFT_TEST_REGION: ${{ vars.REDSHIFT_TEST_REGION }}
+          REDSHIFT_TEST_CLUSTER_ID: ${{ vars.REDSHIFT_TEST_CLUSTER_ID }}
+          REDSHIFT_TEST_IAM_USER_PROFILE: ${{ vars.REDSHIFT_TEST_IAM_USER_PROFILE }}
+          REDSHIFT_TEST_IAM_USER_ACCESS_KEY_ID: ${{ vars.REDSHIFT_TEST_IAM_USER_ACCESS_KEY_ID }}
+          REDSHIFT_TEST_IAM_USER_SECRET_ACCESS_KEY: ${{ secrets.REDSHIFT_TEST_IAM_USER_SECRET_ACCESS_KEY }}
+          REDSHIFT_TEST_IAM_ROLE_PROFILE: ${{ vars.REDSHIFT_TEST_IAM_ROLE_PROFILE }}
+          DBT_TEST_USER_1: dbt_test_user_1
+          DBT_TEST_USER_2: dbt_test_user_2
+          DBT_TEST_USER_3: dbt_test_user_3
+        run: tox -- -m "not flaky"
+
+  integration-tests-flaky:
+    name: 'Integration Tests (flaky)'
+    runs-on: ubuntu-latest
+    needs: integration-tests
+
+    env:
+      TOXENV: integration-redshift
+      PYTEST_ADDOPTS: "-v --color=yes -n1"
+      DBT_INVOCATION_ENV: github-actions
+
+    steps:
+      - name: "Checkout provided ref, default to branch main"
+        uses: actions/checkout@v4
+        with:
+          ref: "${{ inputs.ref }}"
+
+      - name: "Set up Python - ${{ env.PYTHON_TARGET_VERSION }}"
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_TARGET_VERSION }}
+
+      - name: "Install Python Dependencies"
+        run: |
+          python -m pip install --user --upgrade pip
+          python -m pip --version
+          python -m pip install tox
+          tox --version
+
+      - name: "Run tox"
+        env:
+          REDSHIFT_TEST_DBNAME: ${{ secrets.REDSHIFT_TEST_DBNAME }}
+          REDSHIFT_TEST_PASS: ${{ secrets.REDSHIFT_TEST_PASS }}
+          REDSHIFT_TEST_USER: ${{ secrets.REDSHIFT_TEST_USER }}
+          REDSHIFT_TEST_PORT: ${{ secrets.REDSHIFT_TEST_PORT }}
+          REDSHIFT_TEST_HOST: ${{ secrets.REDSHIFT_TEST_HOST }}
+          REDSHIFT_TEST_REGION: ${{ vars.REDSHIFT_TEST_REGION }}
+          REDSHIFT_TEST_CLUSTER_ID: ${{ vars.REDSHIFT_TEST_CLUSTER_ID }}
+          REDSHIFT_TEST_IAM_USER_PROFILE: ${{ vars.REDSHIFT_TEST_IAM_USER_PROFILE }}
+          REDSHIFT_TEST_IAM_USER_ACCESS_KEY_ID: ${{ vars.REDSHIFT_TEST_IAM_USER_ACCESS_KEY_ID }}
+          REDSHIFT_TEST_IAM_USER_SECRET_ACCESS_KEY: ${{ secrets.REDSHIFT_TEST_IAM_USER_SECRET_ACCESS_KEY }}
+          REDSHIFT_TEST_IAM_ROLE_PROFILE: ${{ vars.REDSHIFT_TEST_IAM_ROLE_PROFILE }}
+          DBT_TEST_USER_1: dbt_test_user_1
+          DBT_TEST_USER_2: dbt_test_user_2
+          DBT_TEST_USER_3: dbt_test_user_3
+        run: tox -- -m flaky
+
+  create-internal-release:
+    name: Create release for internal archive
+    runs-on: ubuntu-latest
+    needs: integration-tests-flaky
+
+    steps:
+      - name: "Checkout provided ref, default to branch main"
+        uses: actions/checkout@v4
+        with:
+          ref: "${{ inputs.ref }}"
+
+      - name: "Set up Python - ${{ env.PYTHON_TARGET_VERSION }}"
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_TARGET_VERSION }}
+
+      - name: "Install Python Dependencies"
+        run: |
+          python -m pip install --user --upgrade pip
+          python -m pip install --upgrade setuptools wheel twine check-wheel-contents
+          python -m pip --version
+
+      - name: "Configure AWS profile for upload"
+        run: |
+          aws configure set aws_access_key_id ${{ secrets.AWS_ARCHIVE_ACCESS_KEY_ID }} --profile ${{ env.TEMP_PROFILE_NAME }}
+          aws configure set aws_secret_access_key ${{ secrets.AWS_ARCHIVE_SECRET_ACCESS_KEY }} --profile ${{ env.TEMP_PROFILE_NAME }}
+          aws configure set region ${{ secrets.AWS_REGION }} --profile ${{ env.TEMP_PROFILE_NAME }}
+          aws configure set output text --profile ${{ env.TEMP_PROFILE_NAME }}
+          aws codeartifact login --tool twine --repository ${{ secrets.AWS_REPOSITORY }} --domain ${{ secrets.AWS_DOMAIN }} --domain-owner ${{ secrets.AWS_DOMAIN_OWNER }} --region ${{ secrets.AWS_REGION }} --profile ${{ env.TEMP_PROFILE_NAME }}
+
+      - name: "Alter version in metadata of python package"
+        run: |
+          version_file="dbt/adapters/redshift/__version__.py"
+          setup_file="./setup.py"
+          version_in_file=$(grep -E 'version(: str)? =' "${version_file}" | cut -d '"' -f2)
+
+          # check the latest build of adapter code in our archive
+          versions_on_aws="$(aws codeartifact list-package-versions --repository ${{ secrets.AWS_REPOSITORY }} --domain ${{ secrets.AWS_DOMAIN }} --domain-owner ${{ secrets.AWS_DOMAIN_OWNER }} --region ${{ secrets.AWS_REGION }} --profile ${{ env.TEMP_PROFILE_NAME }} --format pypi --package dbt-redshift --output json  --query 'versions[*].version' | jq -r '.[]' | grep "^${{ inputs.version_number }}" || true )"  # suppress pipefail only here
+
+          current_latest_version="$(echo "${versions_on_aws}" | sort -V | tail -n 1 )"
+
+          echo "[Debug] version_in_file: ${version_in_file}"
+          echo "[Debug] current_latest_version: ${current_latest_version}"
+
+          echo ">>> Altering ${version_file}"
+          # Ensure a build+xxx where xxx is an integer is always present in versioning
+          # sed may be a no-op -- this is fine!
+          if [[ ${current_latest_version} =~ (.*build)([0-9]+)$ ]]; then
+              base="${BASH_REMATCH[1]}"
+              number="${BASH_REMATCH[2]}"
+              new_number=$((number + 1))
+              v="${base}${new_number}"
+              tee <<< "version = \"${v}\"" "${version_file}"
+              if [ -f "${setup_file}" ]; then
+                sed -i "s/^package_version = .*$/package_version = \"${v}\"/" "${setup_file}"
+              fi
+          else
+              v="${version_in_file}+build1"
+              tee <<< "version = \"${v}\"" "${version_file}"
+              if [ -f "${setup_file}" ]; then
+                sed -i "s/^package_version = .*$/package_version = \"${v}\"/" "${setup_file}"
+              fi
+          fi
+
+      - name: "Build Distributions - scripts/build-dist.sh"
+        run: scripts/build-dist.sh
+
+      - name: "[DEBUG] Show Distributions"
+        run: ls -lh dist/
+
+      - name: "Check Distribution Descriptions"
+        run: twine check dist/*
+
+      - name: "[DEBUG] Check Wheel Contents"
+        run: check-wheel-contents dist/*.whl --ignore W007,W008
+
+      - name: "Upload Build Artifact - ${{ inputs.version_number }}"
+        run: |
+          twine upload --repository codeartifact dist/*
+
+          version_file="$(echo "dbt/adapters/redshift/__version__.py")"
+          version="$(grep 'version =' "${version_file}" | cut -d '"' -f2)"
+          message="-- Success -- released ${version}"
+          echo "::notice $NOTIFICATION_PREFIX::$message"
