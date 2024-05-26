@@ -1,5 +1,6 @@
 import pytest
 import sys
+import importlib
 
 
 @pytest.fixture
@@ -22,12 +23,14 @@ def remove_agate_from_path():
 
 def test_lazy_loading_agate(remove_agate_from_path):
     """If agate is imported directly here or in any of the subsequent files, this test will fail. Also test that our assumptions about imports affecting sys modules hold."""
-    import dbt.adapters.redshift.connections
-    import dbt.adapters.redshift.impl
-    import dbt.adapters.redshift.relation_configs.base
-    import dbt.adapters.redshift.relation_configs.dist
-    import dbt.adapters.redshift.relation_configs.materialized_view
-    import dbt.adapters.redshift.relation_configs.sort
+    import dbt
+
+    importlib.reload(dbt.adapters.redshift.connections)
+    importlib.reload(dbt.adapters.redshift.impl)
+    importlib.reload(dbt.adapters.redshift.relation_configs.base)
+    importlib.reload(dbt.adapters.redshift.relation_configs.dist)
+    importlib.reload(dbt.adapters.redshift.relation_configs.materialized_view)
+    importlib.reload(dbt.adapters.redshift.relation_configs.sort)
 
     assert not any([module_name for module_name in sys.modules if "agate" in module_name])
 
