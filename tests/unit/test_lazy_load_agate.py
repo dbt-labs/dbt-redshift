@@ -4,10 +4,10 @@ import sys
 
 @pytest.fixture
 def remove_agate_from_path():
-    original_sys_path = sys.modules.copy()
+    """conftest and other envs load agate modules upon initilization so we need
+    to remove their presence from module tracking to assess correctness of direct imports"""
 
-    # conftest loads agate modules so we need to remove them
-    # and this file
+    original_sys_path = sys.modules.copy()
 
     # import ahead of time to avoid reimporting agate upon package initialization
     import dbt.adapters.redshift.__init__
