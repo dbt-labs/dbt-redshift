@@ -8,7 +8,7 @@ def remove_agate_from_path():
     """conftest and other envs load agate modules upon initilization so we need
     to remove their presence from module tracking to assess correctness of direct imports"""
 
-    original_sys_path = sys.modules.copy()
+    original_sys_modules = sys.modules.copy()
 
     # import ahead of time to avoid reimporting agate upon package initialization
     import dbt.adapters.redshift.__init__
@@ -18,7 +18,7 @@ def remove_agate_from_path():
         del sys.modules[m]
 
     yield
-    sys.path = original_sys_path
+    sys.modules = original_sys_modules
 
 
 def test_lazy_loading_agate(remove_agate_from_path):
