@@ -15,6 +15,7 @@ from dbt.adapters.redshift.relation_configs.policies import (
 )
 
 if TYPE_CHECKING:
+    # Imported downfile for specific row gathering function.
     import agate
 
 

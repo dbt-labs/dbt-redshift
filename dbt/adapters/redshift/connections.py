@@ -18,6 +18,8 @@ from dbt_common.helper_types import Port
 from dbt_common.exceptions import DbtRuntimeError, CompilationError, DbtDatabaseError
 
 if TYPE_CHECKING:
+    # Indirectly imported via agate_helper, which is lazy loaded further downfile.
+    # Used by mypy for earlier type hints.
     import agate
 
 
