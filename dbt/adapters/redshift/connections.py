@@ -239,7 +239,7 @@ class RedshiftConnectMethodFactory:
         kwargs.update(db_user=None)
         
         # Serverless shouldn't get group_federation, Provisoned clusters should
-        if cluster_id := self.credentials.cluster_id:
+        if self.credentials.cluster_id:
             kwargs.update(group_federation=True)
 
         if iam_profile := self.credentials.iam_profile:
