@@ -234,10 +234,13 @@ class RedshiftConnectMethodFactory:
     def _iam_role_kwargs(self) -> Dict[str, Optional[Any]]:
         logger.debug("Connecting to redshift with 'iam_role' credentials method")
         kwargs = self._iam_kwargs
-        kwargs.update(
-            group_federation=True,
-            db_user=None,
-        )
+
+        # It's a role, we're ignoring the user
+        kwargs.update(db_user=None)
+        
+        # Serverless shouldn't get group_federation, Provisoned clusters should
+        if cluster_id := self.credentials.cluster_id:
+            kwargs.update(group_federation=True)
 
         if iam_profile := self.credentials.iam_profile:
             kwargs.update(profile=iam_profile)
