@@ -303,6 +303,46 @@
 
 
 {#
+  Redshift tables have a maximum length of 127 characters, anything longer is silently truncated.
+  Temp and backup relations add a lot of extra characters to the end of table names to ensure uniqueness.
+  To prevent this going over the character limit, the base_relation name is truncated to ensure
+  that name + suffix + uniquestring is < 128 characters.
+#}
+
+{% macro redshift__make_relation_with_suffix(base_relation, suffix, dstring) %}
+    {% if dstring %}
+      {% set dt = modules.datetime.datetime.now() %}
+      {% set dtstring = dt.strftime("%H%M%S%f") %}
+      {% set suffix = suffix ~ dtstring %}
+    {% endif %}
+    {% set suffix_length = suffix|length %}
+    {% set relation_max_name_length = base_relation.relation_max_name_length() %}
+    {% if suffix_length > relation_max_name_length %}
+        {% do exceptions.raise_compiler_error('Relation suffix is too long (' ~ suffix_length ~ ' characters). Maximum length is ' ~ relation_max_name_length ~ ' characters.') %}
+    {% endif %}
+    {% set identifier = base_relation.identifier[:relation_max_name_length - suffix_length] ~ suffix %}
+
+    {{ return(base_relation.incorporate(path={"identifier": identifier })) }}
+
+  {% endmacro %}
+
+{% macro redshift__make_intermediate_relation(base_relation, suffix) %}
+    {{ return(redshift__make_relation_with_suffix(base_relation, suffix, dstring=False)) }}
+{% endmacro %}
+
+{% macro redshift__make_temp_relation(base_relation, suffix) %}
+    {% set temp_relation = redshift__make_relation_with_suffix(base_relation, suffix, dstring=True) %}
+    {{ return(temp_relation.incorporate(path={"schema": none,
+                                              "database": none})) }}
+{% endmacro %}
+
+{% macro redshift__make_backup_relation(base_relation, backup_relation_type, suffix) %}
+    {% set backup_relation = redshift__make_relation_with_suffix(base_relation, suffix, dstring=False) %}
+    {{ return(backup_relation.incorporate(type=backup_relation_type)) }}
+{% endmacro %}
+
+
+{#
   By using dollar-quoting like this, users can embed anything they want into their comments
   (including nested dollar-quoting), as long as they do not use this exact dollar-quoting
   label. It would be nice to just pick a new one but eventually you do have to give up.
