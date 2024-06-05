@@ -123,7 +123,6 @@ def inject_plugin(plugin):
 
 
 def inject_plugin_for(config):
-    # from dbt.adapters.postgres import Plugin, PostgresAdapter
     from dbt.adapters.factory import FACTORY
 
     FACTORY.load_plugin(config.credentials.type)

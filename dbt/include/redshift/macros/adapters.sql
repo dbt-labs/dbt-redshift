@@ -96,12 +96,22 @@
 
 
 {% macro redshift__create_schema(relation) -%}
-  {{ postgres__create_schema(relation) }}
+  {% if relation.database -%}
+    {{ adapter.verify_database(relation.database) }}
+  {%- endif -%}
+  {%- call statement('create_schema') -%}
+    create schema if not exists {{ relation.without_identifier().include(database=False) }}
+  {%- endcall -%}
 {% endmacro %}
 
 
 {% macro redshift__drop_schema(relation) -%}
-  {{ postgres__drop_schema(relation) }}
+  {% if relation.database -%}
+    {{ adapter.verify_database(relation.database) }}
+  {%- endif -%}
+  {%- call statement('drop_schema') -%}
+    drop schema if exists {{ relation.without_identifier().include(database=False) }} cascade
+  {%- endcall -%}
 {% endmacro %}
 
 
@@ -251,16 +261,31 @@
 {% endmacro %}
 
 {% macro redshift__information_schema_name(database) -%}
-  {{ return(postgres__information_schema_name(database)) }}
+  {% if database_name -%}
+    {{ adapter.verify_database(database_name) }}
+  {%- endif -%}
+  information_schema
 {%- endmacro %}
 
 
 {% macro redshift__list_schemas(database) -%}
-  {{ return(postgres__list_schemas(database)) }}
+  {% if database -%}
+    {{ adapter.verify_database(database) }}
+  {%- endif -%}
+  {% call statement('list_schemas', fetch_result=True, auto_begin=False) %}
+    select distinct nspname from pg_namespace
+  {% endcall %}
+  {{ return(load_result('list_schemas').table) }}
 {%- endmacro %}
 
 {% macro redshift__check_schema_exists(information_schema, schema) -%}
-  {{ return(postgres__check_schema_exists(information_schema, schema)) }}
+  {% if information_schema.database -%}
+    {{ adapter.verify_database(information_schema.database) }}
+  {%- endif -%}
+  {% call statement('check_schema_exists', fetch_result=True, auto_begin=False) %}
+    select count(*) from pg_namespace where nspname = '{{ schema }}'
+  {% endcall %}
+  {{ return(load_result('check_schema_exists').table) }}
 {%- endmacro %}
 
 
@@ -277,13 +302,36 @@
 {% endmacro %}
 
 
+{#
+  By using dollar-quoting like this, users can embed anything they want into their comments
+  (including nested dollar-quoting), as long as they do not use this exact dollar-quoting
+  label. It would be nice to just pick a new one but eventually you do have to give up.
+#}
+{% macro _escape_comment(comment) -%}
+  {% if comment is not string %}
+    {% do exceptions.raise_compiler_error('cannot escape a non-string: ' ~ comment) %}
+  {% endif %}
+  {%- set magic = '$dbt_comment_literal_block$' -%}
+  {%- if magic in comment -%}
+    {%- do exceptions.raise_compiler_error('The string ' ~ magic ~ ' is not allowed in comments.') -%}
+  {%- endif -%}
+  {{ magic }}{{ comment }}{{ magic }}
+{%- endmacro %}
+
+
 {% macro redshift__alter_relation_comment(relation, comment) %}
-  {% do return(postgres__alter_relation_comment(relation, comment)) %}
+  {% set escaped_comment = _escape_comment(comment) %}
+  comment on {{ relation.type }} {{ relation }} is {{ escaped_comment }};
 {% endmacro %}
 
 
 {% macro redshift__alter_column_comment(relation, column_dict) %}
-  {% do return(postgres__alter_column_comment(relation, column_dict)) %}
+  {% set existing_columns = adapter.get_columns_in_relation(relation) | map(attribute="name") | list %}
+  {% for column_name in column_dict if (column_name in existing_columns) %}
+    {% set comment = column_dict[column_name]['description'] %}
+    {% set escaped_comment = _escape_comment(comment) %}
+    comment on column {{ relation }}.{{ adapter.quote(column_name) if column_dict[column_name]['quote'] else column_name }} is {{ escaped_comment }};
+  {% endfor %}
 {% endmacro %}
 
 
