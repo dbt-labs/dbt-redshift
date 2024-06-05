@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import re
 import sys
 
 
@@ -37,6 +38,16 @@ def _plugin_version() -> str:
     return attributes["version"]
 
 
+def _plugin_version_trim() -> str:
+    """
+    Pull the package version from the main package version file
+    """
+    attributes = {}
+    exec(VERSION.read_text(), attributes)
+    pattern = r"\+build\d+$"
+    return re.sub(pattern, "", attributes["version"])
+
+
 setup(
     name="dbt-redshift",
     version=_plugin_version(),
@@ -51,6 +62,7 @@ setup(
     install_requires=[
         "dbt-common>=0.1.0a1,<2.0",
         "dbt-adapters>=0.1.0a1,<2.0",
+        f"dbt-postgres~={_plugin_version_trim()}",
         # dbt-redshift depends deeply on this package. it does not follow SemVer, therefore there have been breaking changes in previous patch releases
         # Pin to the patch or minor version, and bump in each new minor version of dbt-redshift.
         "redshift-connector<2.0.918,>=2.0.913,!=2.0.914",

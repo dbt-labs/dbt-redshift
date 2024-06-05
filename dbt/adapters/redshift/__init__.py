@@ -14,4 +14,5 @@ Plugin: AdapterPlugin = AdapterPlugin(
     adapter=RedshiftAdapter,  # type: ignore
     credentials=RedshiftCredentials,
     include_path=redshift.PACKAGE_PATH,
+    dependencies=["postgres"],
 )
