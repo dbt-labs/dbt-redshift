@@ -44,6 +44,7 @@ join relation dep
 
 {% endmacro %}
 
+{# This is not a namespace macro, keep the name for backwards compatibility post dbt-postgres decoupling #}
 {% macro postgres_get_relations() %}
   {{ return(redshift__get_relations()) }}
 {% endmacro %}
