@@ -207,10 +207,12 @@ class RedshiftMaterializedViewConfig(RedshiftRelationConfigBase, RelationConfigV
             )
 
         column_descriptor = relation_results.get("column_descriptor")
-        if column_descriptor and len(column_descriptor.rows) > 0:
-            config_dict.update(
-                {"sort": RedshiftSortConfig.parse_relation_results(column_descriptor.rows)}
-            )
+        if column_descriptor:
+            sort_columns = [row for row in column_descriptor.rows if row.get("is_sort_key")]
+            if sort_columns:
+                config_dict.update(
+                    {"sort": RedshiftSortConfig.parse_relation_results(sort_columns)}
+                )
 
         return config_dict
 
