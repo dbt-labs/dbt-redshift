@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from dbt.adapters.contracts.relation import RelationConfig
 from typing import Optional, FrozenSet, Set, Dict, Any
 
-import agate
+from agate import MappedSequence
 from dbt.adapters.relation_configs import (
     RelationConfigChange,
     RelationConfigChangeAction,
@@ -136,7 +136,7 @@ class RedshiftSortConfig(RedshiftRelationConfigBase, RelationConfigValidationMix
         return config_dict
 
     @classmethod
-    def parse_relation_results(cls, relation_results_entry: agate.Row) -> dict:
+    def parse_relation_results(cls, relation_results_entry: MappedSequence) -> dict:
         """
         Translate agate objects from the database into a standard dictionary.
 
@@ -145,20 +145,24 @@ class RedshiftSortConfig(RedshiftRelationConfigBase, RelationConfigValidationMix
             Processing of `sortstyle` has been omitted here, which means it's the default (compound).
 
         Args:
-            relation_results_entry: the description of the sortkey and sortstyle from the database in this format:
-
-                agate.Row({
-                    ...,
-                    "sortkey1": "<column_name>",
-                    ...
-                })
+            relation_results_entry: The list of rows that contains the sortkey in this format:
+                [
+                    agate.Row({
+                        ...,
+                        "column": "<column_name>",
+                        "is_sort_key": True,
+                        ...
+                    }),
+                ]
 
         Returns: a standard dictionary describing this `RedshiftSortConfig` instance
         """
-        if sortkey := relation_results_entry.get("sortkey1"):
-            return {"sortkey": {sortkey}}
-        return {}
+        sort_config = []
+        for column in relation_results_entry:
+            if column.get("is_sort_key"):
+                sort_config.append(column.get("column"))
 
+        return {"sortkey": sort_config}
 
 @dataclass(frozen=True, eq=True, unsafe_hash=True)
 class RedshiftSortConfigChange(RelationConfigChange, RelationConfigValidationMixin):

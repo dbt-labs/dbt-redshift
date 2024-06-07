@@ -24,6 +24,22 @@
     {%- endset %}
     {% set _materialized_view = run_query(_materialized_view_sql) %}
 
+    {%- set _column_descriptor_sql -%}
+        SELECT
+            n.nspname AS schema,
+            c.relname AS table,
+            a.attname as column,
+            a.attisdistkey as is_dist_key,
+            a.attsortkeyord > 0 as is_sort_key
+        FROM pg_class c
+        JOIN pg_namespace n ON n.oid = c.relnamespace
+        JOIN pg_attribute a ON a.attrelid = c.oid
+        WHERE
+            n.nspname ilike '{{ relation.schema }}'
+            AND c.relname LIKE 'mv_tbl__{{ relation.identifier }}__%'
+    {%- endset %}
+    {% set _column_descriptor = run_query(_column_descriptor_sql) %}
+
     {%- set _query_sql -%}
         select
             vw.definition
@@ -34,6 +50,10 @@
     {%- endset %}
     {% set _query = run_query(_query_sql) %}
 
-    {% do return({'materialized_view': _materialized_view, 'query': _query}) %}
+    {% do return({
+       'materialized_view': _materialized_view,
+       'query': _query,
+       'column_descriptor': _column_descriptor,
+    })%}
 
 {% endmacro %}
