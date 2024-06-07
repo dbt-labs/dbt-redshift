@@ -43,3 +43,7 @@ join relation dep
 {{ return(load_result('relations').table) }}
 
 {% endmacro %}
+
+{% macro postgres_get_relations() %}
+  {{ return(redshift__get_relations()) }}
+{% endmacro %}
