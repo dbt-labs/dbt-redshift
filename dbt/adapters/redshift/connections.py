@@ -124,7 +124,6 @@ class RedshiftCredentials(Credentials):
     autocommit: Optional[bool] = True
     access_key_id: Optional[str] = None
     secret_access_key: Optional[str] = None
-    role_arn: Optional[str] = None
 
     _ALIASES = {"dbname": "database", "pass": "password"}
 
@@ -154,7 +153,6 @@ class RedshiftCredentials(Credentials):
             "retries",
             "autocommit",
             "access_key_id",
-            "role_arn",
         )
 
     @property
@@ -244,19 +242,8 @@ class RedshiftConnectMethodFactory:
         if self.credentials.cluster_id:
             kwargs.update(group_federation=True)
 
-        # Either we get the 3 required fields together, or we load an AWS iam profile
-        if self.credentials.access_key_id and self.credentials.secret_access_key and self.credentials.role_arn:
-            kwargs.update(
-                access_key_id=self.credentials.access_key_id,
-                secret_access_key=self.credentials.secret_access_key,
-                role_arn=self.credentials.role_arn
-            )
-        elif self.credentials.access_key_id or self.credentials.secret_access_key or self.credentials.role_arn:
-            raise FailedToConnectError(
-                "'access_key_id', 'secret_access_key' and 'role_arn' are all needed if providing explicit credentials"
-            )
-        else:
-            kwargs.update(profile=self.credentials.iam_profile)
+        if iam_profile := self.credentials.iam_profile:
+            kwargs.update(profile=iam_profile)
 
         return kwargs
 
