@@ -459,7 +459,7 @@ class TestIAMRoleMethod(AuthMethod):
 
 
 class TestIAMRoleMethodServerless(AuthMethod):
-    
+
     @mock.patch("redshift_connector.connect", MagicMock())
     def test_profile_default_region(self):
         self.config.credentials = self.config.credentials.replace(
