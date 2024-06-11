@@ -492,7 +492,7 @@ class TestIAMRoleMethodServerless(AuthMethod):
     def test_profile_explicit_region(self):
         # Successful test
         self.config.credentials = self.config.credentials.replace(
-            method="iam",
+            method="iam_role",
             iam_profile="test",
             host="doesnotexist.1233.redshift-serverless.amazonaws.com",
             region="us-east-2",
@@ -520,7 +520,7 @@ class TestIAMRoleMethodServerless(AuthMethod):
     @mock.patch("redshift_connector.connect", MagicMock())
     def test_profile_invalid_serverless(self):
         self.config.credentials = self.config.credentials.replace(
-            method="iam",
+            method="iam_role",
             iam_profile="test",
             host="doesnotexist.1233.us-east-2.redshift-srvrlss.amazonaws.com",
         )
