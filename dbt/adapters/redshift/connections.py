@@ -258,10 +258,10 @@ class RedshiftConnectMethodFactory:
             password="",
         )
 
-        if cluster_id := self.credentials.cluster_id:
-            kwargs.update(cluster_identifier=cluster_id)
-        elif "serverless" in self.credentials.host:
+        if "serverless" in self.credentials.host:
             kwargs.update(cluster_identifier=None)
+        elif cluster_id := self.credentials.cluster_id:
+            kwargs.update(cluster_identifier=cluster_id)
         else:
             raise FailedToConnectError(
                 "Failed to use IAM method:"
