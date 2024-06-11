@@ -514,7 +514,6 @@ class TestIAMRoleMethodServerless(AuthMethod):
             port=5439,
             group_federation=False,
             **DEFAULT_SSL_CONFIG,
-        )
 
     @mock.patch("redshift_connector.connect", MagicMock())
     def test_profile_explicit_region(self):
