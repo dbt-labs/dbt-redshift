@@ -237,7 +237,7 @@ class RedshiftConnectMethodFactory:
 
         # It's a role, we're ignoring the user
         kwargs.update(db_user=None)
-        
+
         # Serverless shouldn't get group_federation, Provisoned clusters should
         if self.credentials.cluster_id:
             kwargs.update(group_federation=True)
