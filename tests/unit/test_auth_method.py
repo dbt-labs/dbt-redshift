@@ -459,6 +459,7 @@ class TestIAMRoleMethod(AuthMethod):
 
 
 class TestIAMRoleMethodServerless(AuthMethod):
+    # Should behave like IAM Role provisioned, with the exception of not having group_federation set
 
     @mock.patch("redshift_connector.connect", MagicMock())
     def test_profile_default_region(self):
@@ -483,7 +484,7 @@ class TestIAMRoleMethodServerless(AuthMethod):
             profile="test",
             timeout=None,
             port=5439,
-            group_federation=False,
+            # group_federation=False,
             **DEFAULT_SSL_CONFIG,
         )
 
@@ -512,7 +513,7 @@ class TestIAMRoleMethodServerless(AuthMethod):
             profile="test",
             timeout=None,
             port=5439,
-            group_federation=False,
+            # group_federation=False,
             **DEFAULT_SSL_CONFIG,
         )
 
@@ -540,7 +541,7 @@ class TestIAMRoleMethodServerless(AuthMethod):
                 profile="test",
                 port=5439,
                 timeout=None,
-                group_federation=False,
+                # group_federation=False,
                 **DEFAULT_SSL_CONFIG,
             )
         self.assertTrue("'host' must be provided" in context.exception.msg)
