@@ -1,5 +1,5 @@
 kind: Fixes
-body: Remove group_federation when using serverless for iam authentication
+body: Support IAM Role authentication for Redshift Serverless
 time: 2024-05-31T11:36:20.397521-07:00
 custom:
   Author: fleid
