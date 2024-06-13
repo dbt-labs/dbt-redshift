@@ -1,0 +1,32 @@
+# **what?**
+# - delete branches left over from automation and testing
+# - remove draft releases from release testing
+# - mark old PRs and issues as stale
+# - close PRs and issues marked stale
+#
+# **why?**
+# - remove clutter from the repository
+# - allow automated processes to leave artifacts for debugging and troubleshooting
+#
+# **when?**
+# - weekly noon UTC on SAT (avoid production release windows)
+# - manually
+name: "Weekly maintenance"
+
+on:
+    schedule:
+    -   cron: 0 12 * * SAT
+    workflow_dispatch:
+
+permissions:
+    contents: write
+    issues: write
+    pull-requests: write
+
+jobs:
+    repository-cleanup:
+        uses: dbt-labs/actions/.github/workflows/repository-cleanup.yml@main
+        secrets: inherit
+
+    stale-issues:
+        uses: dbt-labs/actions/.github/workflows/stale-bot-matrix.yml@main
