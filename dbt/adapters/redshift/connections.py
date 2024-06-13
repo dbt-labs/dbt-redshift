@@ -237,10 +237,15 @@ class RedshiftConnectMethodFactory:
     def _iam_role_kwargs(self) -> Dict[str, Optional[Any]]:
         logger.debug("Connecting to redshift with 'iam_role' credentials method")
         kwargs = self._iam_kwargs
-        kwargs.update(
-            group_federation=True,
-            db_user=None,
-        )
+
+        # It's a role, we're ignoring the user
+        kwargs.update(db_user=None)
+
+        # Serverless shouldn't get group_federation, Provisoned clusters should
+        if "serverless" in self.credentials.host:
+            kwargs.update(group_federation=False)
+        else:
+            kwargs.update(group_federation=True)
 
         if iam_profile := self.credentials.iam_profile:
             kwargs.update(profile=iam_profile)
@@ -256,10 +261,10 @@ class RedshiftConnectMethodFactory:
             password="",
         )
 
-        if cluster_id := self.credentials.cluster_id:
-            kwargs.update(cluster_identifier=cluster_id)
-        elif "serverless" in self.credentials.host:
+        if "serverless" in self.credentials.host:
             kwargs.update(cluster_identifier=None)
+        elif cluster_id := self.credentials.cluster_id:
+            kwargs.update(cluster_identifier=cluster_id)
         else:
             raise FailedToConnectError(
                 "Failed to use IAM method:"
