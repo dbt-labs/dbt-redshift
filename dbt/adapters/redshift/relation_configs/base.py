@@ -1,7 +1,6 @@
 from dataclasses import dataclass
-from typing import Optional, Dict
+from typing import Optional, Dict, TYPE_CHECKING
 
-import agate
 from dbt.adapters.base.relation import Policy
 from dbt.adapters.contracts.relation import ComponentName, RelationConfig
 from dbt.adapters.relation_configs import (
@@ -14,6 +13,10 @@ from dbt.adapters.redshift.relation_configs.policies import (
     RedshiftIncludePolicy,
     RedshiftQuotePolicy,
 )
+
+if TYPE_CHECKING:
+    # Imported downfile for specific row gathering function.
+    import agate
 
 
 @dataclass(frozen=True, eq=True, unsafe_hash=True)
@@ -63,8 +66,10 @@ class RedshiftRelationConfigBase(RelationConfigBase):
         return None
 
     @classmethod
-    def _get_first_row(cls, results: agate.Table) -> agate.Row:
+    def _get_first_row(cls, results: "agate.Table") -> "agate.Row":
         try:
             return results.rows[0]
         except IndexError:
+            import agate
+
             return agate.Row(values=set())
