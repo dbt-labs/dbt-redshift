@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from dbt.adapters.contracts.relation import RelationConfig
-from typing import Optional, FrozenSet, Set, Dict, Any
+from typing import Optional, FrozenSet, Set, Dict, Any, TYPE_CHECKING
 
 from agate import MappedSequence
 from dbt.adapters.relation_configs import (
@@ -14,6 +14,9 @@ from dbt_common.exceptions import DbtRuntimeError
 from typing_extensions import Self
 
 from dbt.adapters.redshift.relation_configs.base import RedshiftRelationConfigBase
+
+if TYPE_CHECKING:
+    import agate
 
 
 class RedshiftSortStyle(StrEnum):
