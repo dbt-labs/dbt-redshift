@@ -201,6 +201,7 @@ jobs:
       package_test_command: "${{ inputs.package_test_command }}"
       dbms_name: "redshift"
       ref: "${{ inputs.ref }}"
+      # Always skip tests since we run them above
       skip_tests: true
 
     secrets: "inherit"
