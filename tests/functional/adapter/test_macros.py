@@ -31,7 +31,7 @@ _MACRO_SQL = """
     {{ exceptions.raise_compiler_error(msg) }}
 {% endmacro %}
 
-{% macro postgres__dispatch_to_parent() %}
+{% macro redshift__dispatch_to_parent() %}
     {{ return('') }}
 {% endmacro %}
 """

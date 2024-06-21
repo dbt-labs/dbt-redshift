@@ -1,0 +1,6 @@
+kind: Breaking Changes
+body: Remove `dbt-postgres` dependency
+time: 2024-06-05T17:17:46.387535-04:00
+custom:
+  Author: mikealfare
+  Issue: "811"
