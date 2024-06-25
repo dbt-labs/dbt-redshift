@@ -456,3 +456,120 @@ class TestIAMRoleMethod(AuthMethod):
             group_federation=True,
             **DEFAULT_SSL_CONFIG,
         )
+
+
+class TestIAMRoleMethodServerless(AuthMethod):
+    # Should behave like IAM Role provisioned, with the exception of not having group_federation set
+
+    @mock.patch("redshift_connector.connect", MagicMock())
+    def test_profile_default_region(self):
+        self.config.credentials = self.config.credentials.replace(
+            method="iam_role",
+            iam_profile="iam_profile_test",
+            host="doesnotexist.1233.us-east-2.redshift-serverless.amazonaws.com",
+        )
+        connection = self.adapter.acquire_connection("dummy")
+        connection.handle
+        redshift_connector.connect.assert_called_once_with(
+            iam=True,
+            host="doesnotexist.1233.us-east-2.redshift-serverless.amazonaws.com",
+            database="redshift",
+            cluster_identifier=None,
+            region=None,
+            auto_create=False,
+            db_groups=[],
+            db_user=None,
+            password="",
+            user="",
+            profile="iam_profile_test",
+            timeout=None,
+            port=5439,
+            group_federation=False,
+            **DEFAULT_SSL_CONFIG,
+        )
+
+    @mock.patch("redshift_connector.connect", MagicMock())
+    def test_profile_ignore_cluster(self):
+        self.config.credentials = self.config.credentials.replace(
+            method="iam_role",
+            iam_profile="iam_profile_test",
+            host="doesnotexist.1233.us-east-2.redshift-serverless.amazonaws.com",
+            cluster_id="my_redshift",
+        )
+        connection = self.adapter.acquire_connection("dummy")
+        connection.handle
+        redshift_connector.connect.assert_called_once_with(
+            iam=True,
+            host="doesnotexist.1233.us-east-2.redshift-serverless.amazonaws.com",
+            database="redshift",
+            cluster_identifier=None,
+            region=None,
+            auto_create=False,
+            db_groups=[],
+            db_user=None,
+            password="",
+            user="",
+            profile="iam_profile_test",
+            timeout=None,
+            port=5439,
+            group_federation=False,
+            **DEFAULT_SSL_CONFIG,
+        )
+
+    @mock.patch("redshift_connector.connect", MagicMock())
+    def test_profile_explicit_region(self):
+        # Successful test
+        self.config.credentials = self.config.credentials.replace(
+            method="iam_role",
+            iam_profile="iam_profile_test",
+            host="doesnotexist.1233.redshift-serverless.amazonaws.com",
+            region="us-east-2",
+        )
+        connection = self.adapter.acquire_connection("dummy")
+        connection.handle
+        redshift_connector.connect.assert_called_once_with(
+            iam=True,
+            host="doesnotexist.1233.redshift-serverless.amazonaws.com",
+            database="redshift",
+            cluster_identifier=None,
+            region="us-east-2",
+            auto_create=False,
+            db_groups=[],
+            db_user=None,
+            password="",
+            user="",
+            profile="iam_profile_test",
+            timeout=None,
+            port=5439,
+            group_federation=False,
+            **DEFAULT_SSL_CONFIG,
+        )
+
+    @mock.patch("redshift_connector.connect", MagicMock())
+    def test_profile_invalid_serverless(self):
+        self.config.credentials = self.config.credentials.replace(
+            method="iam_role",
+            iam_profile="iam_profile_test",
+            host="doesnotexist.1233.us-east-2.redshift-srvrlss.amazonaws.com",
+        )
+        with self.assertRaises(FailedToConnectError) as context:
+            connection = self.adapter.acquire_connection("dummy")
+            connection.handle
+            redshift_connector.connect.assert_called_once_with(
+                iam=True,
+                host="doesnotexist.1233.us-east-2.redshift-srvrlss.amazonaws.com",
+                database="redshift",
+                cluster_identifier=None,
+                region=None,
+                auto_create=False,
+                db_groups=[],
+                db_user=None,
+                password="",
+                user="",
+                profile="iam_profile_test",
+                port=5439,
+                timeout=None,
+                group_federation=False,
+                **DEFAULT_SSL_CONFIG,
+            )
+        self.assertTrue("'host' must be provided" in context.exception.msg)

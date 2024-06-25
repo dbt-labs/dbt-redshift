@@ -1,14 +1,12 @@
 import re
 from multiprocessing import Lock
 from contextlib import contextmanager
-from typing import Any, Callable, Dict, Tuple, Union, Optional, List
+from typing import Any, Callable, Dict, Tuple, Union, Optional, List, TYPE_CHECKING
 from dataclasses import dataclass, field
 
-import agate
 import sqlparse
 import redshift_connector
 from dbt.adapters.exceptions import FailedToConnectError
-from dbt_common.clients import agate_helper
 from redshift_connector.utils.oids import get_datatype_name
 
 from dbt.adapters.sql import SQLConnectionManager
@@ -18,6 +16,11 @@ from dbt_common.contracts.util import Replaceable
 from dbt_common.dataclass_schema import dbtClassMixin, StrEnum, ValidationError
 from dbt_common.helper_types import Port
 from dbt_common.exceptions import DbtRuntimeError, CompilationError, DbtDatabaseError
+
+if TYPE_CHECKING:
+    # Indirectly imported via agate_helper, which is lazy loaded further downfile.
+    # Used by mypy for earlier type hints.
+    import agate
 
 
 class SSLConfigError(CompilationError):
@@ -234,10 +237,15 @@ class RedshiftConnectMethodFactory:
     def _iam_role_kwargs(self) -> Dict[str, Optional[Any]]:
         logger.debug("Connecting to redshift with 'iam_role' credentials method")
         kwargs = self._iam_kwargs
-        kwargs.update(
-            group_federation=True,
-            db_user=None,
-        )
+
+        # It's a role, we're ignoring the user
+        kwargs.update(db_user=None)
+
+        # Serverless shouldn't get group_federation, Provisoned clusters should
+        if "serverless" in self.credentials.host:
+            kwargs.update(group_federation=False)
+        else:
+            kwargs.update(group_federation=True)
 
         if iam_profile := self.credentials.iam_profile:
             kwargs.update(profile=iam_profile)
@@ -253,10 +261,10 @@ class RedshiftConnectMethodFactory:
             password="",
         )
 
-        if cluster_id := self.credentials.cluster_id:
-            kwargs.update(cluster_identifier=cluster_id)
-        elif "serverless" in self.credentials.host:
+        if "serverless" in self.credentials.host:
             kwargs.update(cluster_identifier=None)
+        elif cluster_id := self.credentials.cluster_id:
+            kwargs.update(cluster_identifier=cluster_id)
         else:
             raise FailedToConnectError(
                 "Failed to use IAM method:"
@@ -393,13 +401,15 @@ class RedshiftConnectionManager(SQLConnectionManager):
         auto_begin: bool = False,
         fetch: bool = False,
         limit: Optional[int] = None,
-    ) -> Tuple[AdapterResponse, agate.Table]:
+    ) -> Tuple[AdapterResponse, "agate.Table"]:
         sql = self._add_query_comment(sql)
         _, cursor = self.add_query(sql, auto_begin)
         response = self.get_response(cursor)
         if fetch:
             table = self.get_result_from_cursor(cursor, limit)
         else:
+            from dbt_common.clients import agate_helper
+
             table = agate_helper.empty_table()
         return response, table
 
