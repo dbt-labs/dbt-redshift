@@ -2,7 +2,7 @@
 git+https://github.com/dbt-labs/dbt-adapters.git
 git+https://github.com/dbt-labs/dbt-adapters.git#subdirectory=dbt-tests-adapter
 git+https://github.com/dbt-labs/dbt-common.git
-git+https://github.com/dbt-labs/dbt-core.git#subdirectory=core
+git+https://github.com/dbt-labs/dbt-core.git@support_for_redshift_821#subdirectory=core
 git+https://github.com/dbt-labs/dbt-postgres.git
 
 # dev
