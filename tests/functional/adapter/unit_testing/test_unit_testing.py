@@ -10,7 +10,8 @@ from dbt.tests.adapter.unit_testing.test_invalid_input import BaseUnitTestInvali
 from tests.functional.adapter.unit_testing.fixtures import (
     model_null_value_base,
     model_null_value_model,
-    test_null_column_value_doesnt_throw_error,
+    test_null_column_value_doesnt_throw_error_csv,
+    test_null_column_value_doesnt_throw_error_dct,
     test_null_column_value_will_throw_error,
 )
 
@@ -45,17 +46,29 @@ class TestRedshiftUnitTestingTypes(BaseUnitTestingTypes):
         ]
 
 
-class TestRedshiftUnitTestingNull:
+class RedshiftUnitTestingNull:
+    def test_nulls_handled_dict(self, project):
+        run_dbt(["build"])
+
+
+class TestRedshiftUnitTestCsvNull(RedshiftUnitTestingNull):
     @pytest.fixture(scope="class")
     def models(self):
         return {
-            "__properties.yml": test_null_column_value_doesnt_throw_error,
             "null_value_base.sql": model_null_value_base,
             "null_value_model.sql": model_null_value_model,
+            "__properties.yml": test_null_column_value_doesnt_throw_error_csv,
         }
 
-    def test_invalid_input(self, project):
-        run_dbt(["build"])
+
+class TestRedshiftUnitTestDictNull(RedshiftUnitTestingNull):
+    @pytest.fixture(scope="class")
+    def models(self):
+        return {
+            "null_value_base.sql": model_null_value_base,
+            "null_value_model.sql": model_null_value_model,
+            "__properties.yml": test_null_column_value_doesnt_throw_error_dct,
+        }
 
 
 class TestRedshiftUnitTestingTooManyNullsFails:
