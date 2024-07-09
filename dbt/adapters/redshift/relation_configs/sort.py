@@ -1,8 +1,7 @@
 from dataclasses import dataclass
 from dbt.adapters.contracts.relation import RelationConfig
-from typing import Optional, FrozenSet, Set, Dict, Any
+from typing import Optional, FrozenSet, Set, Dict, Any, TYPE_CHECKING
 
-import agate
 from dbt.adapters.relation_configs import (
     RelationConfigChange,
     RelationConfigChangeAction,
@@ -14,6 +13,9 @@ from dbt_common.exceptions import DbtRuntimeError
 from typing_extensions import Self
 
 from dbt.adapters.redshift.relation_configs.base import RedshiftRelationConfigBase
+
+if TYPE_CHECKING:
+    import agate
 
 
 class RedshiftSortStyle(StrEnum):
@@ -136,7 +138,7 @@ class RedshiftSortConfig(RedshiftRelationConfigBase, RelationConfigValidationMix
         return config_dict
 
     @classmethod
-    def parse_relation_results(cls, relation_results_entry: agate.Row) -> dict:
+    def parse_relation_results(cls, relation_results_entry: "agate.Row") -> dict:
         """
         Translate agate objects from the database into a standard dictionary.
 

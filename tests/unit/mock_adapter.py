@@ -1,5 +1,5 @@
-from unittest import mock
 from contextlib import contextmanager
+from unittest import mock
 
 from dbt.adapters.base import BaseAdapter
 
