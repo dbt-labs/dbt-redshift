@@ -1,7 +1,7 @@
 import pytest
 import os
 
-from dbt.exceptions import DbtDatabaseError
+from dbt_common.exceptions import DbtDatabaseError
 
 # This is a hack to prevent the fixture from running more than once
 GRANTS_AND_ROLES_SETUP = False
