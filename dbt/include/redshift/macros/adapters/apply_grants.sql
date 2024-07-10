@@ -4,11 +4,11 @@
     {#-- generates a multiple-grantees grant privilege statement --#}
     grant {{privilege}} on {{relation}} to
     {%- for grantee_type, grantees in grantee_dict.items() -%}
-    {%- if grantee_type=='user' and grantees -%}
+    {%- if grantee_type == 'user' and grantees -%}
         {{ " " + (grantees | join(', ')) }}
-    {%- elif grantee_type=='group' and grantees -%}
-        {{ " " +("group " + grantees | join(', group ')) }}
-    {%- elif grantee_type=='role' and grantees -%}
+    {%- elif grantee_type == 'group' and grantees -%}
+        {{ " " + ("group " + grantees | join(', group ')) }}
+    {%- elif grantee_type == 'role' and grantees -%}
         {{ " " + ("role " + grantees | join(', role ')) }}
     {%- endif -%}
     {%- if not loop.last -%}
@@ -21,11 +21,11 @@
     {#-- generates a multiple-grantees revoke privilege statement --#}
     revoke {{privilege}} on {{relation}} from
     {%- for revokee_type, revokees in revokee_dict.items() -%}
-    {%- if revokee_type=='user' and revokees -%}
+    {%- if revokee_type == 'user' and revokees -%}
         {{ " " + (revokees | join(', ')) }}
-    {%- elif revokee_type=='group' and revokees -%}
-        {{ " " +("group " + revokees | join(', group ')) }}
-    {%- elif revokee_type=='role' and revokees -%}
+    {%- elif revokee_type == 'group' and revokees -%}
+        {{ " " + ("group " + revokees | join(', group ')) }}
+    {%- elif revokee_type == 'role' and revokees -%}
         {{ " " + ("role " + revokees | join(', role ')) }}
     {%- endif -%}
     {%- if not loop.last -%}

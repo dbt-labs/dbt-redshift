@@ -62,7 +62,7 @@ models:
         select:
           user: ["{{ env_var('DBT_TEST_USER_1') }}"]
           group: ["{{ env_var('DBT_TEST_GROUP_1') }}"]
-          role:  ["{{ env_var('DBT_TEST_ROLE_1') }}"]
+          role: ["{{ env_var('DBT_TEST_ROLE_1') }}"]
 """
 
 # table materialization change select
@@ -76,7 +76,7 @@ models:
         select:
           user: ["{{ env_var('DBT_TEST_USER_2') }}"]
           group: ["{{ env_var('DBT_TEST_GROUP_2') }}"]
-          role:  ["{{ env_var('DBT_TEST_ROLE_2') }}"]
+          role: ["{{ env_var('DBT_TEST_ROLE_2') }}"]
 """
 
 # table materialization multiple grantees
@@ -90,7 +90,7 @@ models:
         select:
           user: ["{{ env_var('DBT_TEST_USER_1') }}", "{{ env_var('DBT_TEST_USER_2') }}"]
           group: ["{{ env_var('DBT_TEST_GROUP_1') }}", "{{ env_var('DBT_TEST_GROUP_2') }}"]
-          role:  ["{{ env_var('DBT_TEST_ROLE_1') }}", "{{ env_var('DBT_TEST_ROLE_2') }}"]
+          role: ["{{ env_var('DBT_TEST_ROLE_1') }}", "{{ env_var('DBT_TEST_ROLE_2') }}"]
 """
 # table materialization multiple privileges
 extended_multiple_privileges_table_model_schema_yml = """
@@ -103,11 +103,11 @@ models:
         select:
           user: ["{{ env_var('DBT_TEST_USER_1') }}"]
           group: ["{{ env_var('DBT_TEST_GROUP_1') }}"]
-          role:  ["{{ env_var('DBT_TEST_ROLE_1') }}"]
+          role: ["{{ env_var('DBT_TEST_ROLE_1') }}"]
         insert:
           user: ["{{ env_var('DBT_TEST_USER_2') }}"]
           group: ["{{ env_var('DBT_TEST_GROUP_2') }}"]
-          role:  ["{{ env_var('DBT_TEST_ROLE_2') }}"]
+          role: ["{{ env_var('DBT_TEST_ROLE_2') }}"]
 """
 
 
