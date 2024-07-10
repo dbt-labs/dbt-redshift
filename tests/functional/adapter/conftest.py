@@ -20,12 +20,15 @@ ROLES = {
 
 @pytest.fixture(scope="class", autouse=True)
 def setup_grants_and_roles(project):
+    print("Start setup for groups and roles")
+
     global GRANTS_AND_ROLES_SETUP
     for env_name, env_var in GROUPS.items():
         os.environ[env_name] = env_var
     for env_name, env_var in ROLES.items():
         os.environ[env_name] = env_var
     if not GRANTS_AND_ROLES_SETUP:
+        print("Create groups and roles")
         with project.adapter.connection_named("__test"):
             for group in GROUPS.values():
                 try:
@@ -42,6 +45,8 @@ def setup_grants_and_roles(project):
                     pass
 
             GRANTS_AND_ROLES_SETUP = True
+
+    print("End setup for groups and roles")
 
 
 @pytest.fixture
