@@ -19,6 +19,19 @@ my_model_sql = """
   {{ log("DBT_TEST_ROLE_2: " ~ env_var('DBT_TEST_ROLE_2'), True) }}
   {{ log("DBT_TEST_ROLE_3: " ~ env_var('DBT_TEST_ROLE_3'), True) }}
 
+  {% set query = 'select * from svv_roles r' %}
+  {% set results = run_query(query) %}
+
+  {{ log("query: " ~ query, True) }}
+
+  {{ log("Start query results", True) }}
+
+  {% for result in results %}
+    {{ log(result, True) }}
+  {% endfor %}
+
+  {{ log("End query results", True) }}
+
   select 1 as fun
 """
 
