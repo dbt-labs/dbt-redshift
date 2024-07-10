@@ -1,5 +1,5 @@
 kind: Features
-body: 'Support groups and roles for grants '
+body: 'Add support for specifying groups and roles in grant statements'
 time: 2023-10-04T10:39:38.680813-07:00
 custom:
   Author: soksamnanglim
