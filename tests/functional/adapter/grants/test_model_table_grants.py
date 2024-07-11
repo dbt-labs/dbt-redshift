@@ -7,6 +7,31 @@ from dbt.tests.util import (
 from tests.functional.adapter.grants.base_grants import BaseGrantsRedshift
 
 my_model_sql = """
+  {{ log("DBT_TEST_USER_1: " ~ env_var('DBT_TEST_USER_1'), True) }}
+  {{ log("DBT_TEST_USER_2: " ~ env_var('DBT_TEST_USER_2'), True) }}
+  {{ log("DBT_TEST_USER_3: " ~ env_var('DBT_TEST_USER_3'), True) }}
+
+  {{ log("DBT_TEST_GROUP_1: " ~ env_var('DBT_TEST_GROUP_1'), True) }}
+  {{ log("DBT_TEST_GROUP_2: " ~ env_var('DBT_TEST_GROUP_2'), True) }}
+  {{ log("DBT_TEST_GROUP_3: " ~ env_var('DBT_TEST_GROUP_3'), True) }}
+
+  {{ log("DBT_TEST_ROLE_1: " ~ env_var('DBT_TEST_ROLE_1'), True) }}
+  {{ log("DBT_TEST_ROLE_2: " ~ env_var('DBT_TEST_ROLE_2'), True) }}
+  {{ log("DBT_TEST_ROLE_3: " ~ env_var('DBT_TEST_ROLE_3'), True) }}
+
+  {% set query = 'select * from svv_roles r' %}
+  {% set results = run_query(query) %}
+
+  {{ log("query: " ~ query, True) }}
+
+  {{ log("Start query results", True) }}
+
+  {% for result in results %}
+    {{ log(result, True) }}
+  {% endfor %}
+
+  {{ log("End query results", True) }}
+
   select 1 as fun
 """
 
