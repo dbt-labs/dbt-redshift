@@ -20,6 +20,7 @@ my_model_sql = """
   {{ log("DBT_TEST_ROLE_3: " ~ env_var('DBT_TEST_ROLE_3'), True) }}
 
   {% set query = 'select * from svv_roles r' %}
+
   {% set results = run_query(query) %}
 
   {{ log("query: " ~ query, True) }}
