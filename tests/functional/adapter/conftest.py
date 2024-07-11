@@ -27,11 +27,13 @@ def setup_grants_and_roles(project):
         os.environ[env_name] = env_var
     for env_name, env_var in ROLES.items():
         os.environ[env_name] = env_var
-    if not GRANTS_AND_ROLES_SETUP:
+    # if not GRANTS_AND_ROLES_SETUP:
+    if True:
         print("Create groups and roles")
         with project.adapter.connection_named("__test"):
             for group in GROUPS.values():
                 try:
+                    print(f"CREATE GROUP {group}")
                     project.adapter.execute(f"CREATE GROUP {group}")
                 except DbtDatabaseError:
                     # This is expected if the group already exists
@@ -39,6 +41,7 @@ def setup_grants_and_roles(project):
 
             for role in ROLES.values():
                 try:
+                    print(f"CREATE ROLE {group}")
                     project.adapter.execute(f"CREATE ROLE {role}")
                 except DbtDatabaseError:
                     # This is expected if the group already exists
