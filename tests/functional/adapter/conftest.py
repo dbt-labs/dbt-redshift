@@ -41,7 +41,7 @@ def setup_grants_and_roles(project):
 
             for role in ROLES.values():
                 try:
-                    print(f"CREATE ROLE {group}")
+                    print(f"CREATE ROLE {role}")
                     project.adapter.execute(f"CREATE ROLE {role}")
                 except DbtDatabaseError:
                     # This is expected if the group already exists
