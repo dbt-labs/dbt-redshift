@@ -1,6 +1,8 @@
 # install latest changes in dbt-core + dbt-postgres
-git+https://github.com/dbt-labs/dbt-adapters.git
+git+https://github.com/dbt-labs/dbt-adapters.git@mcknight/ct-2819
+# -e /Users/matthewmcknight/git/dbt-adapters
 git+https://github.com/dbt-labs/dbt-adapters.git#subdirectory=dbt-tests-adapter
+# -e /Users/matthewmcknight/git/dbt-adapters/dbt-tests-adapter
 git+https://github.com/dbt-labs/dbt-common.git
 git+https://github.com/dbt-labs/dbt-core.git#subdirectory=core
 git+https://github.com/dbt-labs/dbt-postgres.git
