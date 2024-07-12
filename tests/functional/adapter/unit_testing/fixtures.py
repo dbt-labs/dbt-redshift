@@ -1,23 +1,23 @@
-model_null_value_base = """
+model_none_value_base = """
 {{ config(materialized="table") }}
 
 select 1 as id, 'a' as col1
 """
 
-model_null_value_model = """
+model_none_value_model = """
 {{config(materialized="table")}}
 
-select * from {{ ref('null_value_base') }}
+select * from {{ ref('none_value_base') }}
 """
 
 
-test_null_column_value_doesnt_throw_error_csv = """
+test_none_column_value_doesnt_throw_error_csv = """
 unit_tests:
   - name: test_simple
 
-    model: null_value_model
+    model: none_value_model
     given:
-      - input: ref('null_value_base')
+      - input: ref('none_value_base')
         format: csv
         rows: |
           id,col1
@@ -34,13 +34,13 @@ unit_tests:
           6,f
 """
 
-test_null_column_value_doesnt_throw_error_dct = """
+test_none_column_value_doesnt_throw_error_dct = """
 unit_tests:
   - name: test_simple
 
-    model: null_value_model
+    model: none_value_model
     given:
-      - input: ref('null_value_base')
+      - input: ref('none_value_base')
         rows:
           - { "id":  , "col1": "d"}
           - { "id":  , "col1": "e"}
@@ -53,13 +53,13 @@ unit_tests:
         - {id: 6, "col1": "f"}
 """
 
-test_null_column_value_will_throw_error = """
+test_none_column_value_will_throw_error = """
 unit_tests:
   - name: test_simple
 
-    model: null_value_model
+    model: none_value_model
     given:
-      - input: ref('null_value_base')
+      - input: ref('none_value_base')
         rows:
           - { "id":  , "col1": "d"}
           - { "id":  , "col1": "e"}

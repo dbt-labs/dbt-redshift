@@ -8,11 +8,11 @@ from dbt.tests.adapter.unit_testing.test_types import BaseUnitTestingTypes
 from dbt.tests.adapter.unit_testing.test_case_insensitivity import BaseUnitTestCaseInsensivity
 from dbt.tests.adapter.unit_testing.test_invalid_input import BaseUnitTestInvalidInput
 from tests.functional.adapter.unit_testing.fixtures import (
-    model_null_value_base,
-    model_null_value_model,
-    test_null_column_value_doesnt_throw_error_csv,
-    test_null_column_value_doesnt_throw_error_dct,
-    test_null_column_value_will_throw_error,
+    model_none_value_base,
+    model_none_value_model,
+    test_none_column_value_doesnt_throw_error_csv,
+    test_none_column_value_doesnt_throw_error_dct,
+    test_none_column_value_will_throw_error,
 )
 
 
@@ -46,45 +46,45 @@ class TestRedshiftUnitTestingTypes(BaseUnitTestingTypes):
         ]
 
 
-class RedshiftUnitTestingNull:
-    def test_nulls_handled_dict(self, project):
+class RedshiftUnitTestingNone:
+    def test_nones_handled_dict(self, project):
         run_dbt(["build"])
 
 
-class TestRedshiftUnitTestCsvNull(RedshiftUnitTestingNull):
+class TestRedshiftUnitTestCsvNone(RedshiftUnitTestingNone):
     @pytest.fixture(scope="class")
     def models(self):
         return {
-            "null_value_base.sql": model_null_value_base,
-            "null_value_model.sql": model_null_value_model,
-            "__properties.yml": test_null_column_value_doesnt_throw_error_csv,
+            "none_value_base.sql": model_none_value_base,
+            "none_value_model.sql": model_none_value_model,
+            "__properties.yml": test_none_column_value_doesnt_throw_error_csv,
         }
 
 
-class TestRedshiftUnitTestDictNull(RedshiftUnitTestingNull):
+class TestRedshiftUnitTestDictNone(RedshiftUnitTestingNone):
     @pytest.fixture(scope="class")
     def models(self):
         return {
-            "null_value_base.sql": model_null_value_base,
-            "null_value_model.sql": model_null_value_model,
-            "__properties.yml": test_null_column_value_doesnt_throw_error_dct,
+            "none_value_base.sql": model_none_value_base,
+            "none_value_model.sql": model_none_value_model,
+            "__properties.yml": test_none_column_value_doesnt_throw_error_dct,
         }
 
 
-class TestRedshiftUnitTestingTooManyNullsFails:
+class TestRedshiftUnitTestingTooManyNonesFails:
     @pytest.fixture(scope="class")
     def models(self):
         return {
-            "__properties.yml": test_null_column_value_will_throw_error,
-            "null_value_base.sql": model_null_value_base,
-            "null_value_model.sql": model_null_value_model,
+            "__properties.yml": test_none_column_value_will_throw_error,
+            "none_value_base.sql": model_none_value_base,
+            "none_value_model.sql": model_none_value_model,
         }
 
     def test_invalid_input(self, project):
         with pytest.raises(ParsingError) as e:
             run_dbt(["build"])
 
-        assert "Unit Test fixtures require at least one row free of Null" in str(e)
+        assert "Unit Test fixtures require at least one row free of None" in str(e)
 
 
 class TestRedshiftUnitTestCaseInsensitivity(BaseUnitTestCaseInsensivity):
