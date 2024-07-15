@@ -97,7 +97,7 @@ class TestPersistDocsWithMaterializedView(BasePersistDocs):
             "schema.yml": _MATERIALIZED_VIEW_PROPERTIES__SCHEMA_YML,
         }
 
-    def test_has_comments_redshift_materialized_view(self, project):
+    def test_has_comments_pglike(self, project):
         run_dbt(["docs", "generate"])
         with open("target/catalog.json") as fp:
             catalog_data = json.load(fp)
