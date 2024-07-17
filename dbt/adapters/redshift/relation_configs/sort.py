@@ -1,18 +1,21 @@
 from dataclasses import dataclass
-from typing import Optional, FrozenSet, Set
+from dbt.adapters.contracts.relation import RelationConfig
+from typing import Optional, FrozenSet, Set, Dict, Any, TYPE_CHECKING
 
-import agate
 from dbt.adapters.relation_configs import (
     RelationConfigChange,
     RelationConfigChangeAction,
     RelationConfigValidationMixin,
     RelationConfigValidationRule,
 )
-from dbt.contracts.graph.nodes import ModelNode
-from dbt.dataclass_schema import StrEnum
-from dbt.exceptions import DbtRuntimeError
+from dbt_common.dataclass_schema import StrEnum
+from dbt_common.exceptions import DbtRuntimeError
+from typing_extensions import Self
 
 from dbt.adapters.redshift.relation_configs.base import RedshiftRelationConfigBase
+
+if TYPE_CHECKING:
+    import agate
 
 
 class RedshiftSortStyle(StrEnum):
@@ -22,11 +25,11 @@ class RedshiftSortStyle(StrEnum):
 
     @classmethod
     def default(cls) -> "RedshiftSortStyle":
-        return cls.auto
+        return cls("auto")
 
     @classmethod
     def default_with_columns(cls) -> "RedshiftSortStyle":
-        return cls.compound
+        return cls("compound")
 
 
 @dataclass(frozen=True, eq=True, unsafe_hash=True)
@@ -97,21 +100,21 @@ class RedshiftSortConfig(RedshiftRelationConfigBase, RelationConfigValidationMix
         }
 
     @classmethod
-    def from_dict(cls, config_dict) -> "RedshiftSortConfig":
+    def from_dict(cls, config_dict) -> Self:
         kwargs_dict = {
             "sortstyle": config_dict.get("sortstyle"),
             "sortkey": frozenset(column for column in config_dict.get("sortkey", {})),
         }
-        sort: "RedshiftSortConfig" = super().from_dict(kwargs_dict)  # type: ignore
-        return sort
+        sort: Self = super().from_dict(kwargs_dict)  # type: ignore
+        return sort  # type: ignore
 
     @classmethod
-    def parse_model_node(cls, model_node: ModelNode) -> dict:
+    def parse_relation_config(cls, relation_config: RelationConfig) -> Dict[str, Any]:
         """
         Translate ModelNode objects from the user-provided config into a standard dictionary.
 
         Args:
-            model_node: the description of the sortkey and sortstyle from the user in this format:
+            relation_config: the description of the sortkey and sortstyle from the user in this format:
 
                 {
                     "sort_key": "<column_name>" or ["<column_name>"] or ["<column1_name>",...]
@@ -122,10 +125,10 @@ class RedshiftSortConfig(RedshiftRelationConfigBase, RelationConfigValidationMix
         """
         config_dict = {}
 
-        if sortstyle := model_node.config.extra.get("sort_type"):
+        if sortstyle := relation_config.config.extra.get("sort_type"):  # type: ignore
             config_dict.update({"sortstyle": sortstyle.lower()})
 
-        if sortkey := model_node.config.extra.get("sort"):
+        if sortkey := relation_config.config.extra.get("sort"):  # type: ignore
             # we allow users to specify the `sort_key` as a string if it's a single column
             if isinstance(sortkey, str):
                 sortkey = [sortkey]
@@ -135,7 +138,7 @@ class RedshiftSortConfig(RedshiftRelationConfigBase, RelationConfigValidationMix
         return config_dict
 
     @classmethod
-    def parse_relation_results(cls, relation_results_entry: agate.Row) -> dict:
+    def parse_relation_results(cls, relation_results_entry: "agate.Row") -> dict:
         """
         Translate agate objects from the database into a standard dictionary.
 

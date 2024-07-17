@@ -2,15 +2,15 @@
 Note that all imports should be inside the functions to avoid import/mocking
 issues.
 """
+
 import string
 import os
-from unittest import mock
-from unittest import TestCase
+from unittest import TestCase, mock
 
 import agate
-import pytest
-from dbt.dataclass_schema import ValidationError
 from dbt.config.project import PartialProject
+from dbt_common.dataclass_schema import ValidationError
+import pytest
 
 
 def normalize(path):
@@ -233,7 +233,7 @@ def assert_fails_validation(dct, cls):
 class TestAdapterConversions(TestCase):
     @staticmethod
     def _get_tester_for(column_type):
-        from dbt.clients import agate_helper
+        from dbt_common.clients import agate_helper
 
         if column_type is agate.TimeDelta:  # dbt never makes this!
             return agate.TimeDelta()

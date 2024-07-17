@@ -1,22 +1,26 @@
 import re
 from multiprocessing import Lock
 from contextlib import contextmanager
-from typing import Tuple, Union, Optional, List
+from typing import Any, Callable, Dict, Tuple, Union, Optional, List, TYPE_CHECKING
 from dataclasses import dataclass, field
 
-import agate
 import sqlparse
 import redshift_connector
+from dbt.adapters.exceptions import FailedToConnectError
 from redshift_connector.utils.oids import get_datatype_name
 
 from dbt.adapters.sql import SQLConnectionManager
-from dbt.contracts.connection import AdapterResponse, Connection, Credentials
-from dbt.contracts.util import Replaceable
-from dbt.dataclass_schema import dbtClassMixin, StrEnum, ValidationError
-from dbt.events import AdapterLogger
-from dbt.exceptions import DbtRuntimeError, CompilationError
-import dbt.flags
-from dbt.helper_types import Port
+from dbt.adapters.contracts.connection import AdapterResponse, Connection, Credentials
+from dbt.adapters.events.logging import AdapterLogger
+from dbt_common.contracts.util import Replaceable
+from dbt_common.dataclass_schema import dbtClassMixin, StrEnum, ValidationError
+from dbt_common.helper_types import Port
+from dbt_common.exceptions import DbtRuntimeError, CompilationError, DbtDatabaseError
+
+if TYPE_CHECKING:
+    # Indirectly imported via agate_helper, which is lazy loaded further downfile.
+    # Used by mypy for earlier type hints.
+    import agate
 
 
 class SSLConfigError(CompilationError):
@@ -33,12 +37,10 @@ class SSLConfigError(CompilationError):
 logger = AdapterLogger("Redshift")
 
 
-drop_lock: Lock = dbt.flags.MP_CONTEXT.Lock()  # type: ignore
-
-
 class RedshiftConnectionMethod(StrEnum):
     DATABASE = "database"
     IAM = "iam"
+    IAM_ROLE = "iam_role"
 
 
 class UserSSLMode(StrEnum):
@@ -52,7 +54,7 @@ class UserSSLMode(StrEnum):
     @classmethod
     def default(cls) -> "UserSSLMode":
         # default for `psycopg2`, which aligns with dbt-redshift 1.4 and provides backwards compatibility
-        return cls.prefer
+        return cls("prefer")
 
 
 class RedshiftSSLMode(StrEnum):
@@ -62,11 +64,11 @@ class RedshiftSSLMode(StrEnum):
 
 SSL_MODE_TRANSLATION = {
     UserSSLMode.disable: None,
-    UserSSLMode.allow: RedshiftSSLMode.verify_ca,
-    UserSSLMode.prefer: RedshiftSSLMode.verify_ca,
-    UserSSLMode.require: RedshiftSSLMode.verify_ca,
-    UserSSLMode.verify_ca: RedshiftSSLMode.verify_ca,
-    UserSSLMode.verify_full: RedshiftSSLMode.verify_full,
+    UserSSLMode.allow: RedshiftSSLMode("verify-ca"),
+    UserSSLMode.prefer: RedshiftSSLMode("verify-ca"),
+    UserSSLMode.require: RedshiftSSLMode("verify-ca"),
+    UserSSLMode.verify_ca: RedshiftSSLMode("verify-ca"),
+    UserSSLMode.verify_full: RedshiftSSLMode("verify-full"),
 }
 
 
@@ -104,9 +106,9 @@ class RedshiftSSLConfig(dbtClassMixin, Replaceable):  # type: ignore
 @dataclass
 class RedshiftCredentials(Credentials):
     host: str
-    user: str
     port: Port
     method: str = RedshiftConnectionMethod.DATABASE  # type: ignore
+    user: Optional[str] = None
     password: Optional[str] = None  # type: ignore
     cluster_id: Optional[str] = field(
         default=None,
@@ -118,11 +120,13 @@ class RedshiftCredentials(Credentials):
     ra3_node: Optional[bool] = False
     connect_timeout: Optional[int] = None
     role: Optional[str] = None
-    sslmode: Optional[UserSSLMode] = field(default_factory=UserSSLMode.default)
+    sslmode: UserSSLMode = field(default_factory=UserSSLMode.default)
     retries: int = 1
     region: Optional[str] = None
     # opt-in by default per team deliberation on https://peps.python.org/pep-0249/#autocommit
     autocommit: Optional[bool] = True
+    access_key_id: Optional[str] = None
+    secret_access_key: Optional[str] = None
 
     _ALIASES = {"dbname": "database", "pass": "password"}
 
@@ -144,7 +148,6 @@ class RedshiftCredentials(Credentials):
             "region",
             "sslmode",
             "region",
-            "iam_profile",
             "autocreate",
             "db_groups",
             "ra3_node",
@@ -152,6 +155,7 @@ class RedshiftCredentials(Credentials):
             "role",
             "retries",
             "autocommit",
+            "access_key_id",
         )
 
     @property
@@ -162,102 +166,153 @@ class RedshiftCredentials(Credentials):
 class RedshiftConnectMethodFactory:
     credentials: RedshiftCredentials
 
-    def __init__(self, credentials):
+    def __init__(self, credentials) -> None:
         self.credentials = credentials
 
-    def get_connect_method(self):
-        method = self.credentials.method
-        kwargs = {
-            "host": self.credentials.host,
-            "database": self.credentials.database,
-            "port": int(self.credentials.port) if self.credentials.port else int(5439),
-            "auto_create": self.credentials.autocreate,
-            "db_groups": self.credentials.db_groups,
-            "region": self.credentials.region,
-            "timeout": self.credentials.connect_timeout,
-        }
-
-        redshift_ssl_config = RedshiftSSLConfig.parse(self.credentials.sslmode)
-        kwargs.update(redshift_ssl_config.to_dict())
+    def get_connect_method(self) -> Callable[[], redshift_connector.Connection]:
 
         # Support missing 'method' for backwards compatibility
-        if method == RedshiftConnectionMethod.DATABASE or method is None:
-            # this requirement is really annoying to encode into json schema,
-            # so validate it here
-            if self.credentials.password is None:
-                raise dbt.exceptions.FailedToConnectError(
-                    "'password' field is required for 'database' credentials"
-                )
-
-            def connect():
-                logger.debug("Connecting to redshift with username/password based auth...")
-                c = redshift_connector.connect(
-                    user=self.credentials.user,
-                    password=self.credentials.password,
-                    **kwargs,
-                )
-                if self.credentials.autocommit:
-                    c.autocommit = True
-                if self.credentials.role:
-                    c.cursor().execute("set role {}".format(self.credentials.role))
-                return c
-
+        method = self.credentials.method or RedshiftConnectionMethod.DATABASE
+        if method == RedshiftConnectionMethod.DATABASE:
+            kwargs = self._database_kwargs
         elif method == RedshiftConnectionMethod.IAM:
-            if not self.credentials.cluster_id and "serverless" not in self.credentials.host:
-                raise dbt.exceptions.FailedToConnectError(
-                    "Failed to use IAM method. 'cluster_id' must be provided for provisioned cluster. "
-                    "'host' must be provided for serverless endpoint."
-                )
-
-            def connect():
-                logger.debug("Connecting to redshift with IAM based auth...")
-                c = redshift_connector.connect(
-                    iam=True,
-                    db_user=self.credentials.user,
-                    password="",
-                    user="",
-                    cluster_identifier=self.credentials.cluster_id,
-                    profile=self.credentials.iam_profile,
-                    **kwargs,
-                )
-                if self.credentials.autocommit:
-                    c.autocommit = True
-                if self.credentials.role:
-                    c.cursor().execute("set role {}".format(self.credentials.role))
-                return c
-
+            kwargs = self._iam_user_kwargs
+        elif method == RedshiftConnectionMethod.IAM_ROLE:
+            kwargs = self._iam_role_kwargs
         else:
-            raise dbt.exceptions.FailedToConnectError(
-                "Invalid 'method' in profile: '{}'".format(method)
-            )
+            raise FailedToConnectError(f"Invalid 'method' in profile: '{method}'")
+
+        def connect() -> redshift_connector.Connection:
+            c = redshift_connector.connect(**kwargs)
+            if self.credentials.autocommit:
+                c.autocommit = True
+            if self.credentials.role:
+                c.cursor().execute(f"set role {self.credentials.role}")
+            return c
 
         return connect
+
+    @property
+    def _database_kwargs(self) -> Dict[str, Any]:
+        logger.debug("Connecting to redshift with 'database' credentials method")
+        kwargs = self._base_kwargs
+
+        if self.credentials.user and self.credentials.password:
+            kwargs.update(
+                user=self.credentials.user,
+                password=self.credentials.password,
+            )
+        else:
+            raise FailedToConnectError(
+                "'user' and 'password' fields are required for 'database' credentials method"
+            )
+
+        return kwargs
+
+    @property
+    def _iam_user_kwargs(self) -> Dict[str, Any]:
+        logger.debug("Connecting to redshift with 'iam' credentials method")
+        kwargs = self._iam_kwargs
+
+        if self.credentials.access_key_id and self.credentials.secret_access_key:
+            kwargs.update(
+                access_key_id=self.credentials.access_key_id,
+                secret_access_key=self.credentials.secret_access_key,
+            )
+        elif self.credentials.access_key_id or self.credentials.secret_access_key:
+            raise FailedToConnectError(
+                "'access_key_id' and 'secret_access_key' are both needed if providing explicit credentials"
+            )
+        else:
+            kwargs.update(profile=self.credentials.iam_profile)
+
+        if user := self.credentials.user:
+            kwargs.update(db_user=user)
+        else:
+            raise FailedToConnectError("'user' field is required for 'iam' credentials method")
+
+        return kwargs
+
+    @property
+    def _iam_role_kwargs(self) -> Dict[str, Optional[Any]]:
+        logger.debug("Connecting to redshift with 'iam_role' credentials method")
+        kwargs = self._iam_kwargs
+
+        # It's a role, we're ignoring the user
+        kwargs.update(db_user=None)
+
+        # Serverless shouldn't get group_federation, Provisoned clusters should
+        if "serverless" in self.credentials.host:
+            kwargs.update(group_federation=False)
+        else:
+            kwargs.update(group_federation=True)
+
+        if iam_profile := self.credentials.iam_profile:
+            kwargs.update(profile=iam_profile)
+
+        return kwargs
+
+    @property
+    def _iam_kwargs(self) -> Dict[str, Any]:
+        kwargs = self._base_kwargs
+        kwargs.update(
+            iam=True,
+            user="",
+            password="",
+        )
+
+        if "serverless" in self.credentials.host:
+            kwargs.update(cluster_identifier=None)
+        elif cluster_id := self.credentials.cluster_id:
+            kwargs.update(cluster_identifier=cluster_id)
+        else:
+            raise FailedToConnectError(
+                "Failed to use IAM method:"
+                "    'cluster_id' must be provided for provisioned cluster"
+                "    'host' must be provided for serverless endpoint"
+            )
+
+        return kwargs
+
+    @property
+    def _base_kwargs(self) -> Dict[str, Any]:
+        kwargs = {
+            "host": self.credentials.host,
+            "port": int(self.credentials.port) if self.credentials.port else int(5439),
+            "database": self.credentials.database,
+            "region": self.credentials.region,
+            "auto_create": self.credentials.autocreate,
+            "db_groups": self.credentials.db_groups,
+            "timeout": self.credentials.connect_timeout,
+        }
+        redshift_ssl_config = RedshiftSSLConfig.parse(self.credentials.sslmode)
+        kwargs.update(redshift_ssl_config.to_dict())
+        return kwargs
 
 
 class RedshiftConnectionManager(SQLConnectionManager):
     TYPE = "redshift"
 
-    def _get_backend_pid(self):
-        sql = "select pg_backend_pid()"
-        _, cursor = self.add_query(sql)
-
-        res = cursor.fetchone()
-        return res[0]
-
     def cancel(self, connection: Connection):
+        pid = connection.backend_pid  # type: ignore
+        sql = f"select pg_terminate_backend({pid})"
+        logger.debug(f"Cancel query on: '{connection.name}' with PID: {pid}")
+        logger.debug(sql)
+
         try:
-            pid = self._get_backend_pid()
+            self.add_query(sql)
         except redshift_connector.InterfaceError as e:
             if "is closed" in str(e):
                 logger.debug(f"Connection {connection.name} was already closed")
                 return
             raise
 
-        sql = f"select pg_terminate_backend({pid})"
-        cursor = connection.handle.cursor()
-        logger.debug(f"Cancel query on: '{connection.name}' with PID: {pid}")
-        logger.debug(sql)
-        cursor.execute(sql)
+    @classmethod
+    def _get_backend_pid(cls, connection):
+        with connection.handle.cursor() as c:
+            sql = "select pg_backend_pid()"
+            res = c.execute(sql).fetchone()
+        return res[0]
 
     @classmethod
     def get_response(cls, cursor: redshift_connector.Cursor) -> AdapterResponse:
@@ -278,16 +333,16 @@ class RedshiftConnectionManager(SQLConnectionManager):
                 err_msg = str(e).strip()
             logger.debug(f"Redshift error: {err_msg}")
             self.rollback_if_open()
-            raise dbt.exceptions.DbtDatabaseError(err_msg) from e
+            raise DbtDatabaseError(err_msg) from e
 
         except Exception as e:
             logger.debug("Error running SQL: {}", sql)
             logger.debug("Rolling back transaction.")
             self.rollback_if_open()
             # Raise DBT native exceptions as is.
-            if isinstance(e, dbt.exceptions.DbtRuntimeError):
+            if isinstance(e, DbtRuntimeError):
                 raise
-            raise dbt.exceptions.DbtRuntimeError(str(e)) from e
+            raise DbtRuntimeError(str(e)) from e
 
     @contextmanager
     def fresh_transaction(self):
@@ -297,6 +352,8 @@ class RedshiftConnectionManager(SQLConnectionManager):
 
         See drop_relation in RedshiftAdapter for more information.
         """
+        drop_lock: Lock = self.lock
+
         with drop_lock:
             connection = self.get_thread_connection()
 
@@ -327,7 +384,7 @@ class RedshiftConnectionManager(SQLConnectionManager):
             redshift_connector.DataError,
         ]
 
-        return cls.retry_connection(
+        open_connection = cls.retry_connection(
             connection,
             connect=connect_method_factory.get_connect_method(),
             logger=logger,
@@ -335,6 +392,8 @@ class RedshiftConnectionManager(SQLConnectionManager):
             retry_timeout=exponential_backoff,
             retryable_exceptions=retryable_exceptions,
         )
+        open_connection.backend_pid = cls._get_backend_pid(open_connection)  # type: ignore
+        return open_connection
 
     def execute(
         self,
@@ -342,20 +401,23 @@ class RedshiftConnectionManager(SQLConnectionManager):
         auto_begin: bool = False,
         fetch: bool = False,
         limit: Optional[int] = None,
-    ) -> Tuple[AdapterResponse, agate.Table]:
+    ) -> Tuple[AdapterResponse, "agate.Table"]:
         sql = self._add_query_comment(sql)
         _, cursor = self.add_query(sql, auto_begin)
         response = self.get_response(cursor)
         if fetch:
             table = self.get_result_from_cursor(cursor, limit)
         else:
-            table = dbt.clients.agate_helper.empty_table()
+            from dbt_common.clients import agate_helper
+
+            table = agate_helper.empty_table()
         return response, table
 
     def add_query(self, sql, auto_begin=True, bindings=None, abridge_sql_log=False):
         connection = None
         cursor = None
 
+        self._initialize_sqlparse_lexer()
         queries = sqlparse.split(sql)
 
         for query in queries:
@@ -387,3 +449,14 @@ class RedshiftConnectionManager(SQLConnectionManager):
     @classmethod
     def data_type_code_to_name(cls, type_code: Union[int, str]) -> str:
         return get_datatype_name(type_code)
+
+    @staticmethod
+    def _initialize_sqlparse_lexer():
+        """
+        Resolves: https://github.com/dbt-labs/dbt-redshift/issues/710
+        Implementation of this fix: https://github.com/dbt-labs/dbt-core/pull/8215
+        """
+        from sqlparse.lexer import Lexer  # type: ignore
+
+        if hasattr(Lexer, "get_default_instance"):
+            Lexer.get_default_instance()

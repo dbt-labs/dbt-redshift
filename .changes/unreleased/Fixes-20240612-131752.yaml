@@ -1,0 +1,6 @@
+kind: Fixes
+body: update pin range for redshift-connector to allow 2.1.0
+time: 2024-06-12T13:17:52.460407-07:00
+custom:
+  Author: colin-rogers-dbt VersusFacit
+  Issue: "844"

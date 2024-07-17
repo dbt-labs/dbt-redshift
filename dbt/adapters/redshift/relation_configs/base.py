@@ -1,19 +1,22 @@
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, Dict, TYPE_CHECKING
 
-import agate
 from dbt.adapters.base.relation import Policy
+from dbt.adapters.contracts.relation import ComponentName, RelationConfig
 from dbt.adapters.relation_configs import (
     RelationConfigBase,
     RelationResults,
 )
-from dbt.contracts.graph.nodes import ModelNode
-from dbt.contracts.relation import ComponentName
+from typing_extensions import Self
 
 from dbt.adapters.redshift.relation_configs.policies import (
     RedshiftIncludePolicy,
     RedshiftQuotePolicy,
 )
+
+if TYPE_CHECKING:
+    # Imported downfile for specific row gathering function.
+    import agate
 
 
 @dataclass(frozen=True, eq=True, unsafe_hash=True)
@@ -31,25 +34,25 @@ class RedshiftRelationConfigBase(RelationConfigBase):
         return RedshiftQuotePolicy()
 
     @classmethod
-    def from_model_node(cls, model_node: ModelNode) -> "RelationConfigBase":
-        relation_config = cls.parse_model_node(model_node)
-        relation = cls.from_dict(relation_config)
-        return relation
+    def from_relation_config(cls, relation_config: RelationConfig) -> Self:
+        relation_config_dict = cls.parse_relation_config(relation_config)
+        relation = cls.from_dict(relation_config_dict)
+        return relation  # type: ignore
 
     @classmethod
-    def parse_model_node(cls, model_node: ModelNode) -> dict:
+    def parse_relation_config(cls, relation_config: RelationConfig) -> Dict:
         raise NotImplementedError(
-            "`parse_model_node()` needs to be implemented on this RelationConfigBase instance"
+            "`parse_relation_config()` needs to be implemented on this RelationConfigBase instance"
         )
 
     @classmethod
-    def from_relation_results(cls, relation_results: RelationResults) -> "RelationConfigBase":
+    def from_relation_results(cls, relation_results: RelationResults) -> Self:
         relation_config = cls.parse_relation_results(relation_results)
         relation = cls.from_dict(relation_config)
-        return relation
+        return relation  # type: ignore
 
     @classmethod
-    def parse_relation_results(cls, relation_results: RelationResults) -> dict:
+    def parse_relation_results(cls, relation_results: RelationResults) -> Dict:
         raise NotImplementedError(
             "`parse_relation_results()` needs to be implemented on this RelationConfigBase instance"
         )
@@ -63,8 +66,10 @@ class RedshiftRelationConfigBase(RelationConfigBase):
         return None
 
     @classmethod
-    def _get_first_row(cls, results: agate.Table) -> agate.Row:
+    def _get_first_row(cls, results: "agate.Table") -> "agate.Row":
         try:
             return results.rows[0]
         except IndexError:
+            import agate
+
             return agate.Row(values=set())
