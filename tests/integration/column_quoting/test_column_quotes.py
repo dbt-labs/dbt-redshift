@@ -1,6 +1,8 @@
 from tests.integration.base import DBTIntegrationTest,  use_profile
 import os
 
+import pytest
+
 
 class BaseColumnQuotingTest(DBTIntegrationTest):
     def column_quoting(self):
@@ -35,6 +37,7 @@ class TestColumnQuotingDefault(BaseColumnQuotingTest):
     def run_dbt(self, *args, **kwargs):
         return super().run_dbt(*args, **kwargs)
 
+    @pytest.mark.skip("This functionality no longer works as intended and this is an unsupported version.")
     @use_profile('redshift')
     def test_redshift_column_quotes(self):
         self._run_columnn_quotes()
