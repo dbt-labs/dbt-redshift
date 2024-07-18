@@ -1,6 +1,0 @@
-kind: Fixes
-body: Catalog queries assign the appropriate type for materialized views
-time: 2023-10-30T23:43:15.281772-04:00
-custom:
-  Author: mikealfare
-  Issue: "652"

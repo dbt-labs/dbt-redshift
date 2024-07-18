@@ -2,15 +2,15 @@
 Note that all imports should be inside the functions to avoid import/mocking
 issues.
 """
+
 import string
 import os
-from unittest import mock
-from unittest import TestCase
+from unittest import TestCase, mock
 
 import agate
-import pytest
-from dbt_common.dataclass_schema import ValidationError
 from dbt.config.project import PartialProject
+from dbt_common.dataclass_schema import ValidationError
+import pytest
 
 
 def normalize(path):

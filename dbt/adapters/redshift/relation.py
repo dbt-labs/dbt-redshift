@@ -27,6 +27,7 @@ from dbt.adapters.redshift.relation_configs import (
 class RedshiftRelation(BaseRelation):
     include_policy = RedshiftIncludePolicy  # type: ignore
     quote_policy = RedshiftQuotePolicy  # type: ignore
+    require_alias: bool = False
     relation_configs = {
         RelationType.MaterializedView.value: RedshiftMaterializedViewConfig,
     }

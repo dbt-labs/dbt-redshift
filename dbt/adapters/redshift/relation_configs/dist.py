@@ -1,8 +1,7 @@
 from dataclasses import dataclass
 from dbt.adapters.contracts.relation import RelationConfig
-from typing import Optional, Set, Dict
+from typing import Optional, Set, Dict, TYPE_CHECKING
 
-import agate
 from dbt.adapters.relation_configs import (
     RelationConfigChange,
     RelationConfigChangeAction,
@@ -15,6 +14,9 @@ from typing_extensions import Self
 
 from dbt.adapters.redshift.relation_configs.base import RedshiftRelationConfigBase
 
+if TYPE_CHECKING:
+    import agate
+
 
 class RedshiftDistStyle(StrEnum):
     auto = "auto"
@@ -24,7 +26,7 @@ class RedshiftDistStyle(StrEnum):
 
     @classmethod
     def default(cls) -> "RedshiftDistStyle":
-        return cls.auto
+        return cls("auto")
 
 
 @dataclass(frozen=True, eq=True, unsafe_hash=True)
@@ -103,12 +105,12 @@ class RedshiftDistConfig(RedshiftRelationConfigBase, RelationConfigValidationMix
             config = {"diststyle": diststyle}
 
         else:
-            config = {"diststyle": RedshiftDistStyle.key.value, "distkey": dist}
+            config = {"diststyle": RedshiftDistStyle.key.value, "distkey": dist}  # type: ignore
 
         return config
 
     @classmethod
-    def parse_relation_results(cls, relation_results_entry: agate.Row) -> Dict:
+    def parse_relation_results(cls, relation_results_entry: "agate.Row") -> Dict:
         """
         Translate agate objects from the database into a standard dictionary.
 

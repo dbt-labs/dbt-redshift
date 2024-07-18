@@ -43,7 +43,7 @@ jobs:
 
     steps:
       - name: Check out the repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           persist-credentials: false
 
@@ -58,7 +58,6 @@ jobs:
           python -m pip install -r dev-requirements.txt
           python -m pip --version
           pre-commit --version
-          mypy --version
 
       - name: pre-commit hooks
         run: pre-commit run --all-files --show-diff-on-failure
@@ -79,7 +78,7 @@ jobs:
 
     steps:
       - name: Check out the repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           persist-credentials: false
 
@@ -121,7 +120,7 @@ jobs:
 
     steps:
       - name: Check out the repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           persist-credentials: false
 
@@ -174,7 +173,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ubuntu-22.04, macos-12, windows-2022]
         python-version: ['3.8', '3.9', '3.10', '3.11']
 
     steps:
