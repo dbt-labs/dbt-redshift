@@ -1,7 +1,0 @@
-kind: Fixes
-body: Initialize sqlparse.Lexer to resolve issue with `dbt docs generate` that includes
-  external tables
-time: 2024-02-06T13:23:26.061133-05:00
-custom:
-  Author: mikealfare
-  Issue: "710"

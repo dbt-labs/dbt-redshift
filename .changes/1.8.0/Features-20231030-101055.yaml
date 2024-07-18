@@ -1,6 +1,0 @@
-kind: Features
-body: allow user to set debug level for redshift-connector via env var
-time: 2023-10-30T10:10:55.976191-07:00
-custom:
-  Author: colin-rogers-dbt
-  Issue: "650"
