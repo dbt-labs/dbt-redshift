@@ -1,5 +1,5 @@
 # install latest changes in dbt-core + dbt-postgres
-git+https://github.com/dbt-labs/dbt-adapters.git
+git+https://github.com/dbt-labs/dbt-adapters.git@ADAP-821/support_for_redshift_821
 git+https://github.com/dbt-labs/dbt-adapters.git#subdirectory=dbt-tests-adapter
 git+https://github.com/dbt-labs/dbt-common.git
 git+https://github.com/dbt-labs/dbt-core.git#subdirectory=core

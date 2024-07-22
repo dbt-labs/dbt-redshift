@@ -1,6 +1,6 @@
 import pytest
 
-from dbt.exceptions import ParsingError
+from dbt.artifacts.schemas.results import RunStatus
 from dbt.tests.fixtures.project import write_project_files
 from dbt.tests.util import run_dbt
 
@@ -14,6 +14,8 @@ from tests.functional.adapter.unit_testing.fixtures import (
     test_none_column_value_doesnt_throw_error_dct,
     test_none_column_value_will_throw_error,
 )
+
+from dbt_common.exceptions import CompilationError
 
 
 class TestRedshiftUnitTestingTypes(BaseUnitTestingTypes):
@@ -81,10 +83,19 @@ class TestRedshiftUnitTestingTooManyNonesFails:
         }
 
     def test_invalid_input(self, project):
-        with pytest.raises(ParsingError) as e:
-            run_dbt(["build"])
+        """This is a user-facing exception, so we can't pytest.raise(CompilationError)"""
 
-        assert "Unit Test fixtures require at least one row free of None" in str(e)
+        def _find_first_error(items):
+            return next((item for item in items if item.status == RunStatus.Error), None)
+
+        run_result = run_dbt(["build"], expect_pass=False)
+        first_item = _find_first_error(run_result)
+
+        assert first_item is not None
+        assert (
+            "does not have any row free of null values, which may cause type mismatch errors during unit test execution"
+            in str(first_item.message)
+        )
 
 
 class TestRedshiftUnitTestCaseInsensitivity(BaseUnitTestCaseInsensivity):
