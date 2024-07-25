@@ -271,11 +271,14 @@ jobs:
           python -m pip --version
           tox --version
 
-      - name: Update dev_requirements.txt
-        if: inputs.dbt-core-branch != ''
+      - name: Update Adapters and Core branches (update dev_requirements.txt)
+        if: github.event_name == 'workflow_dispatch'
         run: |
-          pip install bumpversion
-          ./.github/scripts/update_dbt_core_branch.sh ${{ inputs.dbt-core-branch }}
+          ./.github/scripts/update_dev_packages.sh \
+            ${{ inputs.dbt_adapters_branch }} \
+            ${{ inputs.dbt_core_branch }}
+          cat dev-requirements.txt
+
 
       - name: Run tox (redshift)
         env:
