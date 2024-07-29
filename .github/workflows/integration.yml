@@ -113,8 +113,8 @@ jobs:
       DD_SERVICE: ${{ github.event.repository.name }}
 
     steps:
-      - name: Check out the repository
-        if: github.event_name != 'pull_request_target' && github.event_name != 'workflow_dispatch'
+      - name: Check out the repository (push)
+        if: github.event_name == 'push'
         uses: actions/checkout@v4
         with:
           persist-credentials: false
