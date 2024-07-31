@@ -74,7 +74,7 @@ SSL_MODE_TRANSLATION = {
 
 @dataclass
 class RedshiftAdapterResponse(AdapterResponse):
-    query_id: int
+    query_id: int = -1
 
 
 @dataclass
@@ -333,8 +333,8 @@ class RedshiftConnectionManager(SQLConnectionManager):
         message = "SUCCESS"
         query_id = cls._get_last_query_id(cursor)
         return RedshiftAdapterResponse(
-            _message=message, 
-            rows_affected=rows, 
+            _message=message,
+            rows_affected=rows,
             query_id=query_id,
         )
 
