@@ -73,6 +73,11 @@ SSL_MODE_TRANSLATION = {
 
 
 @dataclass
+class RedshiftAdapterResponse(AdapterResponse):
+    query_id: int
+
+
+@dataclass
 class RedshiftSSLConfig(dbtClassMixin, Replaceable):  # type: ignore
     ssl: bool = True
     sslmode: Optional[RedshiftSSLMode] = SSL_MODE_TRANSLATION[UserSSLMode.default()]
@@ -315,12 +320,23 @@ class RedshiftConnectionManager(SQLConnectionManager):
         return res[0]
 
     @classmethod
+    def _get_last_query_id(cls, cursor):
+        sql = "select pg_last_query_id();"
+        res = cursor.execute(sql).fetchone()
+        return res[0]
+
+    @classmethod
     def get_response(cls, cursor: redshift_connector.Cursor) -> AdapterResponse:
         # redshift_connector.Cursor doesn't have a status message attribute but
         # this function is only used for successful run, so we can just return a dummy
         rows = cursor.rowcount
         message = "SUCCESS"
-        return AdapterResponse(_message=message, rows_affected=rows)
+        query_id = cls._get_last_query_id(cursor)
+        return RedshiftAdapterResponse(
+            _message=message, 
+            rows_affected=rows, 
+            query_id=query_id,
+        )
 
     @contextmanager
     def exception_handler(self, sql):
