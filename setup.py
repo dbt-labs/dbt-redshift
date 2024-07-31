@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-import re
 import sys
 
 if sys.version_info < (3, 8):
@@ -37,16 +36,6 @@ def _plugin_version() -> str:
     return attributes["version"]
 
 
-def _plugin_version_trim() -> str:
-    """
-    Pull the package version from the main package version file
-    """
-    attributes = {}
-    exec(VERSION.read_text(), attributes)
-    pattern = r"\+build\d+$"
-    return re.sub(pattern, "", attributes["version"])
-
-
 setup(
     name="dbt-redshift",
     version=_plugin_version(),
@@ -61,7 +50,7 @@ setup(
     install_requires=[
         "dbt-common>=0.1.0a1,<2.0",
         "dbt-adapters>=0.1.0a1,<2.0",
-        f"dbt-postgres~={_plugin_version_trim()}",
+        "dbt-postgres>=1.8,<1.10",
         # dbt-redshift depends deeply on this package. it does not follow SemVer, therefore there have been breaking changes in previous patch releases
         # Pin to the patch or minor version, and bump in each new minor version of dbt-redshift.
         "redshift-connector<2.1.1,>=2.0.913,!=2.0.914",
@@ -82,6 +71,7 @@ setup(
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
     ],
     python_requires=">=3.8",
 )
