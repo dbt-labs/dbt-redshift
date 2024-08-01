@@ -1,0 +1,6 @@
+kind: "Dependencies"
+body: "Update redshift-connector requirement from !=2.0.914,<2.1.1,>=2.0.913 to >=2.0.913,!=2.0.914,<2.1.3"
+time: 2024-07-19T19:59:50.00000Z
+custom:
+  Author: dependabot[bot]
+  PR: 877
