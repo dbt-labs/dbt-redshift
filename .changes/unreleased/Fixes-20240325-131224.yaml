@@ -1,0 +1,6 @@
+kind: Fixes
+body: 'enable crossdb column metadata with ra3 nodes '
+time: 2024-03-25T13:12:24.266908-04:00
+custom:
+  Author: dataders
+  Issue: "736"

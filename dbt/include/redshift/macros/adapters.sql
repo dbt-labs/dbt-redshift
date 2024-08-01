@@ -110,21 +110,23 @@
       with bound_views as (
         select
           ordinal_position,
-          table_schema,
+          schema_name,
           column_name,
           data_type,
           character_maximum_length,
           numeric_precision,
           numeric_scale
 
-        from information_schema."columns"
-        where table_name = '{{ relation.identifier }}'
+        from svv_all_columns
+        where table_name = '{{ relation.identifier }}' and
+          schema_name = '{{ relation.schema }}'and
+          database_name = '{{ relation.database }}'
     ),
 
     unbound_views as (
       select
         ordinal_position,
-        view_schema,
+        schema_name,
         col_name,
         case
           when col_type ilike 'character varying%' then
@@ -153,57 +155,15 @@
         end as numeric_scale
 
       from pg_get_late_binding_view_cols()
-      cols(view_schema name, view_name name, col_name name,
+      cols(schema_name name, view_name name, col_name name,
            col_type varchar, ordinal_position int)
       where view_name = '{{ relation.identifier }}'
-    ),
-
-    external_views as (
-      select
-        columnnum,
-        schemaname,
-        columnname,
-        case
-          when external_type ilike 'character varying%' or external_type ilike 'varchar%'
-          then 'character varying'
-          when external_type ilike 'numeric%' then 'numeric'
-          else external_type
-        end as external_type,
-        case
-          when external_type like 'character%' or external_type like 'varchar%'
-          then nullif(
-            REGEXP_SUBSTR(external_type, '[0-9]+'),
-            '')::int
-          else null
-        end as character_maximum_length,
-        case
-          when external_type like 'numeric%'
-          then nullif(
-            SPLIT_PART(REGEXP_SUBSTR(external_type, '[0-9,]+'), ',', 1),
-            '')::int
-          else null
-        end as numeric_precision,
-        case
-          when external_type like 'numeric%'
-          then nullif(
-            SPLIT_PART(REGEXP_SUBSTR(external_type, '[0-9,]+'), ',', 2),
-            '')::int
-          else null
-        end as numeric_scale
-      from
-        pg_catalog.svv_external_columns
-      where
-        schemaname = '{{ relation.schema }}'
-        and tablename = '{{ relation.identifier }}'
-
     ),
 
     unioned as (
       select * from bound_views
       union all
       select * from unbound_views
-      union all
-      select * from external_views
     )
 
     select
@@ -215,7 +175,7 @@
 
     from unioned
     {% if relation.schema %}
-    where table_schema = '{{ relation.schema }}'
+    where schema_name = '{{ relation.schema }}'
     {% endif %}
     order by ordinal_position
   {% endcall %}
