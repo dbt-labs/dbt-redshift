@@ -107,7 +107,7 @@ class RedshiftSSLConfig(dbtClassMixin, Replaceable):  # type: ignore
 class RedshiftCredentials(Credentials):
     host: str
     port: Port
-    method: str = RedshiftConnectionMethod.DATABASE  # type: ignore
+    method: RedshiftConnectionMethod = RedshiftConnectionMethod.DATABASE  # type: ignore
     user: Optional[str] = None
     password: Optional[str] = None  # type: ignore
     cluster_id: Optional[str] = field(
