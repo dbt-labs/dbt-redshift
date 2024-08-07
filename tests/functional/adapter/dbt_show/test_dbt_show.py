@@ -1,4 +1,8 @@
-from dbt.tests.adapter.dbt_show.test_dbt_show import BaseShowSqlHeader, BaseShowLimit
+from dbt.tests.adapter.dbt_show.test_dbt_show import (
+    BaseShowSqlHeader,
+    BaseShowLimit,
+    BaseShowDoesNotHandleDoubleLimit,
+)
 
 
 class TestRedshiftShowLimit(BaseShowLimit):
@@ -6,4 +10,8 @@ class TestRedshiftShowLimit(BaseShowLimit):
 
 
 class TestRedshiftShowSqlHeader(BaseShowSqlHeader):
+    pass
+
+
+class TestShowDoesNotHandleDoubleLimit(BaseShowDoesNotHandleDoubleLimit):
     pass

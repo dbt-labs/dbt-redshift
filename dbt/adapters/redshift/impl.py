@@ -1,11 +1,12 @@
 import os
 from dataclasses import dataclass
 from dbt_common.contracts.constraints import ConstraintType
-from typing import Optional, Set, Any, Dict, Type
+from typing import Optional, Set, Any, Dict, Type, TYPE_CHECKING
 from collections import namedtuple
 from dbt.adapters.base import PythonJobHelper
 from dbt.adapters.base.impl import AdapterConfig, ConstraintSupport
 from dbt.adapters.base.meta import available
+from dbt.adapters.capability import Capability, CapabilityDict, CapabilitySupport, Support
 from dbt.adapters.sql import SQLAdapter
 from dbt.adapters.contracts.connection import AdapterResponse
 from dbt.adapters.events.logging import AdapterLogger
@@ -26,6 +27,9 @@ for package in packages:
     logger.set_adapter_dependency_log_level(package, level)
 
 GET_RELATIONS_MACRO_NAME = "redshift__get_relations"
+
+if TYPE_CHECKING:
+    import agate
 
 
 @dataclass
@@ -53,6 +57,14 @@ class RedshiftAdapter(SQLAdapter):
         ConstraintType.foreign_key: ConstraintSupport.NOT_ENFORCED,
     }
 
+    _capabilities = CapabilityDict(
+        {
+            Capability.SchemaMetadataByRelations: CapabilitySupport(support=Support.Full),
+            Capability.TableLastModifiedMetadata: CapabilitySupport(support=Support.Full),
+            Capability.TableLastModifiedMetadataBatch: CapabilitySupport(support=Support.Full),
+        }
+    )
+
     @classmethod
     def date_function(cls):
         return "getdate()"
@@ -76,7 +88,7 @@ class RedshiftAdapter(SQLAdapter):
             return super().drop_relation(relation)
 
     @classmethod
-    def convert_text_type(cls, agate_table, col_idx):
+    def convert_text_type(cls, agate_table: "agate.Table", col_idx):
         column = agate_table.columns[col_idx]
         # `lens` must be a list, so this can't be a generator expression,
         # because max() raises ane exception if its argument has no members.
@@ -85,7 +97,7 @@ class RedshiftAdapter(SQLAdapter):
         return "varchar({})".format(max_len)
 
     @classmethod
-    def convert_time_type(cls, agate_table, col_idx):
+    def convert_time_type(cls, agate_table: "agate.Table", col_idx):
         return "varchar(24)"
 
     @available
