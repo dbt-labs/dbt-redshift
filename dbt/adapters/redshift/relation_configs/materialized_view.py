@@ -169,6 +169,15 @@ class RedshiftMaterializedViewConfig(RedshiftRelationConfigBase, RelationConfigV
                     "query": agate.Table(
                         agate.Row({"definition": "<query>")}
                     ),
+                    "column_descriptor": agate.Table(
+                        agate.Row({
+                            "schema": "<schema_name>",
+                            "table": "<table_name>",
+                            "column": "<column_name>",
+                            "is_sort_key": any(true, false),
+                            "is_dist_key: any(true, false),
+                        })
+                    ),
                 }
 
                 Additional columns in either value is fine, as long as `sortkey` and `sortstyle` are available.
@@ -199,11 +208,13 @@ class RedshiftMaterializedViewConfig(RedshiftRelationConfigBase, RelationConfigV
                 {"dist": RedshiftDistConfig.parse_relation_results(materialized_view)}
             )
 
-        # TODO: this only shows the first column in the sort key
-        if materialized_view.get("sortkey1"):
-            config_dict.update(
-                {"sort": RedshiftSortConfig.parse_relation_results(materialized_view)}
-            )
+        column_descriptor = relation_results.get("column_descriptor")
+        if column_descriptor:
+            sort_columns = [row for row in column_descriptor.rows if row.get("is_sort_key")]
+            if sort_columns:
+                config_dict.update(
+                    {"sort": RedshiftSortConfig.parse_relation_results(sort_columns)}
+                )
 
         return config_dict
 
