@@ -97,6 +97,7 @@ class TestPersistDocsWithMaterializedView(BasePersistDocs):
             "schema.yml": _MATERIALIZED_VIEW_PROPERTIES__SCHEMA_YML,
         }
 
+    @pytest.mark.flaky
     def test_has_comments_pglike(self, project):
         run_dbt(["docs", "generate"])
         with open("target/catalog.json") as fp:
