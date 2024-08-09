@@ -206,8 +206,8 @@ class RedshiftMaterializedViewConfig(RedshiftRelationConfigBase, RelationConfigV
                 {"dist": RedshiftDistConfig.parse_relation_results(materialized_view)}
             )
 
-        if columns:= relation_results.get("columns"):
-            sort_columns = [row for row in columns.rows if row.get("sort_key_position") > 0]
+        if columns := relation_results.get("columns"):
+            sort_columns = [row for row in columns.rows if row.get("sort_key_position", 0) > 0]
             if sort_columns:
                 config_dict.update(
                     {"sort": RedshiftSortConfig.parse_relation_results(sort_columns)}

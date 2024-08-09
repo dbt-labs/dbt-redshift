@@ -81,6 +81,11 @@ def test_redshift_materialized_view_parse_relation_results_handles_multiples_sor
                 "is_dist_key": True,
                 "sort_key_position": 2,
             },
+            {
+                "column": "my_column5",
+                "is_dist_key": False,
+                "sort_key_position": 0,
+            },
         ],
     )
 

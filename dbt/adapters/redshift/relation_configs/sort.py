@@ -137,7 +137,6 @@ class RedshiftSortConfig(RedshiftRelationConfigBase, RelationConfigValidationMix
 
         return config_dict
 
-
     @classmethod
     def parse_relation_results(cls, relation_results_entry: "agate.MappedSequence") -> dict:
         """
@@ -161,13 +160,14 @@ class RedshiftSortConfig(RedshiftRelationConfigBase, RelationConfigValidationMix
         Returns: a standard dictionary describing this `RedshiftSortConfig` instance
         """
         sort_config = []
-        
+
         sorted_columns = sorted(relation_results_entry, key=lambda x: x["sort_key_position"])
         for column in sorted_columns:
             if column.get("sort_key_position"):
                 sort_config.append(column.get("column"))
 
         return {"sortkey": sort_config}
+
 
 @dataclass(frozen=True, eq=True, unsafe_hash=True)
 class RedshiftSortConfigChange(RelationConfigChange, RelationConfigValidationMixin):
