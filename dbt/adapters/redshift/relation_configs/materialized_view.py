@@ -169,12 +169,10 @@ class RedshiftMaterializedViewConfig(RedshiftRelationConfigBase, RelationConfigV
                     "query": agate.Table(
                         agate.Row({"definition": "<query>")}
                     ),
-                    "column_descriptor": agate.Table(
+                    "columns": agate.Table(
                         agate.Row({
-                            "schema": "<schema_name>",
-                            "table": "<table_name>",
                             "column": "<column_name>",
-                            "is_sort_key": any(true, false),
+                            "sort_key_position": <int>,
                             "is_dist_key: any(true, false),
                         })
                     ),
@@ -208,9 +206,8 @@ class RedshiftMaterializedViewConfig(RedshiftRelationConfigBase, RelationConfigV
                 {"dist": RedshiftDistConfig.parse_relation_results(materialized_view)}
             )
 
-        column_descriptor = relation_results.get("column_descriptor")
-        if column_descriptor:
-            sort_columns = [row for row in column_descriptor.rows if row.get("is_sort_key")]
+        if columns:= relation_results.get("columns"):
+            sort_columns = [row for row in columns.rows if row.get("sort_key_position") > 0]
             if sort_columns:
                 config_dict.update(
                     {"sort": RedshiftSortConfig.parse_relation_results(sort_columns)}

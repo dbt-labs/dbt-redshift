@@ -1,8 +1,7 @@
 from dataclasses import dataclass
 from dbt.adapters.contracts.relation import RelationConfig
-from typing import Optional, FrozenSet, Set, Dict, Any, TYPE_CHECKING
+from typing import Optional, Set, Dict, Any, TYPE_CHECKING, Tuple
 
-from agate import MappedSequence
 from dbt.adapters.relation_configs import (
     RelationConfigChange,
     RelationConfigChangeAction,
@@ -47,7 +46,7 @@ class RedshiftSortConfig(RedshiftRelationConfigBase, RelationConfigValidationMix
     """
 
     sortstyle: Optional[RedshiftSortStyle] = None
-    sortkey: Optional[FrozenSet[str]] = None
+    sortkey: Optional[Tuple[str]] = None
 
     def __post_init__(self):
         # maintains `frozen=True` while allowing for a variable default on `sort_type`
@@ -104,7 +103,7 @@ class RedshiftSortConfig(RedshiftRelationConfigBase, RelationConfigValidationMix
     def from_dict(cls, config_dict) -> Self:
         kwargs_dict = {
             "sortstyle": config_dict.get("sortstyle"),
-            "sortkey": frozenset(column for column in config_dict.get("sortkey", {})),
+            "sortkey": tuple(column for column in config_dict.get("sortkey", {})),
         }
         sort: Self = super().from_dict(kwargs_dict)  # type: ignore
         return sort  # type: ignore
@@ -134,12 +133,13 @@ class RedshiftSortConfig(RedshiftRelationConfigBase, RelationConfigValidationMix
             if isinstance(sortkey, str):
                 sortkey = [sortkey]
 
-            config_dict.update({"sortkey": set(sortkey)})
+            config_dict.update({"sortkey": tuple(sortkey)})
 
         return config_dict
 
+
     @classmethod
-    def parse_relation_results(cls, relation_results_entry: MappedSequence) -> dict:
+    def parse_relation_results(cls, relation_results_entry: "agate.MappedSequence") -> dict:
         """
         Translate agate objects from the database into a standard dictionary.
 
@@ -153,7 +153,7 @@ class RedshiftSortConfig(RedshiftRelationConfigBase, RelationConfigValidationMix
                     agate.Row({
                         ...,
                         "column": "<column_name>",
-                        "is_sort_key": True,
+                        "sort_key_position": <int>,
                         ...
                     }),
                 ]
@@ -161,8 +161,10 @@ class RedshiftSortConfig(RedshiftRelationConfigBase, RelationConfigValidationMix
         Returns: a standard dictionary describing this `RedshiftSortConfig` instance
         """
         sort_config = []
-        for column in relation_results_entry:
-            if column.get("is_sort_key"):
+        
+        sorted_columns = sorted(relation_results_entry, key=lambda x: x["sort_key_position"])
+        for column in sorted_columns:
+            if column.get("sort_key_position"):
                 sort_config.append(column.get("column"))
 
         return {"sortkey": sort_config}

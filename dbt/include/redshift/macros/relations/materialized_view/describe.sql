@@ -26,11 +26,9 @@
 
     {%- set _column_descriptor_sql -%}
         SELECT
-            n.nspname AS schema,
-            c.relname AS table,
             a.attname as column,
             a.attisdistkey as is_dist_key,
-            a.attsortkeyord > 0 as is_sort_key
+            a.attsortkeyord as sort_key_position
         FROM pg_class c
         JOIN pg_namespace n ON n.oid = c.relnamespace
         JOIN pg_attribute a ON a.attrelid = c.oid
@@ -53,7 +51,7 @@
     {% do return({
        'materialized_view': _materialized_view,
        'query': _query,
-       'column_descriptor': _column_descriptor,
+       'columns': _column_descriptor,
     })%}
 
 {% endmacro %}

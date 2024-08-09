@@ -51,7 +51,7 @@ def materialized_view_without_sort_key_from_db():
 
     relation_results = {
         "materialized_view": materialized_view,
-        "column_descriptor": column_descriptor,
+        "columns": column_descriptor,
         "query": query,
     }
     return relation_results
@@ -67,27 +67,25 @@ def materialized_view_without_sort_key_config():
     relation_config.config = Mock()
     relation_config.config.extra = {}
     relation_config.config.sort = ""
-    relation_config.compiled_code = "create materialized view my_view as (select 1 as my_column, 'value' as my_column2)"
+    relation_config.compiled_code = (
+        "create materialized view my_view as (select 1 as my_column, 'value' as my_column2)"
+    )
     return relation_config
 
 
 @pytest.fixture
 def materialized_view_multiple_sort_key_from_db(materialized_view_without_sort_key_from_db):
-    materialized_view_without_sort_key_from_db["column_descriptor"] = agate.Table.from_object(
+    materialized_view_without_sort_key_from_db["columns"] = agate.Table.from_object(
         [
             {
-                "schema": "my_schema",
-                "table": "my_table",
                 "column": "my_column",
                 "is_dist_key": True,
-                "is_sort_key": True,
+                "sort_key_position": 1,
             },
             {
-                "schema": "my_schema",
-                "table": "my_table",
                 "column": "my_column2",
                 "is_dist_key": True,
-                "is_sort_key": True,
+                "sort_key_position": 2,
             },
         ],
     )
@@ -103,6 +101,7 @@ def materialized_view_multiple_sort_key_config(materialized_view_without_sort_ke
 
     return materialized_view_without_sort_key_config
 
+
 def test_materialized_view_config_changeset_without_sort_key_empty_changes(
     materialized_view_without_sort_key_from_db,
     materialized_view_without_sort_key_config,
@@ -113,6 +112,7 @@ def test_materialized_view_config_changeset_without_sort_key_empty_changes(
     )
 
     assert change_set is None
+
 
 def test_materialized_view_config_changeset_multiple_sort_key_without_changes(
     materialized_view_multiple_sort_key_from_db,
@@ -139,4 +139,19 @@ def test_materialized_view_config_changeset_multiple_sort_key_with_changes(
     )
 
     assert change_set is not None
-    assert change_set.sort.context.sortkey == frozenset({"my_column", "my_column2", "my_column3"})
+    assert change_set.sort.context.sortkey == ("my_column", "my_column2", "my_column3")
+
+
+def test_materialized_view_config_changeset_multiple_sort_key_with_changes_in_order_column(
+    materialized_view_multiple_sort_key_from_db,
+    materialized_view_multiple_sort_key_config,
+):
+    materialized_view_multiple_sort_key_config.config.extra["sort"] = ["my_column2", "my_column"]
+
+    change_set = RedshiftRelation.materialized_view_config_changeset(
+        materialized_view_multiple_sort_key_from_db,
+        materialized_view_multiple_sort_key_config,
+    )
+
+    assert change_set is not None
+    assert change_set.sort.context.sortkey == ("my_column2", "my_column")

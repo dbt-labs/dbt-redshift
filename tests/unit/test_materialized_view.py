@@ -72,18 +72,14 @@ def test_redshift_materialized_view_parse_relation_results_handles_multiples_sor
     column_descriptor = agate.Table.from_object(
         [
             {
-                "schema": "my_schema",
-                "table": "my_table",
                 "column": "my_column",
                 "is_dist_key": True,
-                "is_sort_key": True,
+                "sort_key_position": 1,
             },
             {
-                "schema": "my_schema",
-                "table": "my_table",
                 "column": "my_column2",
                 "is_dist_key": True,
-                "is_sort_key": True,
+                "sort_key_position": 2,
             },
         ],
     )
@@ -98,13 +94,11 @@ def test_redshift_materialized_view_parse_relation_results_handles_multiples_sor
 
     relation_results = {
         "materialized_view": materialized_view,
-        "column_descriptor": column_descriptor,
+        "columns": column_descriptor,
         "query": query,
     }
 
-    config_dict = RedshiftMaterializedViewConfig.parse_relation_results(
-        relation_results
-    )
+    config_dict = RedshiftMaterializedViewConfig.parse_relation_results(relation_results)
 
     assert isinstance(config_dict["sort"], dict)
     assert config_dict["sort"]["sortkey"][0] == "my_column"
