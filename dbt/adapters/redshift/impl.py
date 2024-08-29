@@ -1,7 +1,9 @@
 import os
 from dataclasses import dataclass
+
+from dbt_common.behavior_flags import BehaviorFlag
 from dbt_common.contracts.constraints import ConstraintType
-from typing import Optional, Set, Any, Dict, Type, TYPE_CHECKING
+from typing import Optional, Set, Any, Dict, Type, TYPE_CHECKING, List
 from collections import namedtuple
 from dbt.adapters.base import PythonJobHelper
 from dbt.adapters.base.impl import AdapterConfig, ConstraintSupport
@@ -64,6 +66,10 @@ class RedshiftAdapter(SQLAdapter):
             Capability.TableLastModifiedMetadataBatch: CapabilitySupport(support=Support.Full),
         }
     )
+
+    @property
+    def _behavior_extra(self) -> List[BehaviorFlag]:
+        return [{"name": "restrict_access_to_pg_catalog", "default": False}]
 
     @classmethod
     def date_function(cls):
