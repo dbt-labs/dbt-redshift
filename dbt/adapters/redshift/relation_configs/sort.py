@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from dbt.adapters.contracts.relation import RelationConfig
-from typing import Optional, FrozenSet, Set, Dict, Any, TYPE_CHECKING
+from typing import Optional, Set, Dict, Any, TYPE_CHECKING, Tuple
 
 from dbt.adapters.relation_configs import (
     RelationConfigChange,
@@ -46,7 +46,7 @@ class RedshiftSortConfig(RedshiftRelationConfigBase, RelationConfigValidationMix
     """
 
     sortstyle: Optional[RedshiftSortStyle] = None
-    sortkey: Optional[FrozenSet[str]] = None
+    sortkey: Optional[Tuple[str]] = None
 
     def __post_init__(self):
         # maintains `frozen=True` while allowing for a variable default on `sort_type`
@@ -103,7 +103,7 @@ class RedshiftSortConfig(RedshiftRelationConfigBase, RelationConfigValidationMix
     def from_dict(cls, config_dict) -> Self:
         kwargs_dict = {
             "sortstyle": config_dict.get("sortstyle"),
-            "sortkey": frozenset(column for column in config_dict.get("sortkey", {})),
+            "sortkey": tuple(column for column in config_dict.get("sortkey", {})),
         }
         sort: Self = super().from_dict(kwargs_dict)  # type: ignore
         return sort  # type: ignore
@@ -133,12 +133,12 @@ class RedshiftSortConfig(RedshiftRelationConfigBase, RelationConfigValidationMix
             if isinstance(sortkey, str):
                 sortkey = [sortkey]
 
-            config_dict.update({"sortkey": set(sortkey)})
+            config_dict.update({"sortkey": tuple(sortkey)})
 
         return config_dict
 
     @classmethod
-    def parse_relation_results(cls, relation_results_entry: "agate.Row") -> dict:
+    def parse_relation_results(cls, relation_results_entry: "agate.MappedSequence") -> dict:
         """
         Translate agate objects from the database into a standard dictionary.
 
@@ -147,19 +147,26 @@ class RedshiftSortConfig(RedshiftRelationConfigBase, RelationConfigValidationMix
             Processing of `sortstyle` has been omitted here, which means it's the default (compound).
 
         Args:
-            relation_results_entry: the description of the sortkey and sortstyle from the database in this format:
-
-                agate.Row({
-                    ...,
-                    "sortkey1": "<column_name>",
-                    ...
-                })
+            relation_results_entry: The list of rows that contains the sortkey in this format:
+                [
+                    agate.Row({
+                        ...,
+                        "column": "<column_name>",
+                        "sort_key_position": <int>,
+                        ...
+                    }),
+                ]
 
         Returns: a standard dictionary describing this `RedshiftSortConfig` instance
         """
-        if sortkey := relation_results_entry.get("sortkey1"):
-            return {"sortkey": {sortkey}}
-        return {}
+        sort_config = []
+
+        sorted_columns = sorted(relation_results_entry, key=lambda x: x["sort_key_position"])
+        for column in sorted_columns:
+            if column.get("sort_key_position"):
+                sort_config.append(column.get("column"))
+
+        return {"sortkey": sort_config}
 
 
 @dataclass(frozen=True, eq=True, unsafe_hash=True)

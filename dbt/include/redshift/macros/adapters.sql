@@ -280,9 +280,24 @@
   {% endif %}
 {% endmacro %}
 
+{#
+  Copied from the postgres-adapter.
+#}
+{% macro escape_comment(comment) -%}
+  {% if comment is not string %}
+    {% do exceptions.raise_compiler_error('cannot escape a non-string: ' ~ comment) %}
+  {% endif %}
+  {%- set magic = '$dbt_comment_literal_block$' -%}
+  {%- if magic in comment -%}
+    {%- do exceptions.raise_compiler_error('The string ' ~ magic ~ ' is not allowed in comments.') -%}
+  {%- endif -%}
+  {{ magic }}{{ comment }}{{ magic }}
+{%- endmacro %}
 
 {% macro redshift__alter_relation_comment(relation, comment) %}
-  {% do return(postgres__alter_relation_comment(relation, comment)) %}
+  {%- set escaped_comment = escape_comment(comment) -%}
+  {%- set relation_type = 'view' if relation.type == 'materialized_view' else relation.type -%}
+  comment on {{ relation_type }} {{ relation }} is {{ escaped_comment }};
 {% endmacro %}
 
 
