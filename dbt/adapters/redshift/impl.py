@@ -6,6 +6,7 @@ from dbt_common.contracts.constraints import ConstraintType
 from typing import Optional, Set, Any, Dict, Type, TYPE_CHECKING, List
 from collections import namedtuple
 from dbt.adapters.base import PythonJobHelper
+from dbt.adapters.base.column import Column
 from dbt.adapters.base.impl import AdapterConfig, ConstraintSupport
 from dbt.adapters.base.meta import available
 from dbt.adapters.capability import Capability, CapabilityDict, CapabilitySupport, Support
@@ -92,6 +93,12 @@ class RedshiftAdapter(SQLAdapter):
         """
         with self.connections.fresh_transaction():
             return super().drop_relation(relation)
+
+    def get_columns_in_relation(self, relation) -> List[Column]:
+        if self.behavior.retire_pg_catalog:
+            column_configs = self.connections.columns_in_relation(relation)
+            return [Column(**column) for column in column_configs]
+        return super().get_columns_in_relation(relation)
 
     @classmethod
     def convert_text_type(cls, agate_table: "agate.Table", col_idx):
