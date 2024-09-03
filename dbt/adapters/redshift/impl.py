@@ -69,7 +69,7 @@ class RedshiftAdapter(SQLAdapter):
 
     @property
     def _behavior_extra(self) -> List[BehaviorFlag]:
-        return [{"name": "restrict_access_to_pg_catalog", "default": False}]
+        return [{"name": "retire_pg_catalog", "default": False}]
 
     @classmethod
     def date_function(cls):
