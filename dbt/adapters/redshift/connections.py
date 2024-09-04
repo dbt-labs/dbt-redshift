@@ -483,7 +483,7 @@ class RedshiftConnectionManager(SQLConnectionManager):
         columns = cursor.get_columns(
             catalog=relation.database,
             schema_pattern=relation.schema,
-            table_name_pattern=relation.identifier,
+            tablename_pattern=relation.identifier,
         )
 
         fire_event(
@@ -498,10 +498,19 @@ class RedshiftConnectionManager(SQLConnectionManager):
 
     @staticmethod
     def _parse_column_results(record: Tuple[Any, ...]) -> Dict[str, Any]:
+        # column positions in the tuple
+        column_name = 3
+        dtype_code = 4
+        dtype_name = 5
+        column_size = 6
+        decimals = 8
+
+        char_dtypes = [1, 12]
+        num_dtypes = [2, 3, 4, 5, 6, 7, 8]
         return {
-            "column": record[3],
-            "dtype": record[6],
-            "char_size": record[7] if record[5] in [1, 12] else None,
-            "numeric_precision": record[7] if record[5] in [2, 3, 4, 5, 6, 7, 8] else None,
-            "numeric_scale": record[9] if record[5] in [2, 3, 4, 5, 6, 7, 8] else None,
+            "column": record[column_name],
+            "dtype": record[dtype_name],
+            "char_size": record[column_size] if record[dtype_code] in char_dtypes else None,
+            "numeric_precision": record[column_size] if record[dtype_code] in num_dtypes else None,
+            "numeric_scale": record[decimals] if record[dtype_code] in num_dtypes else None,
         }
