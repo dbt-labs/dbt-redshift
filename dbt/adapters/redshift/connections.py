@@ -472,7 +472,7 @@ class RedshiftConnectionManager(SQLConnectionManager):
         fire_event(
             SQLQuery(
                 conn_name=cast_to_str(connection.name),
-                sql=f"get_columns_in_relation: {relation.render()}",
+                sql=f"call redshift_connector.Connection.get_columns({relation.database}, {relation.schema}, {relation.identifier})",
                 node_info=get_node_info(),
             )
         )
