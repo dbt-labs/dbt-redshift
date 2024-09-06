@@ -1,0 +1,7 @@
+kind: Fixes
+body: Support DROP CASCADE for materialized views; fixes bug that occurs when running
+  dbt on materialized views that reference other materialized views
+time: 2024-09-06T10:26:42.501014-04:00
+custom:
+  Author: mikealfare
+  Issue: "642"
