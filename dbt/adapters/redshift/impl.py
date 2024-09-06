@@ -69,7 +69,7 @@ class RedshiftAdapter(SQLAdapter):
     )
 
     @property
-    def _behavior_extra(self) -> List[BehaviorFlag]:
+    def _behavior_flags(self) -> List[BehaviorFlag]:
         return [{"name": "retire_pg_catalog", "default": False}]
 
     @classmethod
