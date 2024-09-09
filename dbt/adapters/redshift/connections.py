@@ -498,19 +498,18 @@ class RedshiftConnectionManager(SQLConnectionManager):
 
     @staticmethod
     def _parse_column_results(record: Tuple[Any, ...]) -> Dict[str, Any]:
-        # column positions in the tuple
-        column_name = 3
-        dtype_code = 4
-        dtype_name = 5
-        column_size = 6
-        decimals = 8
+        _, _, _, column_name, dtype_code, dtype_name, column_size, _, decimals, *_ = record
 
         char_dtypes = [1, 12]
-        num_dtypes = [2, 3, 4, 5, 6, 7, 8]
-        return {
-            "column": record[column_name],
-            "dtype": record[dtype_name],
-            "char_size": record[column_size] if record[dtype_code] in char_dtypes else None,
-            "numeric_precision": record[column_size] if record[dtype_code] in num_dtypes else None,
-            "numeric_scale": record[decimals] if record[dtype_code] in num_dtypes else None,
-        }
+        num_dtypes = [2, 3, 4, 5, 6, 7, 8, -5, 2003]
+
+        if dtype_code in char_dtypes:
+            return {"column": column_name, "dtype": dtype_name, "char_size": column_size}
+        elif dtype_code in num_dtypes:
+            return {
+                "column": column_name,
+                "dtype": dtype_name,
+                "numeric_precision": column_size,
+                "numeric_scale": decimals,
+            }
+        return {"column": column_name, "dtype": dtype_name, "char_size": column_size}
