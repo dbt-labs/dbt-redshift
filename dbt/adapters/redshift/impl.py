@@ -70,7 +70,7 @@ class RedshiftAdapter(SQLAdapter):
 
     @property
     def _behavior_flags(self) -> List[BehaviorFlag]:
-        return [{"name": "retire_pg_catalog", "default": False}]
+        return [{"name": "restrict_direct_pg_catalog_access", "default": False}]
 
     @classmethod
     def date_function(cls):
@@ -95,7 +95,7 @@ class RedshiftAdapter(SQLAdapter):
             return super().drop_relation(relation)
 
     def get_columns_in_relation(self, relation) -> List[Column]:
-        if self.behavior.retire_pg_catalog:
+        if self.behavior.restrict_direct_pg_catalog_access:
             column_configs = self.connections.columns_in_relation(relation)
             return [Column(**column) for column in column_configs]
         return super().get_columns_in_relation(relation)
