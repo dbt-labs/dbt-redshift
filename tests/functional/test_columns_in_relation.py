@@ -48,7 +48,7 @@ class TestColumnsInRelationBehaviorFlagOff(ColumnsInRelation):
 class TestColumnsInRelationBehaviorFlagOn(ColumnsInRelation):
     @pytest.fixture(scope="class")
     def project_config_update(self):
-        return {"flags": {"retire_pg_catalog": True}}
+        return {"flags": {"restrict_direct_pg_catalog_access": True}}
 
     @pytest.fixture(scope="class")
     def expected_columns(self):
