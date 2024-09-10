@@ -1,1 +1,1 @@
-# provides namespacing for test discovery
+# supports namespacing during test discovery

@@ -1,0 +1,6 @@
+kind: Features
+body: Remove `pg_catalog` from metadata queries
+time: 2024-08-26T12:39:54.481505-04:00
+custom:
+  Author: mikealfare, jiezhen-chen
+  Issue: "555"
