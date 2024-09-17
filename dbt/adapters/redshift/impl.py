@@ -70,7 +70,13 @@ class RedshiftAdapter(SQLAdapter):
 
     @property
     def _behavior_flags(self) -> List[BehaviorFlag]:
-        return [{"name": "restrict_direct_pg_catalog_access", "default": False}]
+        return [
+            {
+                "name": "restrict_direct_pg_catalog_access",
+                "default": False,
+                "description": "The current behavior for collecting metadata relies on pg_catalog tables. We should instead rely on the Redshift SDK for a more stable experience. This change represents some risk as some users may be using these macros in their custom macros. As such, they could be impacted by unexpected behavior. The use of this flag allows us to better understand this impact before forcing users to the new behavior.",
+            }
+        ]
 
     @classmethod
     def date_function(cls):
