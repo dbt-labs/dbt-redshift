@@ -80,7 +80,7 @@ class RedshiftAdapter(SQLAdapter):
                     "in order to support additional Redshift functionalities.\n"
                     "We do not expect this to impact your dbt experience."
                 ),
-                "docs_url": "https://docs.getdbt.com/reference/global-configs/behavior-changes#adapter-specific-behavior-changes",
+                "docs_url": "https://docs.getdbt.com/reference/global-configs/behavior-changes#redshift-restrict_direct_pg_catalog_access",
             }
         ]
 
