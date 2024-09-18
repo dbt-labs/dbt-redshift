@@ -70,7 +70,19 @@ class RedshiftAdapter(SQLAdapter):
 
     @property
     def _behavior_flags(self) -> List[BehaviorFlag]:
-        return [{"name": "restrict_direct_pg_catalog_access", "default": False}]
+        return [
+            {
+                "name": "restrict_direct_pg_catalog_access",
+                "default": False,
+                "description": (
+                    "The dbt-redshift adapter is migrating from using pg_ tables "
+                    "to using Redshift Metadata API and information_schema tables "
+                    "in order to support additional Redshift functionalities.\n"
+                    "We do not expect this to impact your dbt experience."
+                ),
+                "docs_url": "https://docs.getdbt.com/reference/global-configs/behavior-changes#redshift-restrict_direct_pg_catalog_access",
+            }
+        ]
 
     @classmethod
     def date_function(cls):
