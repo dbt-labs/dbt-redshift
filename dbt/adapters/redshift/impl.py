@@ -75,12 +75,12 @@ class RedshiftAdapter(SQLAdapter):
                 "name": "restrict_direct_pg_catalog_access",
                 "default": False,
                 "description": (
-                    "The dbt-redshift adapter is migrating from using pg_ tables"
-                    "to using Redshift Metadata API and information_schema tables"
-                    "in order to support additional Redshift functionalities."
+                    "The dbt-redshift adapter is migrating from using pg_ tables "
+                    "to using Redshift Metadata API and information_schema tables "
+                    "in order to support additional Redshift functionalities.\n"
                     "We do not expect this to impact your dbt experience."
                 ),
-                "doc_url": "https://docs.getdbt.com/reference/global-configs/behavior-changes#adapter-specific-behavior-changes",
+                "docs_url": "https://docs.getdbt.com/reference/global-configs/behavior-changes#adapter-specific-behavior-changes",
             }
         ]
 
