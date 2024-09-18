@@ -75,13 +75,12 @@ class RedshiftAdapter(SQLAdapter):
                 "name": "restrict_direct_pg_catalog_access",
                 "default": False,
                 "description": (
-                    "The current behavior for collecting metadata relies on pg_catalog tables. "
-                    "We should instead rely on the Redshift SDK for a more stable experience. "
-                    "This change represents some risk as some users may be using these macros "
-                    "in their custom macros. As such, they could be impacted by unexpected behavior. "
-                    "The use of this flag allows us to better understand this impact "
-                    "before forcing users to the new behavior."
+                    "The dbt-redshift adapter is migrating from using pg_ tables"
+                    "to using Redshift Metadata API and information_schema tables"
+                    "in order to support additional Redshift functionalities."
+                    "We do not expect this to impact your dbt experience."
                 ),
+                "doc_url": "https://docs.getdbt.com/reference/global-configs/behavior-changes#adapter-specific-behavior-changes",
             }
         ]
 
