@@ -1,6 +1,5 @@
 kind: Fixes
-body: Fix scenario where dbt attempts to add existing columns to relations when using
-  the SDK for column metadata
+body: Fix scenario where dbt attempts to add existing columns to relations when using the SDK for column metadata
 time: 2024-09-27T17:17:25.584838-04:00
 custom:
   Author: mikealfare
