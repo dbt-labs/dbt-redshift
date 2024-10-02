@@ -155,7 +155,7 @@ class RedshiftAdapter(SQLAdapter):
         """The set of standard builtin strategies which this adapter supports out-of-the-box.
         Not used to validate custom strategies defined by end users.
         """
-        return ["append", "delete+insert", "merge"]
+        return ["append", "delete+insert", "merge", "microbatch"]
 
     def timestamp_add_sql(self, add_to: str, number: int = 1, interval: str = "hour") -> str:
         return f"{add_to} + interval '{number} {interval}'"
