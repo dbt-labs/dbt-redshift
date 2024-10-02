@@ -1,5 +1,7 @@
+import os
+
 from dbt.adapters.base import Column
-from dbt.tests.util import run_dbt
+from dbt.tests.util import run_dbt, run_dbt_and_capture
 import pytest
 
 from dbt.adapters.redshift import RedshiftRelation
@@ -57,3 +59,43 @@ class TestColumnsInRelationBehaviorFlagOn(ColumnsInRelation):
             Column(column="my_num", dtype="numeric", numeric_precision=3, numeric_scale=2),
             Column(column="my_char", dtype="varchar", char_size=1),
         ]
+
+
+ONE_CHECK = """
+select 1 as id
+-- {{ adapter.get_columns_in_relation(this) }}
+"""
+
+
+TWO_CHECK = """
+select 1 as id
+-- {{ adapter.get_columns_in_relation(this) }}
+-- {{ adapter.get_columns_in_relation(this) }}
+"""
+
+
+class TestBehaviorFlagFiresOnce:
+    @pytest.fixture(scope="class")
+    def project_config_update(self):
+        return {"flags": {"restrict_direct_pg_catalog_access": False}}
+
+    @pytest.fixture(scope="class")
+    def models(self):
+        return {"one_check.sql": ONE_CHECK, "two_check.sql": TWO_CHECK}
+
+    def test_warning_fires_once(self, project):
+        msg = "https://docs.getdbt.com/reference/global-configs/behavior-changes#redshift-restrict_direct_pg_catalog_access"
+
+        # trigger the evaluation once, we get one warning
+        _, logs = run_dbt_and_capture(["--debug", "run", "--models", "one_check"])
+        assert logs.count(msg) == 1
+
+        # trigger the evaluation twice, we still get one warning
+        _, logs = run_dbt_and_capture(["--debug", "run", "--models", "one_check"])
+        assert logs.count(msg) == 1
+
+        # trigger the evaluation three times, across two models, we still get one warning
+        _, logs = run_dbt_and_capture(["--debug", "run", "--full-refresh"])
+        assert logs.count(msg) == 1
+
+        # note, we still got a warning in the second call, so it's once per invocation
