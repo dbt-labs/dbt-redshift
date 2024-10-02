@@ -67,6 +67,12 @@
 {% endmacro %}
 
 {% macro redshift__get_incremental_microbatch_sql(arg_dict) %}
+    {#-
+        Technically this function could just call out to the default implementation of delete_insert.
+        However, the default implementation requires a unique_id, which we actually do not want or
+        need. Thus we re-implement delete insert here without the unique_id requirement
+    -#}
+
     {%- set target = arg_dict["target_relation"] -%}
     {%- set source = arg_dict["temp_relation"] -%}
     {%- set dest_columns = arg_dict["dest_columns"] -%}
