@@ -76,7 +76,18 @@
     {%- set target = arg_dict["target_relation"] -%}
     {%- set source = arg_dict["temp_relation"] -%}
     {%- set dest_columns = arg_dict["dest_columns"] -%}
+    {%- set predicates = [] -%}
+
     {%- set incremental_predicates = [] if arg_dict.get('incremental_predicates') is none else arg_dict.get('incremental_predicates') -%}
+    {%- for pred in incremental_predicates -%}
+        {% if "DBT_INTERNAL_DEST." in pred %}
+            {%- set pred =  pred | replace("DBT_INTERNAL_DEST.", target ~ "." ) -%}
+        {% endif %}
+        {% if "dbt_internal_dest." in pred %}
+            {%- set pred =  pred | replace("dbt_internal_dest.", target ~ "." ) -%}
+        {% endif %}
+        {% do predicates.append(pred) %}
+    {% endfor %}
 
     {#-- Add additional incremental_predicates to filter for batch --#}
     {% if model.config.get("__dbt_internal_microbatch_event_time_start") -%}
@@ -85,7 +96,7 @@
     {% if model.config.__dbt_internal_microbatch_event_time_end -%}
         {% do incremental_predicates.append("DBT_INTERNAL_TARGET." ~ model.config.event_time ~ " < TIMESTAMP '" ~ model.config.__dbt_internal_microbatch_event_time_end ~ "'") %}
     {% endif %}
-    {% do arg_dict.update({'incremental_predicates': incremental_predicates}) %}
+    {% do arg_dict.update({'incremental_predicates': predicates}) %}
 
     delete from {{ target }} DBT_INTERNAL_TARGET
     using {{ source }}
