@@ -5,36 +5,46 @@ from tests.functional.utils import update_model
 
 
 SEED = """
-column_a,column_b,column_c,column_d
-1,thunder,ho,Cheetara
-2,THUNDER,HO,Tygra
-3,THUNDERCATS,HOOOO,Lion-O
+id,col7,col6,occurred_at
+1,Cheetara,thunder,'2024-01-01'
+2,Tygra,thunder,'2024-01-01'
+2,Tygra,THUNDER,'2024-02-01'
+3,Lion-O,thunder,'2024-01-01'
+3,Lion-O,THUNDER,'2024-02-01'
+3,Lion-O,THUNDERCATS,'2024-03-01'
 """.strip()
 
 
 MODEL_INITIAL = """
 {{ config(
     materialized='incremental',
-    on_schema_change='sync_all_columns',
+    dist='col6',
+    on_schema_change='append_new_columns',
 ) }}
 select
-    column_a,
-    column_b,
-    column_c
+    id::bigint as id,
+    col6::varchar(128) as col6,
+    occurred_at::timestamptz as occurred_at
 from {{ ref('my_seed') }}
+where occurred_at::timestamptz >= '2024-01-01'::timestamptz
+and occurred_at::timestamptz < '2024-02-01'::timestamptz
 """
 
 
 MODEL_UPDATE = """
 {{ config(
     materialized='incremental',
-    on_schema_change='sync_all_columns',
+    dist='col6',
+    on_schema_change='append_new_columns',
 ) }}
 select
-    column_b as column_B,
-    column_c as "COLUMN_C",
-    column_D
+    id::bigint as id,
+    col6::varchar(128) as col6,
+    occurred_at::timestamptz as occurred_at,
+    col7::varchar(56) as col7
 from {{ ref('my_seed') }}
+where occurred_at::timestamptz >= '2024-02-01'::timestamptz
+and occurred_at::timestamptz < '2024-03-01'::timestamptz
 """
 
 

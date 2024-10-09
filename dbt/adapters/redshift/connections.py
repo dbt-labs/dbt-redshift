@@ -503,6 +503,15 @@ class RedshiftConnectionManager(SQLConnectionManager):
         char_dtypes = [1, 12]
         num_dtypes = [2, 3, 4, 5, 6, 7, 8, -5, 2003]
 
+        # the results from `get_columns` vary slightly from the pg_catalog tables for dtype names
+        dtype_alias = {
+            "bool": "boolean",
+            "int4": "integer",
+            "timestamp": "timestamp without time zone",
+            "varchar": "character varying",
+        }
+        dtype_name = dtype_alias.get(dtype_name, dtype_name)
+
         if dtype_code in char_dtypes:
             return {"column": column_name, "dtype": dtype_name, "char_size": column_size}
         elif dtype_code in num_dtypes:
