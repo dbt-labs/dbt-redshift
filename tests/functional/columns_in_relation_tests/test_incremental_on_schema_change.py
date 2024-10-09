@@ -51,6 +51,9 @@ and occurred_at::timestamptz < '2024-03-01'::timestamptz
 class TestIncrementalOnSchemaChange:
     """
     This addresses: https://github.com/dbt-labs/dbt-redshift/issues/914
+
+    We test it with the `restrict_direct_pg_catalog_access` flag both off and on since the bug
+    only emerges when the flag is on (the former is a control).
     """
 
     @pytest.fixture(scope="class")
@@ -71,3 +74,10 @@ class TestIncrementalOnSchemaChange:
         update_model(project, "my_model", MODEL_UPDATE)
         run_dbt(["run"])
         # a successful run is a pass
+
+
+class TestIncrementalOnSchemaChangeFlagOn:
+
+    @pytest.fixture(scope="class")
+    def project_config_update(self):
+        return {"flags": {"restrict_direct_pg_catalog_access": True}}
