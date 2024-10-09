@@ -15,11 +15,7 @@ class ColumnsInRelation:
     def setup(self, project):
         run_dbt(["run"])
 
-    @pytest.fixture(scope="class")
-    def expected_columns(self):
-        return []
-
-    def test_columns_in_relation(self, project, expected_columns):
+    def test_columns_in_relation(self, project):
         my_relation = RedshiftRelation.create(
             database=project.database,
             schema=project.test_schema,
@@ -28,6 +24,10 @@ class ColumnsInRelation:
         )
         with project.adapter.connection_named("_test"):
             actual_columns = project.adapter.get_columns_in_relation(my_relation)
+        expected_columns = [
+            Column(column="my_num", dtype="numeric", numeric_precision=3, numeric_scale=2),
+            Column(column="my_char", dtype="character varying", char_size=1),
+        ]
         assert actual_columns == expected_columns
 
 
@@ -36,24 +36,8 @@ class TestColumnsInRelationBehaviorFlagOff(ColumnsInRelation):
     def project_config_update(self):
         return {"flags": {}}
 
-    @pytest.fixture(scope="class")
-    def expected_columns(self):
-        # the SDK query returns "varchar" whereas our custom query returns "character varying"
-        return [
-            Column(column="my_num", dtype="numeric", numeric_precision=3, numeric_scale=2),
-            Column(column="my_char", dtype="character varying", char_size=1),
-        ]
-
 
 class TestColumnsInRelationBehaviorFlagOn(ColumnsInRelation):
     @pytest.fixture(scope="class")
     def project_config_update(self):
         return {"flags": {"restrict_direct_pg_catalog_access": True}}
-
-    @pytest.fixture(scope="class")
-    def expected_columns(self):
-        # the SDK query returns "varchar" whereas our custom query returns "character varying"
-        return [
-            Column(column="my_num", dtype="numeric", numeric_precision=3, numeric_scale=2),
-            Column(column="my_char", dtype="varchar", char_size=1),
-        ]
