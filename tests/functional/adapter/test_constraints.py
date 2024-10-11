@@ -9,6 +9,7 @@ from dbt.tests.adapter.constraints.test_constraints import (
     BaseIncrementalConstraintsRollback,
     BaseModelConstraintsRuntimeEnforcement,
     BaseConstraintQuotedColumn,
+    TestIncrementalForeignKeyConstraint,
 )
 
 _expected_sql_redshift = """
@@ -147,3 +148,54 @@ insert into <model_identifier>
     ) as model_subq
 );
 """
+
+
+class TestRedshiftIncrementalForeignKeyConstraint(TestIncrementalForeignKeyConstraint):
+    @pytest.fixture(scope="class")
+    def macros(self):
+        return {
+            "create_table.sql": """
+{% macro create_table_macro() %}
+create table if not exists numbers (n int not null primary key)
+{% endmacro %}
+""",
+        }
+
+    @pytest.fixture(scope="class")
+    def models(self):
+        return {
+            "schema.yml": """
+version: 2
+models:
+  - name: raw_numbers
+    config:
+      contract:
+        enforced: true
+      materialized: table
+    columns:
+        - name: n
+          data_type: integer
+          constraints:
+            - type: primary_key
+            - type: not_null
+  - name: stg_numbers
+    config:
+      contract:
+        enforced: true
+      materialized: incremental
+      on_schema_change: append_new_columns
+      unique_key: n
+    columns:
+      - name: n
+        data_type: integer
+        constraints:
+          - type: foreign_key
+            expression: {schema}.raw_numbers (n)
+""",
+            "raw_numbers.sql": """
+select 1 as n
+""",
+            "stg_numbers.sql": """
+select * from {{ ref('raw_numbers') }}
+""",
+        }
