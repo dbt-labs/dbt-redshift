@@ -34,7 +34,7 @@ class ColumnsInRelation:
 class TestColumnsInRelationBehaviorFlagOff(ColumnsInRelation):
     @pytest.fixture(scope="class")
     def project_config_update(self):
-        return {"flags": {}}
+        return {"flags": {"restrict_direct_pg_catalog_access": False}}
 
 
 class TestColumnsInRelationBehaviorFlagOn(ColumnsInRelation):
