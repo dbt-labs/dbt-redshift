@@ -28,7 +28,7 @@ defaults:
     shell: "bash"
 
 env:
-  PYTHON_TARGET_VERSION: 3.8
+  PYTHON_TARGET_VERSION: 3.9
   NOTIFICATION_PREFIX: "[Internal Archive Release]"
   TEMP_PROFILE_NAME: "temp_aws_profile"
 
