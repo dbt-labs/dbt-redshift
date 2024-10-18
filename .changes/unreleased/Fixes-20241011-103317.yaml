@@ -1,0 +1,6 @@
+kind: Fixes
+body: Foreign key constraint on incremental model results in Database Error
+time: 2024-10-11T10:33:17.860744-04:00
+custom:
+    Author: bdgeise
+    Issue: "628"
