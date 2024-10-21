@@ -68,10 +68,8 @@ jobs:
       max-parallel: 3
       matrix:
         os: [ubuntu-22.04, macos-12, windows-2022]
-        python-version: ["3.8"]
+        python-version: ["3.9"]
         include:
-          - os: ubuntu-22.04
-            python-version: "3.9"
           - os: ubuntu-22.04
             python-version: "3.10"
           - os: ubuntu-22.04
@@ -201,7 +199,7 @@ jobs:
       fail-fast: false
       max-parallel: 1
       matrix:
-        python-version: ["3.8", "3.9", "3.10", "3.11"]
+        python-version: ["3.9", "3.10", "3.11"]
 
     env:
       TOXENV: integration-redshift
