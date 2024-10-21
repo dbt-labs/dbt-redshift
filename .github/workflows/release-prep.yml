@@ -84,7 +84,7 @@ defaults:
     shell: bash
 
 env:
-  PYTHON_TARGET_VERSION: 3.8
+  PYTHON_TARGET_VERSION: 3.9
   NOTIFICATION_PREFIX: "[Release Preparation]"
 
 jobs:
