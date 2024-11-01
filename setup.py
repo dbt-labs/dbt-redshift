@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 import sys
 
-if sys.version_info < (3, 8):
+if sys.version_info < (3, 9):
     print("Error: dbt does not support this version of Python.")
-    print("Please upgrade to Python 3.8 or higher.")
+    print("Please upgrade to Python 3.9 or higher.")
     sys.exit(1)
 
 
@@ -48,8 +48,8 @@ setup(
     packages=find_namespace_packages(include=["dbt", "dbt.*"]),
     include_package_data=True,
     install_requires=[
-        "dbt-common>=0.1.0a1,<2.0",
-        "dbt-adapters>=0.1.0a1,<2.0",
+        "dbt-common>=1.10,<2.0",
+        "dbt-adapters>=1.7,<2.0",
         "dbt-postgres>=1.8,<1.10",
         # dbt-redshift depends deeply on this package. it does not follow SemVer, therefore there have been breaking changes in previous patch releases
         # Pin to the patch or minor version, and bump in each new minor version of dbt-redshift.
@@ -67,11 +67,10 @@ setup(
         "Operating System :: Microsoft :: Windows",
         "Operating System :: MacOS :: MacOS X",
         "Operating System :: POSIX :: Linux",
-        "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
         "Programming Language :: Python :: 3.12",
     ],
-    python_requires=">=3.8",
+    python_requires=">=3.9",
 )

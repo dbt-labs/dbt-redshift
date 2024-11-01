@@ -1,5 +1,6 @@
 from unittest.mock import Mock
 
+import agate
 import pytest
 
 from dbt.adapters.redshift.relation_configs import RedshiftMaterializedViewConfig
@@ -53,3 +54,57 @@ def test_redshift_materialized_view_config_throws_expected_exception_with_invali
     )
     with pytest.raises(ValueError):
         config.parse_relation_config(model_node)
+
+
+def test_redshift_materialized_view_parse_relation_results_handles_multiples_sort_key():
+    materialized_view = agate.Table.from_object(
+        [],
+        [
+            "database",
+            "schema",
+            "table",
+            "diststyle",
+            "sortkey1",
+            "autorefresh",
+        ],
+    )
+
+    column_descriptor = agate.Table.from_object(
+        [
+            {
+                "column": "my_column",
+                "is_dist_key": True,
+                "sort_key_position": 1,
+            },
+            {
+                "column": "my_column2",
+                "is_dist_key": True,
+                "sort_key_position": 2,
+            },
+            {
+                "column": "my_column5",
+                "is_dist_key": False,
+                "sort_key_position": 0,
+            },
+        ],
+    )
+
+    query = agate.Table.from_object(
+        [
+            {
+                "definition": "create materialized view my_view as (select 1 as my_column, 'value' as my_column2)"
+            }
+        ]
+    )
+
+    relation_results = {
+        "materialized_view": materialized_view,
+        "columns": column_descriptor,
+        "query": query,
+    }
+
+    config_dict = RedshiftMaterializedViewConfig.parse_relation_results(relation_results)
+
+    assert isinstance(config_dict["sort"], dict)
+    assert config_dict["sort"]["sortkey"][0] == "my_column"
+    assert config_dict["sort"]["sortkey"][1] == "my_column2"
