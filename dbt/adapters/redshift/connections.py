@@ -382,6 +382,7 @@ class RedshiftConnectionManager(SQLConnectionManager):
             redshift_connector.OperationalError,
             redshift_connector.DatabaseError,
             redshift_connector.DataError,
+            redshift_connector.InterfaceError,
         ]
 
         open_connection = cls.retry_connection(
