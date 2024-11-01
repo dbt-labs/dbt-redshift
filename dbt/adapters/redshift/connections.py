@@ -3,7 +3,6 @@ from multiprocessing import Lock
 from contextlib import contextmanager
 from typing import Any, Callable, Dict, Tuple, Union, Optional, List, TYPE_CHECKING
 from dataclasses import dataclass, field
-import time
 
 import sqlparse
 import redshift_connector
@@ -13,14 +12,10 @@ from redshift_connector.utils.oids import get_datatype_name
 from dbt.adapters.sql import SQLConnectionManager
 from dbt.adapters.contracts.connection import AdapterResponse, Connection, Credentials
 from dbt.adapters.events.logging import AdapterLogger
-from dbt.adapters.events.types import SQLQuery, SQLQueryStatus
 from dbt_common.contracts.util import Replaceable
 from dbt_common.dataclass_schema import dbtClassMixin, StrEnum, ValidationError
-from dbt_common.events.contextvars import get_node_info
-from dbt_common.events.functions import fire_event
 from dbt_common.helper_types import Port
 from dbt_common.exceptions import DbtRuntimeError, CompilationError, DbtDatabaseError
-from dbt_common.utils import cast_to_str
 
 if TYPE_CHECKING:
     # Indirectly imported via agate_helper, which is lazy loaded further downfile.
@@ -466,51 +461,3 @@ class RedshiftConnectionManager(SQLConnectionManager):
 
         if hasattr(Lexer, "get_default_instance"):
             Lexer.get_default_instance()
-
-    def columns_in_relation(self, relation) -> List[Dict[str, Any]]:
-        connection = self.get_thread_connection()
-
-        fire_event(
-            SQLQuery(
-                conn_name=cast_to_str(connection.name),
-                sql=f"call redshift_connector.Connection.get_columns({relation.database}, {relation.schema}, {relation.identifier})",
-                node_info=get_node_info(),
-            )
-        )
-
-        pre = time.perf_counter()
-
-        cursor = connection.handle.cursor()
-        columns = cursor.get_columns(
-            catalog=relation.database,
-            schema_pattern=relation.schema,
-            tablename_pattern=relation.identifier,
-        )
-
-        fire_event(
-            SQLQueryStatus(
-                status=str(self.get_response(cursor)),
-                elapsed=time.perf_counter() - pre,
-                node_info=get_node_info(),
-            )
-        )
-
-        return [self._parse_column_results(column) for column in columns]
-
-    @staticmethod
-    def _parse_column_results(record: Tuple[Any, ...]) -> Dict[str, Any]:
-        _, _, _, column_name, dtype_code, dtype_name, column_size, _, decimals, *_ = record
-
-        char_dtypes = [1, 12]
-        num_dtypes = [2, 3, 4, 5, 6, 7, 8, -5, 2003]
-
-        if dtype_code in char_dtypes:
-            return {"column": column_name, "dtype": dtype_name, "char_size": column_size}
-        elif dtype_code in num_dtypes:
-            return {
-                "column": column_name,
-                "dtype": dtype_name,
-                "numeric_precision": column_size,
-                "numeric_scale": decimals,
-            }
-        return {"column": column_name, "dtype": dtype_name, "char_size": column_size}
