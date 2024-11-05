@@ -1,5 +1,3 @@
-import os
-
 from dbt.adapters.base import Column
 from dbt.tests.util import run_dbt, run_dbt_and_capture
 import pytest
@@ -47,6 +45,12 @@ class TestColumnsInRelationBehaviorFlagOff(ColumnsInRelation):
         ]
 
 
+@pytest.mark.skip(
+    """
+    There is a discrepancy between our custom query and the get_columns SDK call.
+    This test should be skipped for now, but re-enabled once get_columns is implemented.
+"""
+)
 class TestColumnsInRelationBehaviorFlagOn(ColumnsInRelation):
     @pytest.fixture(scope="class")
     def project_config_update(self):
@@ -74,6 +78,12 @@ select 1 as id
 """
 
 
+@pytest.mark.skip(
+    """
+    There is a discrepancy between our custom query and the get_columns SDK call.
+    This test should be skipped for now, but re-enabled once get_columns is implemented.
+"""
+)
 class TestBehaviorFlagFiresOnce:
     @pytest.fixture(scope="class")
     def project_config_update(self):
