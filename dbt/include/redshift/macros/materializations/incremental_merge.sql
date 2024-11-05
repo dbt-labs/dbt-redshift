@@ -99,13 +99,11 @@
     {% do arg_dict.update({'incremental_predicates': predicates}) %}
 
     delete from {{ target }}
-    {% if predicates | length > 0 %}
-        where (
-        {% for predicate in predicates %}
-            {%- if not loop.first %}and {% endif -%} {{ predicate }}
-        {% endfor %}
-        );
-    {% endif %}
+    where (
+    {% for predicate in predicates %}
+        {%- if not loop.first %}and {% endif -%} {{ predicate }}
+    {% endfor %}
+    );
 
     {%- set dest_cols_csv = get_quoted_csv(dest_columns | map(attribute="name")) -%}
     insert into {{ target }} ({{ dest_cols_csv }})
