@@ -89,22 +89,23 @@
         {% do predicates.append(pred) %}
     {% endfor %}
 
+    {% if not model.config.get("__dbt_internal_microbatch_event_time_start") or not model.config.__dbt_internal_microbatch_event_time_end -%}
+        {% do exceptions.raise_compiler_error('dbt could not compute the start and end timestamps for the running batch') %}
+    {% endif %}
+
     {#-- Add additional incremental_predicates to filter for batch --#}
-    {% if model.config.get("__dbt_internal_microbatch_event_time_start") -%}
-        {% do incremental_predicates.append("DBT_INTERNAL_TARGET." ~ model.config.event_time ~ " >= TIMESTAMP '" ~ model.config.__dbt_internal_microbatch_event_time_start ~ "'") %}
-    {% endif %}
-    {% if model.config.__dbt_internal_microbatch_event_time_end -%}
-        {% do incremental_predicates.append("DBT_INTERNAL_TARGET." ~ model.config.event_time ~ " < TIMESTAMP '" ~ model.config.__dbt_internal_microbatch_event_time_end ~ "'") %}
-    {% endif %}
+    {% do predicates.append(target ~ "." ~ model.config.event_time ~ " >= TIMESTAMP '" ~ model.config.__dbt_internal_microbatch_event_time_start ~ "'") %}
+    {% do predicates.append(target ~ "." ~ model.config.event_time ~ " < TIMESTAMP '" ~ model.config.__dbt_internal_microbatch_event_time_end ~ "'") %}
     {% do arg_dict.update({'incremental_predicates': predicates}) %}
 
-    delete from {{ target }} DBT_INTERNAL_TARGET
-    using {{ source }}
-    where (
-    {% for predicate in incremental_predicates %}
-        {%- if not loop.first %}and {% endif -%} {{ predicate }}
-    {% endfor %}
-    );
+    delete from {{ target }}
+    {% if predicates | length > 0 %}
+        where (
+        {% for predicate in predicates %}
+            {%- if not loop.first %}and {% endif -%} {{ predicate }}
+        {% endfor %}
+        );
+    {% endif %}
 
     {%- set dest_cols_csv = get_quoted_csv(dest_columns | map(attribute="name")) -%}
     insert into {{ target }} ({{ dest_cols_csv }})
