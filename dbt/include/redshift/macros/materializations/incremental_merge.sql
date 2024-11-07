@@ -89,7 +89,7 @@
         {% do predicates.append(pred) %}
     {% endfor %}
 
-    {% if not model.config.get("__dbt_internal_microbatch_event_time_start") or not model.config.__dbt_internal_microbatch_event_time_end -%}
+    {% if not model.config.get("__dbt_internal_microbatch_event_time_start") or not model.config.get("__dbt_internal_microbatch_event_time_end") -%}
         {% do exceptions.raise_compiler_error('dbt could not compute the start and end timestamps for the running batch') %}
     {% endif %}
 
