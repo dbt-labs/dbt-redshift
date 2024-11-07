@@ -65,3 +65,50 @@
     )
 
 {% endmacro %}
+
+{% macro redshift__get_incremental_microbatch_sql(arg_dict) %}
+    {#-
+        Technically this function could just call out to the default implementation of delete_insert.
+        However, the default implementation requires a unique_id, which we actually do not want or
+        need. Thus we re-implement delete insert here without the unique_id requirement
+    -#}
+
+    {%- set target = arg_dict["target_relation"] -%}
+    {%- set source = arg_dict["temp_relation"] -%}
+    {%- set dest_columns = arg_dict["dest_columns"] -%}
+    {%- set predicates = [] -%}
+
+    {%- set incremental_predicates = [] if arg_dict.get('incremental_predicates') is none else arg_dict.get('incremental_predicates') -%}
+    {%- for pred in incremental_predicates -%}
+        {% if "DBT_INTERNAL_DEST." in pred %}
+            {%- set pred =  pred | replace("DBT_INTERNAL_DEST.", target ~ "." ) -%}
+        {% endif %}
+        {% if "dbt_internal_dest." in pred %}
+            {%- set pred =  pred | replace("dbt_internal_dest.", target ~ "." ) -%}
+        {% endif %}
+        {% do predicates.append(pred) %}
+    {% endfor %}
+
+    {% if not model.config.get("__dbt_internal_microbatch_event_time_start") or not model.config.get("__dbt_internal_microbatch_event_time_end") -%}
+        {% do exceptions.raise_compiler_error('dbt could not compute the start and end timestamps for the running batch') %}
+    {% endif %}
+
+    {#-- Add additional incremental_predicates to filter for batch --#}
+    {% do predicates.append(model.config.event_time ~ " >= TIMESTAMP '" ~ model.config.__dbt_internal_microbatch_event_time_start ~ "'") %}
+    {% do predicates.append(model.config.event_time ~ " < TIMESTAMP '" ~ model.config.__dbt_internal_microbatch_event_time_end ~ "'") %}
+    {% do arg_dict.update({'incremental_predicates': predicates}) %}
+
+    delete from {{ target }}
+    where (
+    {% for predicate in predicates %}
+        {%- if not loop.first %}and {% endif -%} {{ predicate }}
+    {% endfor %}
+    );
+
+    {%- set dest_cols_csv = get_quoted_csv(dest_columns | map(attribute="name")) -%}
+    insert into {{ target }} ({{ dest_cols_csv }})
+    (
+        select {{ dest_cols_csv }}
+        from {{ source }}
+    )
+{% endmacro %}
