@@ -79,7 +79,7 @@ class TestInvalidMethod(AuthMethod):
             connection = self.adapter.acquire_connection("dummy")
             connection.handle
             redshift_connector.connect.assert_called_once_with(
-                iam=True,
+                iam=False,
                 host="doesnotexist.1233_no_region",
                 database="redshift",
                 cluster_identifier=None,
@@ -590,7 +590,7 @@ class TestIAMIdcBrowser(AuthMethod):
         connection = self.adapter.acquire_connection("dummy")
         connection.handle
         redshift_connector.connect.assert_called_once_with(
-            iam=True,
+            iam=False,
             host="doesnotexist.1233.us-east-2.redshift-serverless.amazonaws.com",
             database="redshift",
             cluster_identifier=None,
@@ -621,7 +621,7 @@ class TestIAMIdcBrowser(AuthMethod):
         connection = self.adapter.acquire_connection("dummy")
         connection.handle
         redshift_connector.connect.assert_called_once_with(
-            iam=True,
+            iam=False,
             host="doesnotexist.1233.us-east-2.redshift-serverless.amazonaws.com",
             database="redshift",
             cluster_identifier=None,
@@ -681,7 +681,7 @@ class TestIAMIdcToken(AuthMethod):
         connection = self.adapter.acquire_connection("dummy")
         connection.handle
         redshift_connector.connect.assert_called_once_with(
-            iam=True,
+            iam=False,
             host="doesnotexist.1235.us-east-2.redshift-serverless.amazonaws.com",
             database="redshift",
             cluster_identifier=None,
