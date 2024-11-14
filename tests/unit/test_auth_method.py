@@ -9,7 +9,7 @@ from dbt.adapters.redshift import (
     Plugin as RedshiftPlugin,
     RedshiftAdapter,
 )
-from dbt.adapters.redshift.connections import RedshiftConnectMethodFactory, RedshiftSSLConfig
+from dbt.adapters.redshift.connections import get_connection_method, RedshiftSSLConfig
 from tests.unit.utils import config_from_parts_or_dicts, inject_adapter
 
 
@@ -61,7 +61,7 @@ class TestInvalidMethod(AuthMethod):
         # we have to set method this way, otherwise it won't validate
         self.config.credentials.method = "badmethod"
         with self.assertRaises(FailedToConnectError) as context:
-            connect_method_factory = RedshiftConnectMethodFactory(self.config.credentials)
+            connect_method_factory = get_connection_method(self.config.credentials)
             connect_method_factory.get_connect_method()
         self.assertTrue("badmethod" in context.exception.msg)
 
@@ -221,7 +221,7 @@ class TestIAMUserMethod(AuthMethod):
     def test_no_cluster_id(self):
         self.config.credentials = self.config.credentials.replace(method="iam")
         with self.assertRaises(FailedToConnectError) as context:
-            connect_method_factory = RedshiftConnectMethodFactory(self.config.credentials)
+            connect_method_factory = get_connection_method(self.config.credentials)
             connect_method_factory.get_connect_method()
 
         self.assertTrue("'cluster_id' must be provided" in context.exception.msg)
@@ -400,7 +400,7 @@ class TestIAMRoleMethod(AuthMethod):
     def test_no_cluster_id(self):
         self.config.credentials = self.config.credentials.replace(method="iam_role")
         with self.assertRaises(FailedToConnectError) as context:
-            connect_method_factory = RedshiftConnectMethodFactory(self.config.credentials)
+            connect_method_factory = get_connection_method(self.config.credentials)
             connect_method_factory.get_connect_method()
 
         self.assertTrue("'cluster_id' must be provided" in context.exception.msg)
@@ -573,3 +573,157 @@ class TestIAMRoleMethodServerless(AuthMethod):
                 **DEFAULT_SSL_CONFIG,
             )
         self.assertTrue("'host' must be provided" in context.exception.msg)
+
+
+class TestIAMIdcBrowser(AuthMethod):
+    @mock.patch("redshift_connector.connect", MagicMock())
+    def test_profile_idc_browser_all_fields(self):
+        self.config.credentials = self.config.credentials.replace(
+            method="iam_idc_browser",
+            credentials_provider="BrowserIdcAuthPlugin",
+            idc_region="us-east-1",
+            issuer_url="https://identitycenter.amazonaws.com/ssoins-randomchars",
+            idc_client_display_name="display name",
+            idp_response_timeout=0,
+            host="doesnotexist.1233.us-east-2.redshift-serverless.amazonaws.com",
+        )
+        connection = self.adapter.acquire_connection("dummy")
+        connection.handle
+        redshift_connector.connect.assert_called_once_with(
+            iam=True,
+            host="doesnotexist.1233.us-east-2.redshift-serverless.amazonaws.com",
+            database="redshift",
+            cluster_identifier=None,
+            region=None,
+            auto_create=False,
+            db_groups=[],
+            password="",
+            user="",
+            timeout=None,
+            port=5439,
+            **DEFAULT_SSL_CONFIG,
+            idp_response_timeout=0,
+            idc_client_display_name="display name",
+            credentials_provider="BrowserIdcAuthPlugin",
+            idc_region="us-east-1",
+            issuer_url="https://identitycenter.amazonaws.com/ssoins-randomchars",
+        )
+
+    @mock.patch("redshift_connector.connect", MagicMock())
+    def test_profile_idc_browser_required_fields_only(self):
+        self.config.credentials = self.config.credentials.replace(
+            method="iam_idc_browser",
+            credentials_provider="BrowserIdcAuthPlugin",
+            idc_region="us-east-1",
+            issuer_url="https://identitycenter.amazonaws.com/ssoins-randomchars",
+            host="doesnotexist.1233.us-east-2.redshift-serverless.amazonaws.com",
+        )
+        connection = self.adapter.acquire_connection("dummy")
+        connection.handle
+        redshift_connector.connect.assert_called_once_with(
+            iam=True,
+            host="doesnotexist.1233.us-east-2.redshift-serverless.amazonaws.com",
+            database="redshift",
+            cluster_identifier=None,
+            region=None,
+            auto_create=False,
+            db_groups=[],
+            password="",
+            user="",
+            timeout=None,
+            port=5439,
+            **DEFAULT_SSL_CONFIG,
+            idp_response_timeout=60,
+            idc_client_display_name="Amazon Redshift driver",
+            credentials_provider="BrowserIdcAuthPlugin",
+            idc_region="us-east-1",
+            issuer_url="https://identitycenter.amazonaws.com/ssoins-randomchars",
+        )
+
+    def test_invalid_plugin_for_idc_browser_auth_method(self):
+        self.config.credentials = self.config.credentials.replace(
+            method="iam_idc_browser",
+            credentials_provider="IdpTokenAuthPlugin",
+        )
+        with self.assertRaises(FailedToConnectError) as context:
+            connection = self.adapter.acquire_connection("dummy")
+            connection.handle
+
+        assert "BrowserIdcAuthPlugin" in context.exception.msg
+
+    def test_invalid_adapter_missing_fields(self):
+        self.config.credentials = self.config.credentials.replace(
+            method="iam_idc_browser",
+            credentials_provider="BrowserIdcAuthPlugin",
+            idc_client_display_name="my display",
+        )
+        with self.assertRaises(FailedToConnectError) as context:
+            connection = self.adapter.acquire_connection("dummy")
+            connection.handle
+
+        assert (
+            "'idc_region', 'issuer_url' field(s) are required for 'iam_idc_browser' credentials method"
+            in context.exception.msg
+        )
+
+
+class TestIAMIdcToken(AuthMethod):
+    @mock.patch("redshift_connector.connect", MagicMock())
+    def test_profile_idc_token_all_required_fields(self):
+        """Same as all possible fields"""
+        self.config.credentials = self.config.credentials.replace(
+            method="iam_idc_token",
+            credentials_provider="IdpTokenAuthPlugin",
+            token="token",
+            token_type="ACCESS_TOKEN",
+            host="doesnotexist.1235.us-east-2.redshift-serverless.amazonaws.com",
+        )
+        connection = self.adapter.acquire_connection("dummy")
+        connection.handle
+        redshift_connector.connect.assert_called_once_with(
+            iam=True,
+            host="doesnotexist.1235.us-east-2.redshift-serverless.amazonaws.com",
+            database="redshift",
+            cluster_identifier=None,
+            region=None,
+            auto_create=False,
+            db_groups=[],
+            password="",
+            user="",
+            timeout=None,
+            port=5439,
+            **DEFAULT_SSL_CONFIG,
+            credentials_provider="IdpTokenAuthPlugin",
+            token="token",
+            token_type="ACCESS_TOKEN",
+        )
+
+    def test_invalid_plugin_for_idc_token_auth_method(self):
+        self.config.credentials = self.config.credentials.replace(
+            method="iam_idc_token",
+            token="token",
+            token_type="ACCESS_TOKEN",
+            credentials_provider="BrowserIdcAuthPlugin",
+        )
+        with self.assertRaises(FailedToConnectError) as context:
+            connection = self.adapter.acquire_connection("dummy")
+            connection.handle
+
+        assert "IdpTokenAuthPlugin" in context.exception.msg
+
+    @mock.patch("redshift_connector.connect", MagicMock())
+    def test_invalid_idc_token_missing_field(self):
+        # Successful test
+        self.config.credentials = self.config.credentials.replace(
+            method="iam_idc_token",
+            credentials_provider="IdpTokenAuthPlugin",
+            token_type="ACCESS_TOKEN",
+            host="doesnotexist.1235.us-east-2.redshift-serverless.amazonaws.com",
+        )
+        with self.assertRaises(FailedToConnectError) as context:
+            connection = self.adapter.acquire_connection("dummy")
+            connection.handle
+        assert (
+            "'token' field(s) are required for 'iam_idc_token' credentials method"
+            in context.exception.msg
+        )
