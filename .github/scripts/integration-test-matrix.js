@@ -1,6 +1,6 @@
 module.exports = ({ context }) => {
-  const defaultPythonVersion = "3.9";
-  const supportedPythonVersions = ["3.9", "3.10", "3.11"];
+  const defaultPythonVersion = "3.10";
+  const supportedPythonVersions = ["3.9", "3.10", "3.11", "3.12"];
   const supportedAdapters = ["redshift"];
 
   // if PR, generate matrix based on files changed and PR labels
