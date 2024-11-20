@@ -1,5 +1,5 @@
 module.exports = ({ context }) => {
-  const defaultPythonVersion = "3.9";
+  const defaultPythonVersion = "3.10";
   const supportedPythonVersions = ["3.9", "3.10", "3.11"];
   const supportedAdapters = ["redshift"];
 
