@@ -47,7 +47,6 @@ class RedshiftConnectionMethod(StrEnum):
     IAM = "iam"
     IAM_ROLE = "iam_role"
     IAM_IDENTITY_CENTER_BROWSER = "iam_idc_browser"
-    IAM_IDENTITY_CENTER_TOKEN = "iam_idc_token"
 
     @staticmethod
     def uses_identity_center(method: str):
@@ -317,32 +316,6 @@ def get_connection_method(
 
         return __iam_kwargs(credentials) | idc_kwargs
 
-    def __iam_idc_token_kwargs(credentials) -> Dict[str, Any]:
-        logger.debug("Connecting to Redshift with 'iam_idc_token' credentials method")
-        identity_center_method_name: str = "IdpTokenAuthPlugin"
-
-        if credentials.credentials_provider != identity_center_method_name:
-            raise FailedToConnectError(
-                f"'credentials_provider' must be set to '{identity_center_method_name}'"
-            )
-
-        __assert_required_fields("iam_idc_token", ("credentials_provider", "token", "token_type"))
-
-        try:
-            _ = IdentityCenterTokenType(credentials.token_type)
-        except ValueError:
-            raise FailedToConnectError(
-                f"'token_type' must be set to one of {[token.value for token in iter(IdentityCenterTokenType)]}"
-            )
-
-        idc_token_kwargs: Dict[str, Any] = {
-            "credentials_provider": identity_center_method_name,
-            "token": credentials.token,
-            "token_type": credentials.token_type,
-        }
-
-        return __iam_kwargs(credentials) | idc_token_kwargs
-
     #
     # Head of function execution
     #
@@ -353,7 +326,6 @@ def get_connection_method(
         RedshiftConnectionMethod.IAM: __iam_user_kwargs,
         RedshiftConnectionMethod.IAM_ROLE: __iam_role_kwargs,
         RedshiftConnectionMethod.IAM_IDENTITY_CENTER_BROWSER: __iam_idc_browser_kwargs,
-        RedshiftConnectionMethod.IAM_IDENTITY_CENTER_TOKEN: __iam_idc_token_kwargs,
     }
 
     try:
