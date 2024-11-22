@@ -79,7 +79,7 @@ class TestInvalidMethod(AuthMethod):
             connection = self.adapter.acquire_connection("dummy")
             connection.handle
             redshift_connector.connect.assert_called_once_with(
-                iam=False,
+                iam=True,
                 host="doesnotexist.1233_no_region",
                 database="redshift",
                 cluster_identifier=None,
