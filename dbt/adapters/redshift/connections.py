@@ -143,7 +143,6 @@ class RedshiftCredentials(Credentials):
     #
 
     # browser
-    authenticator: Optional[str] = None
     idc_region: Optional[str] = None
     issuer_url: Optional[str] = None
     listen_port: int = 7890
