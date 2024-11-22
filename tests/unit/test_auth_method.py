@@ -585,6 +585,7 @@ class TestIAMIdcBrowser(AuthMethod):
             idc_client_display_name="display name",
             idp_response_timeout=0,
             host="doesnotexist.1233.us-east-2.redshift-serverless.amazonaws.com",
+            idp_listen_port=1111,
         )
         connection = self.adapter.acquire_connection("dummy")
         connection.handle
@@ -606,6 +607,7 @@ class TestIAMIdcBrowser(AuthMethod):
             credentials_provider="BrowserIdcAuthPlugin",
             idc_region="us-east-1",
             issuer_url="https://identitycenter.amazonaws.com/ssoins-randomchars",
+            listen_port=1111,
         )
 
     @mock.patch("redshift_connector.connect", MagicMock())
@@ -632,6 +634,7 @@ class TestIAMIdcBrowser(AuthMethod):
             port=5439,
             **DEFAULT_SSL_CONFIG,
             credentials_provider="BrowserIdcAuthPlugin",
+            listen_port=7890,
             idp_response_timeout=60,
             idc_client_display_name="Amazon Redshift driver",
             idc_region="us-east-1",
@@ -641,11 +644,30 @@ class TestIAMIdcBrowser(AuthMethod):
     def test_invalid_adapter_missing_fields(self):
         self.config.credentials = self.config.credentials.replace(
             method="browser_identity_center",
+            idp_listen_port=1111,
             idc_client_display_name="my display",
         )
         with self.assertRaises(FailedToConnectError) as context:
             connection = self.adapter.acquire_connection("dummy")
             connection.handle
+            redshift_connector.connect.assert_called_once_with(
+                iam=False,
+                host="doesnotexist.1233.us-east-2.redshift-serverless.amazonaws.com",
+                database="redshift",
+                cluster_identifier=None,
+                region=None,
+                auto_create=False,
+                db_groups=[],
+                password="",
+                user="",
+                timeout=None,
+                port=5439,
+                **DEFAULT_SSL_CONFIG,
+                credentials_provider="BrowserIdcAuthPlugin",
+                listen_port=1111,
+                idp_response_timeout=60,
+                idc_client_display_name="my display",
+            )
 
         assert (
             "'idc_region', 'issuer_url' field(s) are required for 'browser_identity_center' credentials method"

@@ -145,7 +145,7 @@ class RedshiftCredentials(Credentials):
     # browser
     idc_region: Optional[str] = None
     issuer_url: Optional[str] = None
-    listen_port: int = 7890
+    idp_listen_port: Optional[int] = 7890
     idc_client_display_name: Optional[str] = "Amazon Redshift driver"
     idp_response_timeout: Optional[int] = None
 
@@ -291,15 +291,25 @@ def get_connection_method(
     def __iam_idc_browser_kwargs(credentials) -> Dict[str, Any]:
         logger.debug("Connecting to Redshift with '{credentials.method}' credentials method")
 
+        __IDP_TIMEOUT: int = 60
+        __LISTEN_PORT_DEFAULT: int = 7890
+
         __assert_required_fields("browser_identity_center", ("method", "idc_region", "issuer_url"))
 
         idp_timeout: int = (
-            timeout if (timeout := credentials.idp_response_timeout) or timeout == 0 else 60
+            timeout
+            if (timeout := credentials.idp_response_timeout) or timeout == 0
+            else __IDP_TIMEOUT
+        )
+
+        idp_listen_port: int = (
+            port if (port := credentials.idp_listen_port) else __LISTEN_PORT_DEFAULT
         )
 
         idc_kwargs: Dict[str, Any] = {
             "credentials_provider": "BrowserIdcAuthPlugin",
             "issuer_url": credentials.issuer_url,
+            "listen_port": idp_listen_port,
             "idc_region": credentials.idc_region,
             "idc_client_display_name": credentials.idc_client_display_name,
             "idp_response_timeout": idp_timeout,
