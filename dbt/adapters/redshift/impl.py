@@ -1,12 +1,10 @@
 import os
 from dataclasses import dataclass
 
-from dbt_common.behavior_flags import BehaviorFlag
 from dbt_common.contracts.constraints import ConstraintType
-from typing import Optional, Set, Any, Dict, Type, TYPE_CHECKING, List
+from typing import Optional, Set, Any, Dict, Type, TYPE_CHECKING
 from collections import namedtuple
 from dbt.adapters.base import PythonJobHelper
-from dbt.adapters.base.column import Column
 from dbt.adapters.base.impl import AdapterConfig, ConstraintSupport
 from dbt.adapters.base.meta import available
 from dbt.adapters.capability import Capability, CapabilityDict, CapabilitySupport, Support
@@ -68,23 +66,6 @@ class RedshiftAdapter(SQLAdapter):
         }
     )
 
-    @property
-    def _behavior_flags(self) -> List[BehaviorFlag]:
-        return [
-            {
-                "name": "restrict_direct_pg_catalog_access",
-                "default": False,
-                "description": (
-                    "The dbt-redshift adapter is migrating from using pg_ tables "
-                    "to using Redshift Metadata API and information_schema tables "
-                    "in order to support additional Redshift functionalities.\n"
-                    "We do not expect this to impact your dbt experience. "
-                    "Please report any issues using this GitHub discussion: https://github.com/dbt-labs/dbt-redshift/discussions/921"
-                ),
-                "docs_url": "https://docs.getdbt.com/reference/global-configs/behavior-changes#redshift-restrict_direct_pg_catalog_access",
-            }
-        ]
-
     @classmethod
     def date_function(cls):
         return "getdate()"
@@ -106,12 +87,6 @@ class RedshiftAdapter(SQLAdapter):
         """
         with self.connections.fresh_transaction():
             return super().drop_relation(relation)
-
-    def get_columns_in_relation(self, relation) -> List[Column]:
-        if self.behavior.restrict_direct_pg_catalog_access:
-            column_configs = self.connections.columns_in_relation(relation)
-            return [Column(**column) for column in column_configs]
-        return super().get_columns_in_relation(relation)
 
     @classmethod
     def convert_text_type(cls, agate_table: "agate.Table", col_idx):
@@ -155,7 +130,7 @@ class RedshiftAdapter(SQLAdapter):
         """The set of standard builtin strategies which this adapter supports out-of-the-box.
         Not used to validate custom strategies defined by end users.
         """
-        return ["append", "delete+insert", "merge"]
+        return ["append", "delete+insert", "merge", "microbatch"]
 
     def timestamp_add_sql(self, add_to: str, number: int = 1, interval: str = "hour") -> str:
         return f"{add_to} + interval '{number} {interval}'"

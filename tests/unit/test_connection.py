@@ -1,5 +1,8 @@
 from multiprocessing import get_context
 from unittest import TestCase, mock
+
+import pytest
+from dbt.adapters.exceptions import FailedToConnectError
 from unittest.mock import MagicMock, call
 
 import redshift_connector
@@ -7,6 +10,7 @@ import redshift_connector
 from dbt.adapters.redshift import (
     Plugin as RedshiftPlugin,
     RedshiftAdapter,
+    RedshiftCredentials,
 )
 from tests.unit.utils import (
     config_from_parts_or_dicts,
@@ -128,3 +132,32 @@ class TestConnection(TestCase):
                     call(f"select pg_terminate_backend({backend_pid})"),
                 ]
             )
+
+    def test_retry_able_exceptions_trigger_retry(self):
+        with mock.patch.object(self.adapter.connections, "add_query") as add_query:
+            connection_mock = mock_connection("model", state="closed")
+            connection_mock.credentials = RedshiftCredentials.from_dict(
+                {
+                    "type": "redshift",
+                    "dbname": "redshift",
+                    "user": "root",
+                    "host": "thishostshouldnotexist.test.us-east-1",
+                    "pass": "password",
+                    "port": 5439,
+                    "schema": "public",
+                    "retries": 2,
+                }
+            )
+
+            connect_mock = MagicMock()
+            connect_mock.side_effect = [
+                redshift_connector.InterfaceError("retryable interface error<1>"),
+                redshift_connector.InterfaceError("retryable interface error<2>"),
+                redshift_connector.InterfaceError("retryable interface error<3>"),
+            ]
+
+            with mock.patch("redshift_connector.connect", connect_mock):
+                with pytest.raises(FailedToConnectError) as e:
+                    connection = self.adapter.connections.open(connection_mock)
+            assert str(e.value) == "Database Error\n  retryable interface error<3>"
+            assert connect_mock.call_count == 3
