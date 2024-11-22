@@ -49,8 +49,12 @@ class RedshiftConnectionMethod(StrEnum):
     IAM_IDENTITY_CENTER_BROWSER = "browser_identity_center"
 
     @staticmethod
-    def uses_identity_center(method: str):
+    def uses_identity_center(method: str) -> bool:
         return method.endswith("identity_center")
+
+    @staticmethod
+    def is_iam(method: str) -> bool:
+        return not RedshiftConnectionMethod.uses_identity_center(method)
 
 
 class UserSSLMode(StrEnum):
@@ -190,7 +194,7 @@ def get_connection_method(
     #
     # Helper Methods
     #
-    def __assert_required_fields(method_name: str, required_fields: Tuple[str, ...]):
+    def __validate_required_fields(method_name: str, required_fields: Tuple[str, ...]):
         missing_fields: List[str] = [
             field for field in required_fields if getattr(credentials, field, None) is None
         ]
@@ -218,7 +222,7 @@ def get_connection_method(
     def __iam_kwargs(credentials) -> Dict[str, Any]:
 
         # iam True except for identity center methods
-        iam: bool = not RedshiftConnectionMethod.uses_identity_center(credentials.method)
+        iam: bool = RedshiftConnectionMethod.is_iam(credentials.method)
 
         cluster_identifier: Optional[str]
         if "serverless" in credentials.host or RedshiftConnectionMethod.uses_identity_center(
@@ -246,7 +250,7 @@ def get_connection_method(
     def __database_kwargs(credentials) -> Dict[str, Any]:
         logger.debug("Connecting to Redshift with 'database' credentials method")
 
-        __assert_required_fields("database", ("user", "password"))
+        __validate_required_fields("database", ("user", "password"))
 
         db_credentials: Dict[str, Any] = {
             "user": credentials.user,
@@ -271,7 +275,7 @@ def get_connection_method(
         else:
             iam_credentials = {"profile": credentials.iam_profile}
 
-        __assert_required_fields("iam", ("user",))
+        __validate_required_fields("iam", ("user",))
         iam_credentials["db_user"] = credentials.user
 
         return __iam_kwargs(credentials) | iam_credentials
@@ -294,7 +298,9 @@ def get_connection_method(
         __IDP_TIMEOUT: int = 60
         __LISTEN_PORT_DEFAULT: int = 7890
 
-        __assert_required_fields("browser_identity_center", ("method", "idc_region", "issuer_url"))
+        __validate_required_fields(
+            "browser_identity_center", ("method", "idc_region", "issuer_url")
+        )
 
         idp_timeout: int = (
             timeout
