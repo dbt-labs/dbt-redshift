@@ -579,8 +579,7 @@ class TestIAMIdcBrowser(AuthMethod):
     @mock.patch("redshift_connector.connect", MagicMock())
     def test_profile_idc_browser_all_fields(self):
         self.config.credentials = self.config.credentials.replace(
-            method="iam_idc_browser",
-            credentials_provider="BrowserIdcAuthPlugin",
+            method="browser_identity_center",
             idc_region="us-east-1",
             issuer_url="https://identitycenter.amazonaws.com/ssoins-randomchars",
             idc_client_display_name="display name",
@@ -612,8 +611,7 @@ class TestIAMIdcBrowser(AuthMethod):
     @mock.patch("redshift_connector.connect", MagicMock())
     def test_profile_idc_browser_required_fields_only(self):
         self.config.credentials = self.config.credentials.replace(
-            method="iam_idc_browser",
-            credentials_provider="BrowserIdcAuthPlugin",
+            method="browser_identity_center",
             idc_region="us-east-1",
             issuer_url="https://identitycenter.amazonaws.com/ssoins-randomchars",
             host="doesnotexist.1233.us-east-2.redshift-serverless.amazonaws.com",
@@ -633,28 +631,16 @@ class TestIAMIdcBrowser(AuthMethod):
             timeout=None,
             port=5439,
             **DEFAULT_SSL_CONFIG,
+            credentials_provider="BrowserIdcAuthPlugin",
             idp_response_timeout=60,
             idc_client_display_name="Amazon Redshift driver",
-            credentials_provider="BrowserIdcAuthPlugin",
             idc_region="us-east-1",
             issuer_url="https://identitycenter.amazonaws.com/ssoins-randomchars",
         )
 
-    def test_invalid_plugin_for_idc_browser_auth_method(self):
-        self.config.credentials = self.config.credentials.replace(
-            method="iam_idc_browser",
-            credentials_provider="IdpTokenAuthPlugin",
-        )
-        with self.assertRaises(FailedToConnectError) as context:
-            connection = self.adapter.acquire_connection("dummy")
-            connection.handle
-
-        assert "BrowserIdcAuthPlugin" in context.exception.msg
-
     def test_invalid_adapter_missing_fields(self):
         self.config.credentials = self.config.credentials.replace(
-            method="iam_idc_browser",
-            credentials_provider="BrowserIdcAuthPlugin",
+            method="browser_identity_center",
             idc_client_display_name="my display",
         )
         with self.assertRaises(FailedToConnectError) as context:
@@ -662,6 +648,6 @@ class TestIAMIdcBrowser(AuthMethod):
             connection.handle
 
         assert (
-            "'idc_region', 'issuer_url' field(s) are required for 'iam_idc_browser' credentials method"
+            "'idc_region', 'issuer_url' field(s) are required for 'browser_identity_center' credentials method"
             in context.exception.msg
         )

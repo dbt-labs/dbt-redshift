@@ -46,11 +46,11 @@ class RedshiftConnectionMethod(StrEnum):
     DATABASE = "database"
     IAM = "iam"
     IAM_ROLE = "iam_role"
-    IAM_IDENTITY_CENTER_BROWSER = "iam_idc_browser"
+    IAM_IDENTITY_CENTER_BROWSER = "browser_identity_center"
 
     @staticmethod
     def uses_identity_center(method: str):
-        return "_idc_" in method
+        return method.endswith("identity_center")
 
 
 class UserSSLMode(StrEnum):
@@ -143,16 +143,12 @@ class RedshiftCredentials(Credentials):
     #
 
     # browser
-    credentials_provider: Optional[str] = None
+    authenticator: Optional[str] = None
     idc_region: Optional[str] = None
     issuer_url: Optional[str] = None
     listen_port: int = 7890
     idc_client_display_name: Optional[str] = "Amazon Redshift driver"
     idp_response_timeout: int = 60
-
-    # token
-    token: Optional[str] = None
-    token_type: Optional[str] = None
 
     _ALIASES = {"dbname": "database", "pass": "password"}
 
@@ -294,20 +290,12 @@ def get_connection_method(
         return __iam_kwargs(credentials) | role_kwargs
 
     def __iam_idc_browser_kwargs(credentials) -> Dict[str, Any]:
-        logger.debug("Connecting to Redshift with 'iam_idc_browser' credentials method")
-        identity_center_method_name: str = "BrowserIdcAuthPlugin"
+        logger.debug("Connecting to Redshift with '{credentials.method}' credentials method")
 
-        if credentials.credentials_provider != identity_center_method_name:
-            raise FailedToConnectError(
-                f"'credentials_provider' must be set to '{identity_center_method_name}'"
-            )
-
-        __assert_required_fields(
-            "iam_idc_browser", ("credentials_provider", "idc_region", "issuer_url")
-        )
+        __assert_required_fields("browser_identity_center", ("method", "idc_region", "issuer_url"))
 
         idc_kwargs: Dict[str, Any] = {
-            "credentials_provider": identity_center_method_name,
+            "credentials_provider": "BrowserIdcAuthPlugin",
             "issuer_url": credentials.issuer_url,
             "idc_region": credentials.idc_region,
             "idc_client_display_name": credentials.idc_client_display_name,
