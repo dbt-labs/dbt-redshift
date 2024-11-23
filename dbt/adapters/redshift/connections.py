@@ -48,13 +48,13 @@ class RedshiftConnectionMethod(StrEnum):
     IAM_ROLE = "iam_role"
     IAM_IDENTITY_CENTER_BROWSER = "browser_identity_center"
 
-    @staticmethod
-    def uses_identity_center(method: str) -> bool:
-        return method.endswith("identity_center")
+    @classmethod
+    def uses_identity_center(cls, method: str) -> bool:
+        return method in (cls.IAM_IDENTITY_CENTER_BROWSER,)
 
-    @staticmethod
-    def is_iam(method: str) -> bool:
-        return not RedshiftConnectionMethod.uses_identity_center(method)
+    @classmethod
+    def is_iam(cls, method: str) -> bool:
+        return not cls.uses_identity_center(method)
 
 
 class UserSSLMode(StrEnum):
