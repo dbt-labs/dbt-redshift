@@ -1,0 +1,6 @@
+kind: Features
+body: Add browser identity center authentication method.
+time: 2024-11-22T14:33:26.549878-08:00
+custom:
+    Author: versusfacit
+    Issue: "898"
