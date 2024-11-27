@@ -1,7 +1,0 @@
-kind: Fixes
-body: 'Handle unit test fixtures where typing goes wrong from first value in column
-  being Null. '
-time: 2024-06-25T17:03:24.73937-07:00
-custom:
-  Author: versusfacit
-  Issue: "821"
