@@ -11,7 +11,7 @@ select * from {{ ref('input_model') }}
 """
 
 
-class TestSnowflakeMicrobatch(BaseMicrobatch):
+class TestRedshiftMicrobatch(BaseMicrobatch):
     @pytest.fixture(scope="class")
     def microbatch_model_sql(self) -> str:
         return _microbatch_model_no_unique_id_sql
