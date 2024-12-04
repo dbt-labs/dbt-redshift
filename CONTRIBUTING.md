@@ -57,7 +57,7 @@ To confirm you have correct `dbt-core` and adapter versions installed please run
 
 `dbt-redshift` contains [unit](https://github.com/dbt-labs/dbt-redshift/tree/main/tests/unit) and [functional](https://github.com/dbt-labs/dbt-redshift/tree/main/tests/functional) tests. Functional tests require testing against an actual Redshift warehouse. We have CI set up to test against a Redshift warehouse during PR checks.
 
-In order to run functional tests locally, you will need a `test.env` file in the root of the repository that contains credentials for your Redshift warehouse.
+In order to run functional tests locally, you will need a `test.env` file in the root of the repository that contains credentials for your Redshift warehouse. You'll need all the objects provided in `test.env.example` in `test.env` for all the tests to pass.
 
 Note: This `test.env` file is git-ignored, but please be extra careful to never check in credentials or other sensitive information when developing. To create your `test.env` file, copy the provided example file, then supply your relevant credentials.
 
