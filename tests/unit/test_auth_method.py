@@ -9,7 +9,7 @@ from dbt.adapters.redshift import (
     Plugin as RedshiftPlugin,
     RedshiftAdapter,
 )
-from dbt.adapters.redshift.connections import RedshiftConnectMethodFactory, RedshiftSSLConfig
+from dbt.adapters.redshift.connections import get_connection_method, RedshiftSSLConfig
 from tests.unit.utils import config_from_parts_or_dicts, inject_adapter
 
 
@@ -61,7 +61,7 @@ class TestInvalidMethod(AuthMethod):
         # we have to set method this way, otherwise it won't validate
         self.config.credentials.method = "badmethod"
         with self.assertRaises(FailedToConnectError) as context:
-            connect_method_factory = RedshiftConnectMethodFactory(self.config.credentials)
+            connect_method_factory = get_connection_method(self.config.credentials)
             connect_method_factory.get_connect_method()
         self.assertTrue("badmethod" in context.exception.msg)
 
@@ -221,7 +221,7 @@ class TestIAMUserMethod(AuthMethod):
     def test_no_cluster_id(self):
         self.config.credentials = self.config.credentials.replace(method="iam")
         with self.assertRaises(FailedToConnectError) as context:
-            connect_method_factory = RedshiftConnectMethodFactory(self.config.credentials)
+            connect_method_factory = get_connection_method(self.config.credentials)
             connect_method_factory.get_connect_method()
 
         self.assertTrue("'cluster_id' must be provided" in context.exception.msg)
@@ -400,7 +400,7 @@ class TestIAMRoleMethod(AuthMethod):
     def test_no_cluster_id(self):
         self.config.credentials = self.config.credentials.replace(method="iam_role")
         with self.assertRaises(FailedToConnectError) as context:
-            connect_method_factory = RedshiftConnectMethodFactory(self.config.credentials)
+            connect_method_factory = get_connection_method(self.config.credentials)
             connect_method_factory.get_connect_method()
 
         self.assertTrue("'cluster_id' must be provided" in context.exception.msg)
@@ -573,3 +573,103 @@ class TestIAMRoleMethodServerless(AuthMethod):
                 **DEFAULT_SSL_CONFIG,
             )
         self.assertTrue("'host' must be provided" in context.exception.msg)
+
+
+class TestIAMIdcBrowser(AuthMethod):
+    @mock.patch("redshift_connector.connect", MagicMock())
+    def test_profile_idc_browser_all_fields(self):
+        self.config.credentials = self.config.credentials.replace(
+            method="browser_identity_center",
+            idc_region="us-east-1",
+            issuer_url="https://identitycenter.amazonaws.com/ssoins-randomchars",
+            idc_client_display_name="display name",
+            idp_response_timeout=0,
+            host="doesnotexist.1233.us-east-2.redshift-serverless.amazonaws.com",
+            idp_listen_port=1111,
+        )
+        connection = self.adapter.acquire_connection("dummy")
+        connection.handle
+        redshift_connector.connect.assert_called_once_with(
+            iam=False,
+            host="doesnotexist.1233.us-east-2.redshift-serverless.amazonaws.com",
+            database="redshift",
+            cluster_identifier=None,
+            region=None,
+            auto_create=False,
+            db_groups=[],
+            password="",
+            user="",
+            timeout=None,
+            port=5439,
+            **DEFAULT_SSL_CONFIG,
+            idp_response_timeout=0,
+            idc_client_display_name="display name",
+            credentials_provider="BrowserIdcAuthPlugin",
+            idc_region="us-east-1",
+            issuer_url="https://identitycenter.amazonaws.com/ssoins-randomchars",
+            listen_port=1111,
+        )
+
+    @mock.patch("redshift_connector.connect", MagicMock())
+    def test_profile_idc_browser_required_fields_only(self):
+        self.config.credentials = self.config.credentials.replace(
+            method="browser_identity_center",
+            idc_region="us-east-1",
+            issuer_url="https://identitycenter.amazonaws.com/ssoins-randomchars",
+            host="doesnotexist.1233.us-east-2.redshift-serverless.amazonaws.com",
+        )
+        connection = self.adapter.acquire_connection("dummy")
+        connection.handle
+        redshift_connector.connect.assert_called_once_with(
+            iam=False,
+            host="doesnotexist.1233.us-east-2.redshift-serverless.amazonaws.com",
+            database="redshift",
+            cluster_identifier=None,
+            region=None,
+            auto_create=False,
+            db_groups=[],
+            password="",
+            user="",
+            timeout=None,
+            port=5439,
+            **DEFAULT_SSL_CONFIG,
+            credentials_provider="BrowserIdcAuthPlugin",
+            listen_port=7890,
+            idp_response_timeout=60,
+            idc_client_display_name="Amazon Redshift driver",
+            idc_region="us-east-1",
+            issuer_url="https://identitycenter.amazonaws.com/ssoins-randomchars",
+        )
+
+    def test_invalid_adapter_missing_fields(self):
+        self.config.credentials = self.config.credentials.replace(
+            method="browser_identity_center",
+            idp_listen_port=1111,
+            idc_client_display_name="my display",
+        )
+        with self.assertRaises(FailedToConnectError) as context:
+            connection = self.adapter.acquire_connection("dummy")
+            connection.handle
+            redshift_connector.connect.assert_called_once_with(
+                iam=False,
+                host="doesnotexist.1233.us-east-2.redshift-serverless.amazonaws.com",
+                database="redshift",
+                cluster_identifier=None,
+                region=None,
+                auto_create=False,
+                db_groups=[],
+                password="",
+                user="",
+                timeout=None,
+                port=5439,
+                **DEFAULT_SSL_CONFIG,
+                credentials_provider="BrowserIdcAuthPlugin",
+                listen_port=1111,
+                idp_response_timeout=60,
+                idc_client_display_name="my display",
+            )
+
+        assert (
+            "'idc_region', 'issuer_url' field(s) are required for 'browser_identity_center' credentials method"
+            in context.exception.msg
+        )
