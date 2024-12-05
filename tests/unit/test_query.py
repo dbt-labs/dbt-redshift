@@ -1,3 +1,5 @@
+import redshift_connector
+
 from multiprocessing import get_context
 from unittest import TestCase, mock
 
@@ -99,11 +101,20 @@ class TestQuery(TestCase):
 
     def test_add_query_success(self):
         cursor = mock.Mock()
-        with mock.patch.object(SQLConnectionManager, "add_query") as mock_add_query:
+        with (
+            mock.patch.object(SQLConnectionManager, "add_query") as mock_add_query,
+            mock.patch("dbt.adapters.redshift.connections._exponential_backoff") as mock_func,
+        ):
             mock_add_query.return_value = None, cursor
             self.adapter.connections.add_query("select * from test3")
         mock_add_query.assert_called_once_with(
-            "select * from test3", True, bindings=None, abridge_sql_log=False
+            "select * from test3",
+            True,
+            bindings=None,
+            abridge_sql_log=False,
+            retryable_exceptions=[redshift_connector.InterfaceError],
+            retry_limit=1,
+            retry_timeout=mock_func,
         )
 
     def test_add_query_with_no_cursor(self):

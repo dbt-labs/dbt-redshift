@@ -486,7 +486,6 @@ class RedshiftConnectionManager(SQLConnectionManager):
         self._initialize_sqlparse_lexer()
         queries = sqlparse.split(sql)
 
-        conn = self.get_thread_connection()
         for query in queries:
             # Strip off comments from the current query
             without_comments = re.sub(
@@ -508,11 +507,12 @@ class RedshiftConnectionManager(SQLConnectionManager):
                 bindings=bindings,
                 abridge_sql_log=abridge_sql_log,
                 retryable_exceptions=retryable_exceptions,
-                retry_limit=conn.credentials.retries,
+                retry_limit=self.profile.credentials.retries,
                 retry_timeout=_exponential_backoff,
             )
 
         if cursor is None:
+            conn = self.get_thread_connection()
             conn_name = conn.name if conn and conn.name else "<None>"
             raise DbtRuntimeError(f"Tried to run invalid SQL: {sql} on {conn_name}")
 
