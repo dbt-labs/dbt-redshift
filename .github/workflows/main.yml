@@ -52,7 +52,7 @@ jobs:
         with:
           python-version: '3.9'
 
-      - name: Run pre-commit hooks
+      - name: pre-commit hooks
         uses: pre-commit/action@v3.0.1
 
   unit:
