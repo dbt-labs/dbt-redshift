@@ -100,35 +100,12 @@ jobs:
             python-version: "3.9"
 
     env:
-      AWS_USER_PROFILE: ${{ vars.REDSHIFT_TEST_IAM_USER_PROFILE }}
-      AWS_USER_ACCESS_KEY_ID: ${{ vars.REDSHIFT_TEST_IAM_USER_ACCESS_KEY_ID }}
-      AWS_USER_SECRET_ACCESS_KEY: ${{ secrets.REDSHIFT_TEST_IAM_USER_SECRET_ACCESS_KEY }}
-      AWS_SOURCE_PROFILE: ${{ vars.REDSHIFT_TEST_IAM_ROLE_PROFILE }}-user
-      AWS_ROLE_PROFILE: ${{ vars.REDSHIFT_TEST_IAM_ROLE_PROFILE }}
-      AWS_ROLE_ACCESS_KEY_ID: ${{ vars.REDSHIFT_TEST_IAM_ROLE_ACCESS_KEY_ID }}
-      AWS_ROLE_SECRET_ACCESS_KEY: ${{ secrets.REDSHIFT_TEST_IAM_ROLE_SECRET_ACCESS_KEY }}
-      AWS_ROLE_ARN: ${{ secrets.REDSHIFT_TEST_IAM_ROLE_ARN }}
-      AWS_REGION: ${{ vars.REDSHIFT_TEST_REGION }}
       DBT_INVOCATION_ENV: github-actions
       DD_CIVISIBILITY_AGENTLESS_ENABLED: true
       DD_API_KEY: ${{ secrets.DATADOG_API_KEY }}
       DD_SITE: datadoghq.com
       DD_ENV: ci
       DD_SERVICE: ${{ github.event.repository.name }}
-      REDSHIFT_TEST_DBNAME: ${{ secrets.REDSHIFT_TEST_DBNAME }}
-      REDSHIFT_TEST_PASS: ${{ secrets.REDSHIFT_TEST_PASS }}
-      REDSHIFT_TEST_USER: ${{ secrets.REDSHIFT_TEST_USER }}
-      REDSHIFT_TEST_PORT: ${{ secrets.REDSHIFT_TEST_PORT }}
-      REDSHIFT_TEST_HOST: ${{ secrets.REDSHIFT_TEST_HOST }}
-      REDSHIFT_TEST_REGION: ${{ vars.REDSHIFT_TEST_REGION }}
-      REDSHIFT_TEST_CLUSTER_ID: ${{ vars.REDSHIFT_TEST_CLUSTER_ID }}
-      REDSHIFT_TEST_IAM_USER_PROFILE: ${{ vars.REDSHIFT_TEST_IAM_USER_PROFILE }}
-      REDSHIFT_TEST_IAM_USER_ACCESS_KEY_ID: ${{ vars.REDSHIFT_TEST_IAM_USER_ACCESS_KEY_ID }}
-      REDSHIFT_TEST_IAM_USER_SECRET_ACCESS_KEY: ${{ secrets.REDSHIFT_TEST_IAM_USER_SECRET_ACCESS_KEY }}
-      REDSHIFT_TEST_IAM_ROLE_PROFILE: ${{ vars.REDSHIFT_TEST_IAM_ROLE_PROFILE }}
-      DBT_TEST_USER_1: dbt_test_user_1
-      DBT_TEST_USER_2: dbt_test_user_2
-      DBT_TEST_USER_3: dbt_test_user_3
 
     steps:
       - name: Check out the repository (push)
@@ -185,8 +162,33 @@ jobs:
           aws configure --profile $AWS_ROLE_PROFILE set role_arn $AWS_ROLE_ARN
           aws configure --profile $AWS_ROLE_PROFILE set region $AWS_REGION
           aws configure --profile $AWS_ROLE_PROFILE set output json
+        env:
+          AWS_USER_PROFILE: ${{ vars.REDSHIFT_TEST_IAM_USER_PROFILE }}
+          AWS_USER_ACCESS_KEY_ID: ${{ vars.REDSHIFT_TEST_IAM_USER_ACCESS_KEY_ID }}
+          AWS_USER_SECRET_ACCESS_KEY: ${{ secrets.REDSHIFT_TEST_IAM_USER_SECRET_ACCESS_KEY }}
+          AWS_SOURCE_PROFILE: ${{ vars.REDSHIFT_TEST_IAM_ROLE_PROFILE }}-user
+          AWS_ROLE_PROFILE: ${{ vars.REDSHIFT_TEST_IAM_ROLE_PROFILE }}
+          AWS_ROLE_ACCESS_KEY_ID: ${{ vars.REDSHIFT_TEST_IAM_ROLE_ACCESS_KEY_ID }}
+          AWS_ROLE_SECRET_ACCESS_KEY: ${{ secrets.REDSHIFT_TEST_IAM_ROLE_SECRET_ACCESS_KEY }}
+          AWS_ROLE_ARN: ${{ secrets.REDSHIFT_TEST_IAM_ROLE_ARN }}
+          AWS_REGION: ${{ vars.REDSHIFT_TEST_REGION }}
 
       - run: hatch run integration-tests tests/functional -k "not flaky"
+        env:
+          REDSHIFT_TEST_DBNAME: ${{ secrets.REDSHIFT_TEST_DBNAME }}
+          REDSHIFT_TEST_PASS: ${{ secrets.REDSHIFT_TEST_PASS }}
+          REDSHIFT_TEST_USER: ${{ secrets.REDSHIFT_TEST_USER }}
+          REDSHIFT_TEST_PORT: ${{ secrets.REDSHIFT_TEST_PORT }}
+          REDSHIFT_TEST_HOST: ${{ secrets.REDSHIFT_TEST_HOST }}
+          REDSHIFT_TEST_REGION: ${{ vars.REDSHIFT_TEST_REGION }}
+          REDSHIFT_TEST_CLUSTER_ID: ${{ vars.REDSHIFT_TEST_CLUSTER_ID }}
+          REDSHIFT_TEST_IAM_USER_PROFILE: ${{ vars.REDSHIFT_TEST_IAM_USER_PROFILE }}
+          REDSHIFT_TEST_IAM_USER_ACCESS_KEY_ID: ${{ vars.REDSHIFT_TEST_IAM_USER_ACCESS_KEY_ID }}
+          REDSHIFT_TEST_IAM_USER_SECRET_ACCESS_KEY: ${{ secrets.REDSHIFT_TEST_IAM_USER_SECRET_ACCESS_KEY }}
+          REDSHIFT_TEST_IAM_ROLE_PROFILE: ${{ vars.REDSHIFT_TEST_IAM_ROLE_PROFILE }}
+          DBT_TEST_USER_1: dbt_test_user_1
+          DBT_TEST_USER_2: dbt_test_user_2
+          DBT_TEST_USER_3: dbt_test_user_3
 
   test-flaky:
     name: redshift / python ${{ matrix.python-version }} / ubuntu-22.04 - flaky
