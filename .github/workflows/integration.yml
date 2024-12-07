@@ -100,14 +100,35 @@ jobs:
             python-version: "3.9"
 
     env:
-      TOXENV: integration-redshift
-      PYTEST_ADDOPTS: "-v --color=yes -n4 --csv integration_results.csv"
+      AWS_USER_PROFILE: ${{ vars.REDSHIFT_TEST_IAM_USER_PROFILE }}
+      AWS_USER_ACCESS_KEY_ID: ${{ vars.REDSHIFT_TEST_IAM_USER_ACCESS_KEY_ID }}
+      AWS_USER_SECRET_ACCESS_KEY: ${{ secrets.REDSHIFT_TEST_IAM_USER_SECRET_ACCESS_KEY }}
+      AWS_SOURCE_PROFILE: ${{ vars.REDSHIFT_TEST_IAM_ROLE_PROFILE }}-user
+      AWS_ROLE_PROFILE: ${{ vars.REDSHIFT_TEST_IAM_ROLE_PROFILE }}
+      AWS_ROLE_ACCESS_KEY_ID: ${{ vars.REDSHIFT_TEST_IAM_ROLE_ACCESS_KEY_ID }}
+      AWS_ROLE_SECRET_ACCESS_KEY: ${{ secrets.REDSHIFT_TEST_IAM_ROLE_SECRET_ACCESS_KEY }}
+      AWS_ROLE_ARN: ${{ secrets.REDSHIFT_TEST_IAM_ROLE_ARN }}
+      AWS_REGION: ${{ vars.REDSHIFT_TEST_REGION }}
       DBT_INVOCATION_ENV: github-actions
       DD_CIVISIBILITY_AGENTLESS_ENABLED: true
       DD_API_KEY: ${{ secrets.DATADOG_API_KEY }}
       DD_SITE: datadoghq.com
       DD_ENV: ci
       DD_SERVICE: ${{ github.event.repository.name }}
+      REDSHIFT_TEST_DBNAME: ${{ secrets.REDSHIFT_TEST_DBNAME }}
+      REDSHIFT_TEST_PASS: ${{ secrets.REDSHIFT_TEST_PASS }}
+      REDSHIFT_TEST_USER: ${{ secrets.REDSHIFT_TEST_USER }}
+      REDSHIFT_TEST_PORT: ${{ secrets.REDSHIFT_TEST_PORT }}
+      REDSHIFT_TEST_HOST: ${{ secrets.REDSHIFT_TEST_HOST }}
+      REDSHIFT_TEST_REGION: ${{ vars.REDSHIFT_TEST_REGION }}
+      REDSHIFT_TEST_CLUSTER_ID: ${{ vars.REDSHIFT_TEST_CLUSTER_ID }}
+      REDSHIFT_TEST_IAM_USER_PROFILE: ${{ vars.REDSHIFT_TEST_IAM_USER_PROFILE }}
+      REDSHIFT_TEST_IAM_USER_ACCESS_KEY_ID: ${{ vars.REDSHIFT_TEST_IAM_USER_ACCESS_KEY_ID }}
+      REDSHIFT_TEST_IAM_USER_SECRET_ACCESS_KEY: ${{ secrets.REDSHIFT_TEST_IAM_USER_SECRET_ACCESS_KEY }}
+      REDSHIFT_TEST_IAM_ROLE_PROFILE: ${{ vars.REDSHIFT_TEST_IAM_ROLE_PROFILE }}
+      DBT_TEST_USER_1: dbt_test_user_1
+      DBT_TEST_USER_2: dbt_test_user_2
+      DBT_TEST_USER_3: dbt_test_user_3
 
     steps:
       - name: Check out the repository (push)
@@ -144,14 +165,9 @@ jobs:
             ${{ inputs.dbt_adapters_branch }} \
             ${{ inputs.dbt_core_branch }} \
             ${{ inputs.dbt_common_branch }}
-          cat dev-requirements.txt
+          cat hatch.toml
 
-      - name: Install python dependencies
-        run: |
-          python -m pip install  --user --upgrade pip
-          python -m pip install tox
-          python -m pip --version
-          tox --version
+      - uses: pypa/hatch@install
 
       - name: Create AWS IAM profiles
         run: |
@@ -169,52 +185,8 @@ jobs:
           aws configure --profile $AWS_ROLE_PROFILE set role_arn $AWS_ROLE_ARN
           aws configure --profile $AWS_ROLE_PROFILE set region $AWS_REGION
           aws configure --profile $AWS_ROLE_PROFILE set output json
-        env:
-          AWS_USER_PROFILE: ${{ vars.REDSHIFT_TEST_IAM_USER_PROFILE }}
-          AWS_USER_ACCESS_KEY_ID: ${{ vars.REDSHIFT_TEST_IAM_USER_ACCESS_KEY_ID }}
-          AWS_USER_SECRET_ACCESS_KEY: ${{ secrets.REDSHIFT_TEST_IAM_USER_SECRET_ACCESS_KEY }}
-          AWS_SOURCE_PROFILE: ${{ vars.REDSHIFT_TEST_IAM_ROLE_PROFILE }}-user
-          AWS_ROLE_PROFILE: ${{ vars.REDSHIFT_TEST_IAM_ROLE_PROFILE }}
-          AWS_ROLE_ACCESS_KEY_ID: ${{ vars.REDSHIFT_TEST_IAM_ROLE_ACCESS_KEY_ID }}
-          AWS_ROLE_SECRET_ACCESS_KEY: ${{ secrets.REDSHIFT_TEST_IAM_ROLE_SECRET_ACCESS_KEY }}
-          AWS_ROLE_ARN: ${{ secrets.REDSHIFT_TEST_IAM_ROLE_ARN }}
-          AWS_REGION: ${{ vars.REDSHIFT_TEST_REGION }}
 
-      - name: Run tox (redshift)
-        env:
-          REDSHIFT_TEST_DBNAME: ${{ secrets.REDSHIFT_TEST_DBNAME }}
-          REDSHIFT_TEST_PASS: ${{ secrets.REDSHIFT_TEST_PASS }}
-          REDSHIFT_TEST_USER: ${{ secrets.REDSHIFT_TEST_USER }}
-          REDSHIFT_TEST_PORT: ${{ secrets.REDSHIFT_TEST_PORT }}
-          REDSHIFT_TEST_HOST: ${{ secrets.REDSHIFT_TEST_HOST }}
-          REDSHIFT_TEST_REGION: ${{ vars.REDSHIFT_TEST_REGION }}
-          REDSHIFT_TEST_CLUSTER_ID: ${{ vars.REDSHIFT_TEST_CLUSTER_ID }}
-          REDSHIFT_TEST_IAM_USER_PROFILE: ${{ vars.REDSHIFT_TEST_IAM_USER_PROFILE }}
-          REDSHIFT_TEST_IAM_USER_ACCESS_KEY_ID: ${{ vars.REDSHIFT_TEST_IAM_USER_ACCESS_KEY_ID }}
-          REDSHIFT_TEST_IAM_USER_SECRET_ACCESS_KEY: ${{ secrets.REDSHIFT_TEST_IAM_USER_SECRET_ACCESS_KEY }}
-          REDSHIFT_TEST_IAM_ROLE_PROFILE: ${{ vars.REDSHIFT_TEST_IAM_ROLE_PROFILE }}
-          DBT_TEST_USER_1: dbt_test_user_1
-          DBT_TEST_USER_2: dbt_test_user_2
-          DBT_TEST_USER_3: dbt_test_user_3
-        run: tox -- -m "not flaky" --ddtrace
-
-      - uses: actions/upload-artifact@v3
-        if: always()
-        with:
-          name: logs
-          path: ./logs
-
-      - name: Get current date
-        if: always()
-        id: date
-        run: |
-          echo "date=$(date +'%Y-%m-%dT%H_%M_%S')" >> $GITHUB_OUTPUT #no colons allowed for artifacts
-
-      - uses: actions/upload-artifact@v3
-        if: always()
-        with:
-          name: integration_results_${{ matrix.python-version }}_${{ matrix.os }}_redshift-${{ steps.date.outputs.date }}.csv
-          path: integration_results.csv
+      - run: hatch run integration-tests tests/functional -k "not flaky"
 
   test-flaky:
     name: redshift / python ${{ matrix.python-version }} / ubuntu-22.04 - flaky
@@ -236,8 +208,6 @@ jobs:
         python-version: ["3.9", "3.10", "3.11", "3.12"]
 
     env:
-      TOXENV: integration-redshift
-      PYTEST_ADDOPTS: "-v --color=yes -n1 --csv integration_results.csv"
       DBT_INVOCATION_ENV: github-actions
       DD_CIVISIBILITY_AGENTLESS_ENABLED: true
       DD_INSTRUMENTATION_TELEMETRY_ENABLED: false
@@ -274,12 +244,7 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Install python dependencies
-        run: |
-          python -m pip install  --user --upgrade pip
-          python -m pip install tox
-          python -m pip --version
-          tox --version
+      - uses: pypa/hatch@install
 
       - name: Update Adapters and Core branches (update dev_requirements.txt)
         if: github.event_name == 'workflow_dispatch'
@@ -288,8 +253,7 @@ jobs:
             ${{ inputs.dbt_adapters_branch }} \
             ${{ inputs.dbt_core_branch }} \
             ${{ inputs.dbt_common_branch }}
-          cat dev-requirements.txt
-
+          cat hatch.toml
 
       - name: Run tox (redshift)
         env:
@@ -307,7 +271,7 @@ jobs:
           DBT_TEST_USER_1: dbt_test_user_1
           DBT_TEST_USER_2: dbt_test_user_2
           DBT_TEST_USER_3: dbt_test_user_3
-        run: tox -- -m flaky --ddtrace
+        run: hatch run integration-tests tests/functional -k flaky --ddtrace
 
   require-label-comment:
     runs-on: ubuntu-22.04
