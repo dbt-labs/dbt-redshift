@@ -89,13 +89,13 @@
         {% do predicates.append(pred) %}
     {% endfor %}
 
-    {% if not model.config.get("__dbt_internal_microbatch_event_time_start") or not model.config.get("__dbt_internal_microbatch_event_time_end") -%}
+    {% if not model.batch or (not model.batch.event_time_start or not model.batch.event_time_end) -%}
         {% do exceptions.raise_compiler_error('dbt could not compute the start and end timestamps for the running batch') %}
     {% endif %}
 
     {#-- Add additional incremental_predicates to filter for batch --#}
-    {% do predicates.append(model.config.event_time ~ " >= TIMESTAMP '" ~ model.config.__dbt_internal_microbatch_event_time_start ~ "'") %}
-    {% do predicates.append(model.config.event_time ~ " < TIMESTAMP '" ~ model.config.__dbt_internal_microbatch_event_time_end ~ "'") %}
+    {% do predicates.append(model.config.event_time ~ " >= TIMESTAMP '" ~ model.batch.event_time_start ~ "'") %}
+    {% do predicates.append(model.config.event_time ~ " < TIMESTAMP '" ~ model.batch.event_time_end ~ "'") %}
     {% do arg_dict.update({'incremental_predicates': predicates}) %}
 
     delete from {{ target }}
