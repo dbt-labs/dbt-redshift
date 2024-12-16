@@ -101,7 +101,7 @@ class TestQuery(TestCase):
 
     def test_add_query_success(self):
         cursor = mock.Mock()
-        with (mock.patch.object(SQLConnectionManager, "add_query") as mock_add_query,):
+        with mock.patch.object(SQLConnectionManager, "add_query") as mock_add_query:
             mock_add_query.return_value = None, cursor
             self.adapter.connections.add_query("select * from test3")
         mock_add_query.assert_called_once_with(
