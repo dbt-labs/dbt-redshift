@@ -101,10 +101,7 @@ class TestQuery(TestCase):
 
     def test_add_query_success(self):
         cursor = mock.Mock()
-        with (
-            mock.patch.object(SQLConnectionManager, "add_query") as mock_add_query,
-            mock.patch("dbt.adapters.redshift.connections._exponential_backoff") as mock_func,
-        ):
+        with (mock.patch.object(SQLConnectionManager, "add_query") as mock_add_query,):
             mock_add_query.return_value = None, cursor
             self.adapter.connections.add_query("select * from test3")
         mock_add_query.assert_called_once_with(
@@ -112,9 +109,11 @@ class TestQuery(TestCase):
             True,
             bindings=None,
             abridge_sql_log=False,
-            retryable_exceptions=[redshift_connector.InterfaceError],
+            retryable_exceptions=(
+                redshift_connector.InterfaceError,
+                redshift_connector.InternalError,
+            ),
             retry_limit=1,
-            retry_timeout=mock_func,
         )
 
     def test_add_query_with_no_cursor(self):
