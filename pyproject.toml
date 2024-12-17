@@ -55,6 +55,3 @@ filterwarnings = [
     "ignore:.*'soft_unicode' has been renamed to 'soft_str'*:DeprecationWarning",
     "ignore:unclosed file .*:ResourceWarning",
 ]
-
-[tool.hatch.metadata]
-allow-direct-references = true
