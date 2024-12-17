@@ -673,3 +673,50 @@ class TestIAMIdcBrowser(AuthMethod):
             "'idc_region', 'issuer_url' field(s) are required for 'browser_identity_center' credentials method"
             in context.exception.msg
         )
+
+
+class TestIAMIdcToken(AuthMethod):
+    @mock.patch("redshift_connector.connect", MagicMock())
+    def test_profile_idc_token_all_required_fields(self):
+        """Same as all possible fields"""
+        self.config.credentials = self.config.credentials.replace(
+            method="iam_idc_token",
+            token="token",
+            token_type="ACCESS_TOKEN",
+            host="doesnotexist.1235.us-east-2.redshift-serverless.amazonaws.com",
+        )
+        connection = self.adapter.acquire_connection("dummy")
+        connection.handle
+        redshift_connector.connect.assert_called_once_with(
+            iam=False,
+            host="doesnotexist.1235.us-east-2.redshift-serverless.amazonaws.com",
+            database="redshift",
+            cluster_identifier=None,
+            region=None,
+            auto_create=False,
+            db_groups=[],
+            password="",
+            user="",
+            timeout=None,
+            port=5439,
+            **DEFAULT_SSL_CONFIG,
+            credentials_provider="IdpTokenAuthPlugin",
+            token="token",
+            token_type="ACCESS_TOKEN",
+        )
+
+    @mock.patch("redshift_connector.connect", MagicMock())
+    def test_invalid_idc_token_missing_field(self):
+        # Successful test
+        self.config.credentials = self.config.credentials.replace(
+            method="iam_idc_token",
+            token_type="ACCESS_TOKEN",
+            host="doesnotexist.1235.us-east-2.redshift-serverless.amazonaws.com",
+        )
+        with self.assertRaises(FailedToConnectError) as context:
+            connection = self.adapter.acquire_connection("dummy")
+            connection.handle
+        assert (
+            "'token' field(s) are required for 'iam_idc_token' credentials method"
+            in context.exception.msg
+        )
