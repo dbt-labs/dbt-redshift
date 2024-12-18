@@ -1,3 +1,5 @@
+import redshift_connector
+
 from multiprocessing import get_context
 from unittest import TestCase, mock
 
@@ -103,7 +105,15 @@ class TestQuery(TestCase):
             mock_add_query.return_value = None, cursor
             self.adapter.connections.add_query("select * from test3")
         mock_add_query.assert_called_once_with(
-            "select * from test3", True, bindings=None, abridge_sql_log=False
+            "select * from test3",
+            True,
+            bindings=None,
+            abridge_sql_log=False,
+            retryable_exceptions=(
+                redshift_connector.InterfaceError,
+                redshift_connector.InternalError,
+            ),
+            retry_limit=1,
         )
 
     def test_add_query_with_no_cursor(self):
