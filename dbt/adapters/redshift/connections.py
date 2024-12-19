@@ -41,16 +41,26 @@ class IdentityCenterTokenType(StrEnum):
     ACCESS_TOKEN = "ACCESS_TOKEN"
     EXT_JWT = "EXT_JWT"
 
+    @classmethod
+    def validate(cls, token_type: str):
+        try:
+            cls(token_type)
+        except ValueError:
+            raise FailedToConnectError(
+                f"'token_type' must be set to one of {[token.value for token in iter(cls)]}"
+            )
+
 
 class RedshiftConnectionMethod(StrEnum):
     DATABASE = "database"
     IAM = "iam"
     IAM_ROLE = "iam_role"
     IAM_IDENTITY_CENTER_BROWSER = "browser_identity_center"
+    IAM_IDENTITY_CENTER_TOKEN = "iam_idc_token"
 
     @classmethod
     def uses_identity_center(cls, method: str) -> bool:
-        return method in (cls.IAM_IDENTITY_CENTER_BROWSER,)
+        return method in (cls.IAM_IDENTITY_CENTER_BROWSER, cls.IAM_IDENTITY_CENTER_TOKEN)
 
     @classmethod
     def is_iam(cls, method: str) -> bool:
@@ -152,6 +162,10 @@ class RedshiftCredentials(Credentials):
     idp_listen_port: Optional[int] = 7890
     idc_client_display_name: Optional[str] = "Amazon Redshift driver"
     idp_response_timeout: Optional[int] = None
+
+    # token
+    token: Optional[str] = None
+    token_type: Optional[str] = None
 
     _ALIASES = {"dbname": "database", "pass": "password"}
 
@@ -323,6 +337,18 @@ def get_connection_method(
 
         return __iam_kwargs(credentials) | idc_kwargs
 
+    def __iam_idc_token_kwargs(credentials) -> Dict[str, Any]:
+        logger.debug("Connecting to Redshift with '{credentials.method}' credentials method")
+
+        __validate_required_fields("iam_idc_token", ("method", "token", "token_type"))
+        IdentityCenterTokenType.validate(credentials.token_type)
+
+        return __iam_kwargs(credentials) | {
+            "credentials_provider": "IdpTokenAuthPlugin",
+            "token": credentials.token,
+            "token_type": credentials.token_type,
+        }
+
     #
     # Head of function execution
     #
@@ -333,6 +359,7 @@ def get_connection_method(
         RedshiftConnectionMethod.IAM: __iam_user_kwargs,
         RedshiftConnectionMethod.IAM_ROLE: __iam_role_kwargs,
         RedshiftConnectionMethod.IAM_IDENTITY_CENTER_BROWSER: __iam_idc_browser_kwargs,
+        RedshiftConnectionMethod.IAM_IDENTITY_CENTER_TOKEN: __iam_idc_token_kwargs,
     }
 
     try:
