@@ -138,11 +138,12 @@ jobs:
       - name: Update Adapters and Core branches (update dev_requirements.txt)
         if: github.event_name == 'workflow_dispatch'
         run: |
-          ./.github/scripts/update_dev_dependency_branches.sh \
+          scripts/update_dev_dependency_branches.sh \
             ${{ inputs.dbt_adapters_branch }} \
             ${{ inputs.dbt_core_branch }} \
             ${{ inputs.dbt_common_branch }}
           cat hatch.toml
+        working-directory: ./dbt-redshift
 
       - uses: pypa/hatch@install
 
@@ -174,6 +175,7 @@ jobs:
           AWS_REGION: ${{ vars.REDSHIFT_TEST_REGION }}
 
       - run: hatch run integration-tests tests/functional -m "not flaky"
+        working-directory: ./dbt-redshift
         env:
           REDSHIFT_TEST_DBNAME: ${{ secrets.REDSHIFT_TEST_DBNAME }}
           REDSHIFT_TEST_PASS: ${{ secrets.REDSHIFT_TEST_PASS }}
@@ -251,11 +253,12 @@ jobs:
       - name: Update Adapters and Core branches (update dev_requirements.txt)
         if: github.event_name == 'workflow_dispatch'
         run: |
-          ./.github/scripts/update_dev_dependency_branches.sh \
+          scripts/update_dev_dependency_branches.sh \
             ${{ inputs.dbt_adapters_branch }} \
             ${{ inputs.dbt_core_branch }} \
             ${{ inputs.dbt_common_branch }}
           cat hatch.toml
+        working-directory: ./dbt-redshift
 
       - name: Run tox (redshift)
         env:
@@ -274,6 +277,7 @@ jobs:
           DBT_TEST_USER_2: dbt_test_user_2
           DBT_TEST_USER_3: dbt_test_user_3
         run: hatch run integration-tests tests/functional -m flaky -n1 --ddtrace
+        working-directory: ./dbt-redshift
 
   require-label-comment:
     runs-on: ubuntu-22.04
