@@ -1,0 +1,7 @@
+kind: Fixes
+body: Friendlier error message for misspecified distkey type
+time: 2022-11-22T17:20:14.432522-08:00
+custom:
+  Author: dluftspring
+  Issue: "224"
+  PR: "226"
