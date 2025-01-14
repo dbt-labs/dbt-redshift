@@ -101,3 +101,24 @@ class TestIAMRoleAuthProfile(AuthMethod):
             "host": "",  # host is a required field in dbt-core
             "port": 0,  # port is a required field in dbt-core
         }
+
+
+@pytest.mark.skip(
+    reason="We need to cut over to new adapters team AWS account which has infra to support this as an automated test. This will include a GHA step that renders a refresh token and loading secrets into Github secrets for the <> delimited placeholder values below"
+)
+class TestIamIdcAuthProfileOktaIdp(AuthMethod):
+    @pytest.fixture(scope="class")
+    def dbt_profile_target(self):
+        return {
+            "type": "redshift",
+            "method": "oauth_token_identity_center",
+            "host": os.getenv("REDSHIFT_TEST_HOST"),
+            "port": 5439,
+            "dbname": "dev",
+            "threads": 1,
+            "token_endpoint": {
+                "request_url": "https://<subdomain>.oktapreview.com/oauth2/default/v1/token",
+                "idp_auth_credentials": "<base64 creds>",
+                "request_data": "grant_type=refresh_token&redirect_uri=<encoded redirect uri>&refresh_token=<a refresh token>",
+            },
+        }
