@@ -1,3 +1,5 @@
+import requests
+
 from multiprocessing import get_context
 from unittest import TestCase, mock
 from unittest.mock import MagicMock
@@ -678,45 +680,52 @@ class TestIAMIdcBrowser(AuthMethod):
 class TestIAMIdcToken(AuthMethod):
     @mock.patch("redshift_connector.connect", MagicMock())
     def test_profile_idc_token_all_required_fields(self):
-        """Same as all possible fields"""
+        """This test doesn't follow the idiom elsewhere in this file because we
+        a real test would need a valid refresh token which would require a valid
+        authorization request, neither of which are possible in automated testing at
+        merge. This is a surrogate test.
+        """
         self.config.credentials = self.config.credentials.replace(
-            method="iam_idc_token",
-            token="token",
-            token_type="ACCESS_TOKEN",
-            host="doesnotexist.1235.us-east-2.redshift-serverless.amazonaws.com",
+            method="oauth_token_identity_center",
+            token_endpoint={
+                "request_url": "https://dbtcs.oktapreview.com/oauth2/default/v1/token",
+                "idp_auth_credentials": "my_auth_creds",
+                "request_data": "grant_type=refresh_token&redirect_uri=http%3A%2F%2Flocalhost%3A8080%2Flogin%2Foauth2%2Fcode%2Fokta&refresh_token=my_token",
+            },
         )
-        connection = self.adapter.acquire_connection("dummy")
-        connection.handle
-        redshift_connector.connect.assert_called_once_with(
-            iam=False,
-            host="doesnotexist.1235.us-east-2.redshift-serverless.amazonaws.com",
-            database="redshift",
-            cluster_identifier=None,
-            region=None,
-            auto_create=False,
-            db_groups=[],
-            password="",
-            user="",
-            timeout=None,
-            port=5439,
-            **DEFAULT_SSL_CONFIG,
-            credentials_provider="IdpTokenAuthPlugin",
-            token="token",
-            token_type="ACCESS_TOKEN",
-        )
+        with self.assertRaises(requests.exceptions.HTTPError) as context:
+            """
+            http says we've made it in operation to call the token request which fails
+            due to invalid refresh token and auth creds
+            """
+            connection = self.adapter.acquire_connection("dummy")
+            connection.handle
 
     @mock.patch("redshift_connector.connect", MagicMock())
     def test_invalid_idc_token_missing_field(self):
         # Successful test
         self.config.credentials = self.config.credentials.replace(
-            method="iam_idc_token",
-            token_type="ACCESS_TOKEN",
-            host="doesnotexist.1235.us-east-2.redshift-serverless.amazonaws.com",
+            method="oauth_token_identity_center",
         )
         with self.assertRaises(FailedToConnectError) as context:
             connection = self.adapter.acquire_connection("dummy")
             connection.handle
         assert (
-            "'token' field(s) are required for 'iam_idc_token' credentials method"
+            "'token_endpoint' field(s) are required for 'oauth_token_identity_center' credentials method"
             in context.exception.msg
         )
+
+    @mock.patch("redshift_connector.connect", MagicMock())
+    def test_invalid_idc_token_missing_token_endpoint_subfield(self):
+        # Successful test
+        self.config.credentials = self.config.credentials.replace(
+            method="oauth_token_identity_center",
+            token_endpoint={
+                "request_url": "https://dbtcs.oktapreview.com/oauth2/default/v1/token",
+                "idp_auth_credentials": "my_auth_creds",
+            },
+        )
+        with self.assertRaises(FailedToConnectError) as context:
+            connection = self.adapter.acquire_connection("dummy")
+            connection.handle
+        assert "okta requires token_endpoint is provided all three of" in context.exception.msg

@@ -357,7 +357,7 @@ def get_connection_method(
 
         logger.debug("Connecting to Redshift with '{credentials.method}' credentials method")
 
-        __validate_required_fields("iam_idc_token", ("token_endpoint",))
+        __validate_required_fields("oauth_token_identity_center", ("token_endpoint",))
 
         required_keys = {"request_url", "idp_auth_credentials", "request_data"}
         if required_keys - credentials.token_endpoint.keys():
