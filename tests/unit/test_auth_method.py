@@ -695,11 +695,13 @@ class TestIAMIdcToken(AuthMethod):
         )
         with self.assertRaises(requests.exceptions.HTTPError) as context:
             """
-            http says we've made it in operation to call the token request which fails
+            An http says we've made it in operation to call the token request which fails
             due to invalid refresh token and auth creds
             """
             connection = self.adapter.acquire_connection("dummy")
             connection.handle
+
+        assert "401 Client Error: Unauthorized for url" in str(context.exception)
 
     @mock.patch("redshift_connector.connect", MagicMock())
     def test_invalid_idc_token_missing_field(self):
