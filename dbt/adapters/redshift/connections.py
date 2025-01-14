@@ -466,22 +466,18 @@ class RedshiftConnectionManager(SQLConnectionManager):
 
         credentials = connection.credentials
 
-        def exponential_backoff(attempt: int):
-            return attempt * attempt
-
-        retryable_exceptions = [
+        retryable_exceptions = (
             redshift_connector.OperationalError,
             redshift_connector.DatabaseError,
             redshift_connector.DataError,
             redshift_connector.InterfaceError,
-        ]
+        )
 
         open_connection = cls.retry_connection(
             connection,
             connect=get_connection_method(credentials),
             logger=logger,
             retry_limit=credentials.retries,
-            retry_timeout=exponential_backoff,
             retryable_exceptions=retryable_exceptions,
         )
         open_connection.backend_pid = cls._get_backend_pid(open_connection)  # type: ignore
@@ -523,8 +519,18 @@ class RedshiftConnectionManager(SQLConnectionManager):
             if without_comments == "":
                 continue
 
+            retryable_exceptions = (
+                redshift_connector.InterfaceError,
+                redshift_connector.InternalError,
+            )
+
             connection, cursor = super().add_query(
-                query, auto_begin, bindings=bindings, abridge_sql_log=abridge_sql_log
+                query,
+                auto_begin,
+                bindings=bindings,
+                abridge_sql_log=abridge_sql_log,
+                retryable_exceptions=retryable_exceptions,
+                retry_limit=self.profile.credentials.retries,
             )
 
         if cursor is None:
