@@ -117,6 +117,7 @@ class TestIamIdcAuthProfileOktaIdp(AuthMethod):
             "dbname": "dev",
             "threads": 1,
             "token_endpoint": {
+                "type": "okta",
                 "request_url": "https://<subdomain>.oktapreview.com/oauth2/default/v1/token",
                 "idp_auth_credentials": "<base64 creds>",
                 "request_data": "grant_type=refresh_token&redirect_uri=<encoded redirect uri>&refresh_token=<a refresh token>",

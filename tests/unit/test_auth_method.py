@@ -679,7 +679,7 @@ class TestIAMIdcBrowser(AuthMethod):
 
 class TestIAMIdcToken(AuthMethod):
     @mock.patch("redshift_connector.connect", MagicMock())
-    def test_profile_idc_token_all_required_fields(self):
+    def test_profile_idc_token_all_required_fields_okta(self):
         """This test doesn't follow the idiom elsewhere in this file because we
         a real test would need a valid refresh token which would require a valid
         authorization request, neither of which are possible in automated testing at
@@ -688,6 +688,7 @@ class TestIAMIdcToken(AuthMethod):
         self.config.credentials = self.config.credentials.replace(
             method="oauth_token_identity_center",
             token_endpoint={
+                "type": "okta",
                 "request_url": "https://dbtcs.oktapreview.com/oauth2/default/v1/token",
                 "idp_auth_credentials": "my_auth_creds",
                 "request_data": "grant_type=refresh_token&redirect_uri=http%3A%2F%2Flocalhost%3A8080%2Flogin%2Foauth2%2Fcode%2Fokta&refresh_token=my_token",
@@ -704,6 +705,31 @@ class TestIAMIdcToken(AuthMethod):
         assert "401 Client Error: Unauthorized for url" in str(context.exception)
 
     @mock.patch("redshift_connector.connect", MagicMock())
+    def test_profile_idc_token_all_required_fields_entra(self):
+        """This test doesn't follow the idiom elsewhere in this file because we
+        a real test would need a valid refresh token which would require a valid
+        authorization request, neither of which are possible in automated testing at
+        merge. This is a surrogate test.
+        """
+        self.config.credentials = self.config.credentials.replace(
+            method="oauth_token_identity_center",
+            token_endpoint={
+                "type": "entra",
+                "request_url": "https://login.microsoftonline.com/my_tenant/oauth2/v2.0/token",
+                "request_data": "my_data",
+            },
+        )
+        with self.assertRaises(requests.exceptions.HTTPError) as context:
+            """
+            An http says we've made it in operation to call the token request which fails
+            due to invalid refresh token and auth creds
+            """
+            connection = self.adapter.acquire_connection("dummy")
+            connection.handle
+
+        assert "400 Client Error: Bad Request for url" in str(context.exception)
+
+    @mock.patch("redshift_connector.connect", MagicMock())
     def test_invalid_idc_token_missing_field(self):
         # Successful test
         self.config.credentials = self.config.credentials.replace(
@@ -718,16 +744,44 @@ class TestIAMIdcToken(AuthMethod):
         )
 
     @mock.patch("redshift_connector.connect", MagicMock())
-    def test_invalid_idc_token_missing_token_endpoint_subfield(self):
+    def test_invalid_idc_token_missing_token_endpoint_subfield_okta(self):
         # Successful test
         self.config.credentials = self.config.credentials.replace(
             method="oauth_token_identity_center",
             token_endpoint={
-                "request_url": "https://dbtcs.oktapreview.com/oauth2/default/v1/token",
+                "type": "okta",
+                "request_data": "my_data",
                 "idp_auth_credentials": "my_auth_creds",
             },
         )
         with self.assertRaises(FailedToConnectError) as context:
             connection = self.adapter.acquire_connection("dummy")
             connection.handle
-        assert "okta requires token_endpoint is provided all three of" in context.exception.msg
+        assert "Missing required key in token_endpoint: 'request_url'" in context.exception.msg
+
+    @mock.patch("redshift_connector.connect", MagicMock())
+    def test_invalid_idc_token_missing_token_endpoint_subfield_entra(self):
+        # Successful test
+        self.config.credentials = self.config.credentials.replace(
+            method="oauth_token_identity_center",
+            token_endpoint={
+                "type": "entra",
+                "request_url": "https://dbtcs.oktapreview.com/oauth2/default/v1/token",
+            },
+        )
+        with self.assertRaises(FailedToConnectError) as context:
+            connection = self.adapter.acquire_connection("dummy")
+            connection.handle
+        assert "Missing required key in token_endpoint: 'request_data'" in context.exception.msg
+
+    @mock.patch("redshift_connector.connect", MagicMock())
+    def test_invalid_idc_token_missing_token_endpoint_type(self):
+        # Successful test
+        self.config.credentials = self.config.credentials.replace(
+            method="oauth_token_identity_center",
+            token_endpoint={},
+        )
+        with self.assertRaises(FailedToConnectError) as context:
+            connection = self.adapter.acquire_connection("dummy")
+            connection.handle
+        assert "Missing required key in token_endpoint: 'type'" in context.exception.msg

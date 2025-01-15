@@ -1,6 +1,5 @@
 import re
 import redshift_connector
-import requests
 import sqlparse
 
 from multiprocessing import Lock
@@ -14,6 +13,7 @@ from redshift_connector.utils.oids import get_datatype_name
 from dbt.adapters.sql import SQLConnectionManager
 from dbt.adapters.contracts.connection import AdapterResponse, Connection, Credentials
 from dbt.adapters.events.logging import AdapterLogger
+from dbt.adapters.redshift.auth_providers import create_token_service_client
 from dbt_common.contracts.util import Replaceable
 from dbt_common.dataclass_schema import dbtClassMixin, StrEnum, ValidationError
 from dbt_common.helper_types import Port
@@ -337,51 +337,12 @@ def get_connection_method(
         tested or is supported but can be added with a presenting use-case.
         """
 
-        def handle_response(response):
-            """
-            Rate limiting of access_token generation has been called out during refinement
-            and could require special handling, so this method exists to encapsulate that
-            code with an eye towards future handling. All other failures are thrown as
-            normal request failures.
-            """
-            # Handle the 429 rate-limiting case first
-            if response.status_code == 429:
-                raise DbtRuntimeError(
-                    "Rate limit on identity provider's token dispatch has been reached. "
-                    "Consider increasing your identity provider's refresh token rate or "
-                    "lower dbt's maximum concurrent thread count."
-                )
-
-            # Raise for any other non-success status codes (4xx, 5xx)
-            response.raise_for_status()
-
         logger.debug("Connecting to Redshift with '{credentials.method}' credentials method")
 
         __validate_required_fields("oauth_token_identity_center", ("token_endpoint",))
 
-        required_keys = {"request_url", "idp_auth_credentials", "request_data"}
-        if required_keys - credentials.token_endpoint.keys():
-            raise FailedToConnectError(
-                "okta requires token_endpoint is provided all three of: \n"
-                "  (1) request_url - the endpoint\n"
-                "  (2) idp_auth_credentials - the base64 encoding of okta client's client_id:client_secret\n"
-                "  (3) request_data field with all necessary parameters in http friendly encoding including refresh_token\n"
-            )
-
-        encoded_idp_client_creds = credentials.token_endpoint["idp_auth_credentials"]
-
-        headers = {
-            "accept": "application/json",
-            "authorization": f"Basic {encoded_idp_client_creds}",
-            "content-type": "application/x-www-form-urlencoded",
-        }
-
-        response = requests.post(
-            credentials.token_endpoint["request_url"],
-            headers=headers,
-            data=credentials.token_endpoint["request_data"],
-        )
-        handle_response(response)
+        token_endpoint = create_token_service_client(credentials.token_endpoint)
+        response = token_endpoint.handle_request()
 
         return __iam_kwargs(credentials) | {
             "credentials_provider": "IdpTokenAuthPlugin",
