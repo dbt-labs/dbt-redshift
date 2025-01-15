@@ -340,12 +340,18 @@ def get_connection_method(
 
         __validate_required_fields("oauth_token_identity_center", ("token_endpoint",))
 
-        token_endpoint = create_token_service_client(credentials.token_endpoint)
-        response = token_endpoint.handle_request()
+        token_service = create_token_service_client(credentials.token_endpoint)
+        response = token_service.handle_request()
+        try:
+            access_token = response.json()["access_token"]
+        except KeyError:
+            raise FailedToConnectError(
+                "access_token missing from Idp token request. Please confirm correct configuration of the token_endpoint field in profiles.yml and that your Idp can use a refresh token to obtain an OIDC-compliant access token."
+            )
 
         return __iam_kwargs(credentials) | {
             "credentials_provider": "IdpTokenAuthPlugin",
-            "token": response.json()["access_token"],
+            "token": access_token,
             "token_type": "EXT_JWT",
         }
 
