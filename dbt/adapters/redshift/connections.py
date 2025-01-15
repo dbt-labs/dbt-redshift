@@ -329,12 +329,11 @@ def get_connection_method(
 
     def __iam_idc_token_kwargs(credentials) -> Dict[str, Any]:
         """
-        Expand the logic and flow control here to account for other Identity providers
-        with their specific request configurations. May require new parameters for
-        token_endpoint extraction to distinguish idp's if the url is insufficient.
+        Accepts a `credentials` object with a `token_endpoint` field that corresponds to
+        either Okta or Entra authentication services.
 
         We only support token_type=EXT_JWT tokens. token_type=ACCESS_TOKEN has not been
-        tested or is supported but can be added with a presenting use-case.
+        tested. It can be added with a presenting use-case.
         """
 
         logger.debug("Connecting to Redshift with '{credentials.method}' credentials method")
