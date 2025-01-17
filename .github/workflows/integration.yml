@@ -132,23 +132,11 @@ jobs:
           DBT_TEST_USER_3: dbt_test_user_3
         run: tox -- -m "not flaky" --ddtrace
 
-      - uses: actions/upload-artifact@v3
-        if: always()
-        with:
-          name: logs
-          path: ./logs
-
       - name: Get current date
         if: always()
         id: date
         run: |
           echo "date=$(date +'%Y-%m-%dT%H_%M_%S')" >> $GITHUB_OUTPUT #no colons allowed for artifacts
-
-      - uses: actions/upload-artifact@v3
-        if: always()
-        with:
-          name: integration_results_${{ matrix.python-version }}_${{ matrix.os }}_redshift-${{ steps.date.outputs.date }}.csv
-          path: integration_results.csv
 
   test-flaky:
     name: redshift / python ${{ matrix.python-version }} / ubuntu-22.04 - flaky
