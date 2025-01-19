@@ -119,11 +119,6 @@ jobs:
           if [[ "$(ls -lh dist/)" == *"a1"* ]]; then export is_alpha=1; fi
           echo "is_alpha=$is_alpha" >> $GITHUB_OUTPUT
 
-      - uses: actions/upload-artifact@v3
-        with:
-          name: dist
-          path: dist/
-
   test-build:
     name: verify packages / python ${{ matrix.python-version }} / ${{ matrix.os }}
 
@@ -149,11 +144,6 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
-
-      - uses: actions/download-artifact@v3
-        with:
-          name: dist
-          path: dist/
 
       - name: Show distributions
         run: ls -lh dist/
