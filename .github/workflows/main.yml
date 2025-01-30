@@ -129,6 +129,8 @@ jobs:
           python -m pip install --user --upgrade pip
           python -m pip install --upgrade setuptools wheel twine check-wheel-contents
           python -m pip --version
+      - if: matrix.os == 'macos-14'
+        run: brew install postgresql@14
       - run: ./scripts/build-dist.sh
       - run: ls -lh dist/
       - run: twine check dist/*
