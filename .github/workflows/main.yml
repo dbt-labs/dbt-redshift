@@ -90,44 +90,10 @@ jobs:
       is_alpha: ${{ steps.check-is-alpha.outputs.is_alpha }}
 
     steps:
-      - name: Check out the repository
-        uses: actions/checkout@v4
-        with:
-          persist-credentials: false
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.9'
-
-      - name: Install python dependencies
-        uses: pypa/hatch@install
-
-      - name: Build distributions
-        run: hatch build
-
-      - name: Show distributions
-        run: ls -lh dist/
-
-      - name: Check distribution descriptions
-        run: hatch run build:check-all
-
-      - name: Check if this is an alpha version
-        id: check-is-alpha
-        run: |
-          export is_alpha=0
-          if [[ "$(ls -lh dist/)" == *"a1"* ]]; then export is_alpha=1; fi
-          echo "is_alpha=$is_alpha" >> $GITHUB_OUTPUT
 
   test-build:
     name: verify packages / python ${{ matrix.python-version }} / ${{ matrix.os }}
-
-    if: needs.build.outputs.is_alpha == 0
-
-    needs: build
-
     runs-on: ${{ matrix.os }}
-
     strategy:
       fail-fast: false
       matrix:
@@ -138,20 +104,25 @@ jobs:
           # psycopg2-binary doesn't have a precompiled wheel for python 3.9 for mac
           - os: macos-14
             python-version: '3.9'
-
     steps:
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
-
-      - name: Show distributions
-        run: ls -lh dist/
-
+      - uses: pypa/hatch@install
+      - run: hatch build
+      - run: ls -lh dist/
+      - run: hatch run build:check-all
+      - id: check-is-alpha
+        run: |
+          export is_alpha=0
+          if [[ "$(ls -lh dist/)" == *"a1"* ]]; then export is_alpha=1; fi
+          echo "is_alpha=$is_alpha" >> $GITHUB_OUTPUT
       - name: Install ${{ matrix.dist-type }} distributions
-        run: |
-          find ./dist/*.${{ matrix.dist-type }} -maxdepth 1 -type f | xargs python -m pip install --force-reinstall --find-links=dist/
-
+        if: ${{ steps.check-is-alpha.outputs.is_alpha == 0 }}
+        run: find ./dist/*.${{ matrix.dist-type }} -maxdepth 1 -type f | xargs python -m pip install --force-reinstall --find-links=dist/
       - name: Check ${{ matrix.dist-type }} distributions
-        run: |
-          python -c "import dbt.adapters.bigquery"
+        if: ${{ steps.check-is-alpha.outputs.is_alpha == 0 }}
+        run: python -c "import dbt.adapters.bigquery"
