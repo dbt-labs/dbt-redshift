@@ -1,17 +1,19 @@
 import re
+import redshift_connector
+import sqlparse
+
 from multiprocessing import Lock
 from contextlib import contextmanager
 from typing import Any, Callable, Dict, Tuple, Union, Optional, List, TYPE_CHECKING
 from dataclasses import dataclass, field
 
-import sqlparse
-import redshift_connector
 from dbt.adapters.exceptions import FailedToConnectError
 from redshift_connector.utils.oids import get_datatype_name
 
 from dbt.adapters.sql import SQLConnectionManager
 from dbt.adapters.contracts.connection import AdapterResponse, Connection, Credentials
 from dbt.adapters.events.logging import AdapterLogger
+from dbt.adapters.redshift.auth_providers import create_token_service_client
 from dbt_common.contracts.util import Replaceable
 from dbt_common.dataclass_schema import dbtClassMixin, StrEnum, ValidationError
 from dbt_common.helper_types import Port
@@ -37,20 +39,16 @@ class SSLConfigError(CompilationError):
 logger = AdapterLogger("Redshift")
 
 
-class IdentityCenterTokenType(StrEnum):
-    ACCESS_TOKEN = "ACCESS_TOKEN"
-    EXT_JWT = "EXT_JWT"
-
-
 class RedshiftConnectionMethod(StrEnum):
     DATABASE = "database"
     IAM = "iam"
     IAM_ROLE = "iam_role"
     IAM_IDENTITY_CENTER_BROWSER = "browser_identity_center"
+    IAM_IDENTITY_CENTER_TOKEN = "oauth_token_identity_center"
 
     @classmethod
     def uses_identity_center(cls, method: str) -> bool:
-        return method in (cls.IAM_IDENTITY_CENTER_BROWSER,)
+        return method in (cls.IAM_IDENTITY_CENTER_BROWSER, cls.IAM_IDENTITY_CENTER_TOKEN)
 
     @classmethod
     def is_iam(cls, method: str) -> bool:
@@ -152,6 +150,12 @@ class RedshiftCredentials(Credentials):
     idp_listen_port: Optional[int] = 7890
     idc_client_display_name: Optional[str] = "Amazon Redshift driver"
     idp_response_timeout: Optional[int] = None
+
+    # token_endpoint
+    #   a field that we expect to be a dictionary of values used to create
+    #   access tokens from an external identity provider integrated with a redshift
+    #   and aws org or account Iam Idc instance
+    token_endpoint: Optional[Dict[str, str]] = None
 
     _ALIASES = {"dbname": "database", "pass": "password"}
 
@@ -323,6 +327,34 @@ def get_connection_method(
 
         return __iam_kwargs(credentials) | idc_kwargs
 
+    def __iam_idc_token_kwargs(credentials) -> Dict[str, Any]:
+        """
+        Accepts a `credentials` object with a `token_endpoint` field that corresponds to
+        either Okta or Entra authentication services.
+
+        We only support token_type=EXT_JWT tokens. token_type=ACCESS_TOKEN has not been
+        tested. It can be added with a presenting use-case.
+        """
+
+        logger.debug("Connecting to Redshift with '{credentials.method}' credentials method")
+
+        __validate_required_fields("oauth_token_identity_center", ("token_endpoint",))
+
+        token_service = create_token_service_client(credentials.token_endpoint)
+        response = token_service.handle_request()
+        try:
+            access_token = response.json()["access_token"]
+        except KeyError:
+            raise FailedToConnectError(
+                "access_token missing from Idp token request. Please confirm correct configuration of the token_endpoint field in profiles.yml and that your Idp can use a refresh token to obtain an OIDC-compliant access token."
+            )
+
+        return __iam_kwargs(credentials) | {
+            "credentials_provider": "IdpTokenAuthPlugin",
+            "token": access_token,
+            "token_type": "EXT_JWT",
+        }
+
     #
     # Head of function execution
     #
@@ -333,6 +365,7 @@ def get_connection_method(
         RedshiftConnectionMethod.IAM: __iam_user_kwargs,
         RedshiftConnectionMethod.IAM_ROLE: __iam_role_kwargs,
         RedshiftConnectionMethod.IAM_IDENTITY_CENTER_BROWSER: __iam_idc_browser_kwargs,
+        RedshiftConnectionMethod.IAM_IDENTITY_CENTER_TOKEN: __iam_idc_token_kwargs,
     }
 
     try:
@@ -439,22 +472,18 @@ class RedshiftConnectionManager(SQLConnectionManager):
 
         credentials = connection.credentials
 
-        def exponential_backoff(attempt: int):
-            return attempt * attempt
-
-        retryable_exceptions = [
+        retryable_exceptions = (
             redshift_connector.OperationalError,
             redshift_connector.DatabaseError,
             redshift_connector.DataError,
             redshift_connector.InterfaceError,
-        ]
+        )
 
         open_connection = cls.retry_connection(
             connection,
             connect=get_connection_method(credentials),
             logger=logger,
             retry_limit=credentials.retries,
-            retry_timeout=exponential_backoff,
             retryable_exceptions=retryable_exceptions,
         )
         open_connection.backend_pid = cls._get_backend_pid(open_connection)  # type: ignore
@@ -496,8 +525,18 @@ class RedshiftConnectionManager(SQLConnectionManager):
             if without_comments == "":
                 continue
 
+            retryable_exceptions = (
+                redshift_connector.InterfaceError,
+                redshift_connector.InternalError,
+            )
+
             connection, cursor = super().add_query(
-                query, auto_begin, bindings=bindings, abridge_sql_log=abridge_sql_log
+                query,
+                auto_begin,
+                bindings=bindings,
+                abridge_sql_log=abridge_sql_log,
+                retryable_exceptions=retryable_exceptions,
+                retry_limit=self.profile.credentials.retries,
             )
 
         if cursor is None:
