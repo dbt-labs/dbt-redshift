@@ -1,6 +1,10 @@
 
 {% macro dist(dist) %}
   {%- if dist is not none -%}
+      {%- if dist is iterable or dist is mapping and (dist is not string) -%}
+        {% do exceptions.raise_compiler_error("Expected a single valued property for dist and got: " ~ dist ~ " instead") %}
+      {%- endif -%}
+
       {%- set dist = dist.strip().lower() -%}
 
       {%- if dist in ['all', 'even'] -%}
